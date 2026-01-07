@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/myprogram.dir/link.d CMakeFiles/myprogram.dir/src/chatgpt.c.o CMakeFiles/myprogram.dir/src/helper.c.o -o myprogram

@@ -1,0 +1,223 @@
+
+
+TODO:
+
+    push to github
+        clean up READMEs
+
+    maybe do some c hackerrank
+
+BACKLOG:
+
+    test logging_utils on android SDL app once you've learned SDL
+        apparently SDL has its own logging?
+            i might need to make my _log_print return a string and put it inside it?
+                or maybe a macro that takes a string and puts it in the SDL logger print call?
+            or maybe this?
+                SDL_LogSetOutputFunction(my_logger_callback, NULL);
+
+    create examples for postgres and an n-dimensional GSL table
+
+
+USAGE:
+
+    linux/mac:
+
+        CREATE NEW PROJECT (FOLDER STRUCTURE):
+            cmds:
+                mkdir <project_dir_name>
+                cd <project_dir_name>
+                mkdir include src tests external
+                touch CMakeLists.txt src/filename.c include/filename.h
+                # copy template below into CMakeLists.txt file:
+                    cmake_minimum_required(VERSION 3.20)
+
+                    project(string_utils C)
+
+                    # Use a modern C standard
+                    set(CMAKE_C_STANDARD 99)
+                    set(CMAKE_C_STANDARD_REQUIRED ON)
+                    set(CMAKE_C_EXTENSIONS OFF)
+
+                    # Warnings (good defaults)
+                    add_compile_options(-Wall -Wextra -Wpedantic)
+
+                    # ---- Library ----
+                    add_library(string_utils
+                        src/string_utils.c
+                    )
+
+                    target_include_directories(string_utils
+                        PUBLIC
+                            ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    )
+
+                    # ---- Test executable ----
+                    add_executable(string_utils_test
+                        tests/main.c
+                    )
+
+                    target_link_libraries(string_utils_test
+                        PRIVATE string_utils
+                    )
+
+                    # ---- Optional: make `make test` work later ----
+                    enable_testing()
+                    add_test(NAME string_utils_basic_test COMMAND string_utils_test)
+                # ... create .c and .h files ...
+
+        BUILD:
+            option 1: use gcc cmd:
+                cmd: gcc filename.c # produces a.out executable file
+                cmd: gcc filename.c -o b.out # produces b.out executable file
+                cmd: gcc -Wall filename.c # Compile with all warnings to catch potential issues
+                cmd: gcc -Wextra filename.c # enable extra warning messages beyond the standard set from -Wall
+                cmd: gcc -g filename.c # If you compile without -g, gdb can still run the program, but you only see memory addresses, not source code lines, and variable names are not available
+                    then running cmd: gdb ./a.out
+                        you can:
+                            break main         # set a breakpoint at main
+                            run                # start program
+                            print variable     # inspect variables
+                            next / step        # step through code line by line
+                            backtrace          # see function call stack
+
+                derek banas cmd (from project root dir):
+                    gcc -Wall -Wextra -lm src/derek_banas.c -o build/derek_banas
+
+            option 2: use make file:
+                run cmd "make" (from directory w/ a Makefile, usually the project root dir) - this compiles the executable defined in the Makefile (see example Makefile for how). Makefiles are used to only re-build the part of your program that has changed, so it compiles faster.
+                If you want to build the whole executable again from scratch then run cmd "make clean" and then "make" again.
+
+            option 3: use cmake cmd:
+                CMake is a build system generator. Unlike make, it doesn’t build directly; instead, it generates Makefiles (or other build system files like Ninja or Visual Studio project files) based on a CMakeLists.txt configuration file (typically stored in the project root directory)
+
+                run cmd: "cmake -S . -B build" from the directory with the CMakeLists.txt file
+                    -S source directory
+                    -B output build directory. CMake generates a Makefile inside build/ (or other build system files depending on your generator)
+                then run the generated Makefile w/ cmds:
+                    cd build
+                    make
+
+                cmake is cross platform, while make is only for unix-like systems
+
+        RUN:
+            option 1:
+                run the executable w/ cmd:
+                    ./executable_filename
+                    example:
+                        ./a.out
+
+    windows:
+
+        SETUP:
+
+            winget install Kitware.CMake # install cmake
+            cmake --version # restart powershell and check version
+            # NOTE: I was originally using the MSVC compiler, but MSVC doesn't support all of C99's features (some of which i used in my logging library), so im using LLVM (aka clang) instead
+			# LLVM installed from: https://llvm.org/builds/
+            # i selected the "add to system path for current user option" in the installer guide
+            winget install Ninja-build.Ninja # install ninja
+            ninja --version
+
+        BUILD:
+            cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang # from project root dir
+            cmake --build build
+
+        RUN:
+            cd .\build\
+            .\log_utils_test.exe
+
+        CREATE NEW PROJECT (FOLDER STRUCTURE):
+            same as linux/mac
+
+    android:
+        tbd
+
+    iOS:
+        tbd
+
+
+STANDARD C PROJECT DIRECTORY STRUCTURE (built manually w/ mkdir):
+
+    MyProject/
+    ├── CMakeLists.txt        # Root CMake configuration
+    ├── src/                  # Source files
+    │   ├── main.c
+    │   ├── helper.c
+    │   └── CMakeLists.txt    # Optional: for building src as a separate target
+    ├── include/              # Header files
+    │   └── helper.h
+    ├── build/                # Build directory (created by cmake)
+    ├── tests/                # Unit tests
+    │   ├── test_main.c
+    │   └── CMakeLists.txt
+    ├── docs/                 # Documentation (optional)
+    └── README.md             # Project info
+
+
+SOURCES:
+
+    Derek Banas C Video Tutorial
+        1 https://www.youtube.com/watch?v=nXvy5900m3M
+        2 https://www.youtube.com/watch?v=6uIc4PtB9BM
+        ...
+        15 https://www.youtube.com/watch?v=fqKiL03afUA
+
+
+TABLE DATA STRUCTURE OPTIONS:
+
+    SQLite (embedded SQL database)
+        - no server required (data is stored in a local .db file, persistent after program exit)
+        - lightweight
+        - crossplatform (works on Windows, Linux, macOS, mobile)
+        - basic SQL features: joins, filtering, sorting, aggregation, etc. but doesn't have the advanced SQL features postgres has
+        - not distributed, can’t scale across multiple machines like postgres
+        - multiple readers, single writer (can be a bottleneck for heavy writes)
+
+    PostgreSQL (client-server SQL database)
+        - full-fledged client-server RDBMS: supports multiple users, transactions, and high concurrency
+        - advanced SQL features: window functions, stored procedures, JSON/JSONB, full-text search
+
+    Raw 3D C arrays (in-memory multidimensional arrays)
+        - N-dimensional
+        - in program memory, so fastest option to read/write
+        - fastest read/writes
+
+    Multi-dimensional C libraries:
+        - N-dimensional
+        - in program memory, so fastest option to read/write
+        - Top 3 most popular C Libraries for N-Dimensional data:
+
+            1. BLAS (via OpenBLAS)
+                It does dense vector & matrix math (dot products, matrix multiply, etc.)
+                Almost all scientific software ultimately relies on BLAS.
+                Its performance is extremely optimized (SIMD, cache-aware, multithreaded)
+
+            2. LAPACK
+                It does matrix decompositions, eigenvalues, solving linear systems.
+                Also built on BLAS
+
+            3. GSL (GNU Scientific Library)
+                It does vectors, matrices, N-D arrays, FFTs, random numbers, ODE solvers
+                Scope: Broad scientific toolkit
+                Its slower than BLAS for raw math, but far more general
+
+            | Library  | Speed   | Scope                      |
+            | -------- | ------- | -------------------------- |
+            | GSL      | fast    | Broad scientific computing |
+            | LAPACK   | faster  | Advanced linear algebra    |
+            | OpenBLAS | fastest | Linear algebra only        |
+
+    Best Use Cases:
+        Need in-memory speed, fixed-size data, no data persistence?
+            Use raw C arrays
+        Need N-Dimensional data or optimized matrix calculations?
+            Use a Multi-dimensional C library, such as GSL
+        Need data persistence, simple local app, easy SQL?
+            Use SQLite
+        Need data persistence, centralized network multi-user database access with advanced SQL?
+            Use PostgreSQL
+
+    See files table_struct.c and sqlite.c for examples implemented so far.
+
+
