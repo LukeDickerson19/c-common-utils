@@ -19,6 +19,12 @@
         - give the map ownership of the data (aka let the map handle the allocating and freeing of the map values' memory) as is done here. btw this code could be optimized further to pass an int and a string to map_put() instead of a MapValue so the called doesn't need to create/free MapValues themselves. Right now its duplicating the MapValues which is probably a bad idea.
         - give the caller of the map functions ownership/responsibility of the map values' data by just giving the map entry a pointer
 
+    many C programmers seem to prefer to build hashmaps themselves:
+    https://www.reddit.com/r/C_Programming/comments/1mztfc0/what_hashmap_library_do_you_use_for_your_projects/
+
+    Hashtable lib Performance Comparison:
+    https://jacksonallan.github.io/c_cpp_hash_tables_benchmark/
+
 */
 
 /* value stored in the hash map */

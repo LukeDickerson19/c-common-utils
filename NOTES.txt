@@ -215,6 +215,8 @@ TABLE DATA STRUCTURE OPTIONS:
             Use a Multi-dimensional C library, such as GSL
         Need data persistence, simple local app, easy SQL?
             Use SQLite
+                SQLite vs Postgres for a local database
+                https://news.ycombinator.com/item?id=32676455
         Need data persistence, centralized network multi-user database access with advanced SQL?
             Use PostgreSQL
 
