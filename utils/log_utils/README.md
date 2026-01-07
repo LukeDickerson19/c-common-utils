@@ -12,14 +12,14 @@
 > - Optional overwrite of the previously printed log message
 > 
 > Traditional log levels (INFO, ERROR, etc.) are currently not yet implemented.
-> This project is a rewrite of a previous Python logging util.
+> This project is a rewrite of a previous [Python logging util](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging).
 > 
 > Tested on:
 > - Linux   (on Manjaro v25.0.10, x86_64 using gcc)
 > - Windows (on Windows 11, x86_64 using clang/LLVM)
 
 #### USAGE
-Below is an example usage. The tests/main.c file shows how to use this util's features more thoroughly.
+Below is an example usage. The tests/main.c file shows more thoroughly how to use this util's features.
 ```
 #include "log_utils.h"
 
