@@ -12,6 +12,10 @@
 
         needs the -lsqlite3 arg!
 
+    docs:
+        https://www.sqlite.org/c3ref/intro.html
+        https://sqlite.org/cintro.html
+
 */
 
 // Arena allocator (fixed-size, assert on overflow)

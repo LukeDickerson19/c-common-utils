@@ -39,7 +39,7 @@
 char BASE_DIR[PATH_MAX_CHARS];
 
 
-Log lg = DEFAULT_LOG;
+Log *logger;
 
 
 void get_full_base_dir(void) {
@@ -71,54 +71,54 @@ void get_full_base_dir(void) {
 }
 
 void test_print() {
-	PRINT(&lg, "\ntest_print():");
+	PRINT(logger, "\ntest_print():");
 
 	// test num_indents and multi line indentation
-	PRINT(&lg, "a", .i=0);
-	PRINT(&lg, "b", .i=1);
-	PRINT(&lg, "c", .i=2);
-	PRINT(&lg, "d", .i=3);
-	PRINT(&lg, "e", .i=4);
-	PRINT(&lg, "indented\nmulti\nline\nstring", .i=5);
-	PRINT(&lg, FMT("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+	PRINT(logger, "a", .i=0);
+	PRINT(logger, "b", .i=1);
+	PRINT(logger, "c", .i=2);
+	PRINT(logger, "d", .i=3);
+	PRINT(logger, "e", .i=4);
+	PRINT(logger, "indented\nmulti\nline\nstring", .i=5);
+	PRINT(logger, FMT("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 
-	// test new line start
-	PRINT(&lg, "new line start = true, draw line = false", .i=1, .ns=true);
-	PRINT(&lg, "new line start = true, draw line = true", .i=1, .ns=true, .d=true);
-	PRINT(&lg, "new line start = false", .i=1, .ns=false);
+    // test new line start
+	PRINT(logger, "new line start = true, draw line = false", .i=1, .ns=true);
+	PRINT(logger, "new line start = true, draw line = true", .i=1, .ns=true, .d=true);
+	PRINT(logger, "new line start = false", .i=1, .ns=false);
 
 	// test new line end
-	PRINT(&lg, "new line end = true, draw line = false", .i=1, .ne=true);
-	PRINT(&lg, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
-	PRINT(&lg, "new line end = false", .i=1, .ne=false);
+	PRINT(logger, "new line end = true, draw line = false", .i=1, .ne=true);
+	PRINT(logger, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
+	PRINT(logger, "new line end = false", .i=1, .ne=false);
 
 	// test prepend datetime
-    lg.prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
-    lg.timezone = "local"; // valid options: "UTC", "local"
-	PRINT(&lg, "testing single line prepend_datetime_fmt", .ns=true);
-	PRINT(&lg, "testing\nmulti\nline\nprepend_datetime_fmt");
-	PRINT(&lg, "testing single line indented prepend_datetime_fmt", .i=1);
+    logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
+    logger->timezone = "local"; // valid options: "UTC", "local"
+	PRINT(logger, "testing single line prepend_datetime_fmt", .ns=true);
+	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt");
+	PRINT(logger, "testing single line indented prepend_datetime_fmt", .i=1);
 
 	// test prepend memory usage
-    lg.prepend_datetime_fmt = NULL;
-    lg.prepend_memory_usage = true;
-	PRINT(&lg, "testing single line prepend_memory_usage", .ns=true);
-	PRINT(&lg, "testing\nmulti\nline\nprepend_memory_usage");
-	PRINT(&lg, "testing single line indented prepend_memory_usage", .i=1);
+    logger->prepend_datetime_fmt = NULL;
+    logger->prepend_memory_usage = true;
+	PRINT(logger, "testing single line prepend_memory_usage", .ns=true);
+	PRINT(logger, "testing\nmulti\nline\nprepend_memory_usage");
+	PRINT(logger, "testing single line indented prepend_memory_usage", .i=1);
 
 	// test both prepend datetime and memory usage
-    lg.prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
-    lg.prepend_memory_usage = true;
-	PRINT(&lg, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
-	PRINT(&lg, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage");
-	PRINT(&lg, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=1);
-	lg.prepend_datetime_fmt = NULL;
-    lg.prepend_memory_usage = false;
+    logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_memory_usage = true;
+	PRINT(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
+	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage");
+	PRINT(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=1);
+	logger->prepend_datetime_fmt = NULL;
+    logger->prepend_memory_usage = false;
 
     // test line and message truncation
     // make sure MAX_LINE_CHARS and MAX_MESSAGE_CHARS in log_utils.h are small values for testing
-    PRINT(&lg, "Test line truncation: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50", .i=1, .ns=true);
-    PRINT(&lg, "Test message truncation:\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n", .i=1, .ns=true);
+    PRINT(logger, "Test line truncation: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50", .i=1, .ns=true);
+    PRINT(logger, "Test message truncation:\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n", .i=1, .ns=true);
 }
 
 cJSON *create_example_json(void) {
@@ -265,7 +265,7 @@ int write_json_file(cJSON *json, const char *filepath) {
 }
 
 void test_print_json() {
-	PRINT(&lg, "\ntest_print_json():");
+	PRINT(logger, "\ntest_print_json():");
 
 	// json object struct members:
 	// https://github.com/DaveGamble/cJSON/tree/v1.7.19?tab=readme-ov-file#data-structure
@@ -289,20 +289,20 @@ void test_print_json() {
 	
 	*/
 
-	PRINT(&lg, "\nExample 1:", .i=1);
+	PRINT(logger, "\nExample 1:", .i=1);
 	cJSON *example_json = create_example_json();
 	// char *json_string = cJSON_Print(example_json);
 	char json_string[1024]; // 1 KB buffer
 	if (cJSON_PrintPreallocated(example_json, json_string, sizeof(json_string), cJSON_False) != 1) {
 		fprintf(stderr, "Failed to print json_string.\n");
 	} else {
-		PRINT(&lg, json_string, .i=2);
+		PRINT(logger, json_string, .i=2);
 	}
 	cJSON_Delete(example_json);
 	// free(json_string);
 
     // json file read/write example
-	PRINT(&lg, "\nExample 2:", .i=1);
+	PRINT(logger, "\nExample 2:", .i=1);
 	char *filename = "json_example.json";
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
@@ -311,102 +311,102 @@ void test_print_json() {
     cJSON_AddItemToArray(langs, cJSON_CreateString("C"));
     cJSON_AddItemToArray(langs, cJSON_CreateString("Python"));
 	if (write_json_file(root, filename) != 0) {
-        PRINT(&lg, "Failed to write JSON\n");
+        PRINT(logger, "Failed to write JSON\n");
     }
     cJSON_Delete(root);
     cJSON *loaded = read_json_file(filename);
     if (!loaded) {
-        PRINT(&lg, "Failed to read JSON\n");
+        PRINT(logger, "Failed to read JSON\n");
         return;
     }
 	char *loaded_string = cJSON_Print(loaded);
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
-	PRINT(&lg, loaded_string, .i=2);
+	PRINT(logger, loaded_string, .i=2);
     if (cJSON_IsString(name))
-        PRINT(&lg, FMT("name = %s", name->valuestring), .i=2);
+        PRINT(logger, FMT("name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
-        PRINT(&lg, FMT("age = %d", age->valueint), .i=2);
+        PRINT(logger, FMT("age = %d", age->valueint), .i=2);
     cJSON_Delete(loaded);
 	free(loaded_string);
 
 }
 
 void test_overwrite_prev_print() {
-	PRINT(&lg, "\ntest_overwrite_prev_print():");
+	PRINT(logger, "\ntest_overwrite_prev_print():");
 
     int sleep_time = 1; // seconds
     int i = 1;
 
     // new text has shorter lines
-	PRINT(&lg, "aaaa", .i=i, .overwrite_prev_print=false);
+	PRINT(logger, "aaaa", .i=i, .overwrite_prev_print=false);
 	sleep(sleep_time);
-	PRINT(&lg, "bbb", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "bbb", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "cc", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "cc", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "d", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "d", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "", .i=0, .overwrite_prev_print=true);
+	PRINT(logger, "", .i=0, .overwrite_prev_print=true);
 	sleep(sleep_time);
 
     // new text has longer lines
-	PRINT(&lg, "a", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "a", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "bb", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "bb", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "ccc", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "ccc", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "dddd", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "dddd", .i=i, .overwrite_prev_print=true);
 	sleep(sleep_time);
-	PRINT(&lg, "", .i=0, .overwrite_prev_print=true);
+	PRINT(logger, "", .i=0, .overwrite_prev_print=true);
 	sleep(sleep_time);
 
     // new text has more lines
-    PRINT(&lg, "a", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "a", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "b\nb", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "b\nb", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "c\nc\nc", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "c\nc\nc", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "d\nd\nd\nd", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "d\nd\nd\nd", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "", .i=0, .end="", .overwrite_prev_print=true);
+    PRINT(logger, "", .i=0, .end="", .overwrite_prev_print=true);
     sleep(sleep_time);
 
     // new text has less lines
-    PRINT(&lg, "a\na\na\na", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "a\na\na\na", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "b\nb\nb", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "b\nb\nb", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "c\nc", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "c\nc", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "d", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "d", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "", .i=0, .end="", .overwrite_prev_print=true);
+    PRINT(logger, "", .i=0, .end="", .overwrite_prev_print=true);
     sleep(sleep_time);
 
 	// verify regular log.print() works after overwrite_prev_print
-    PRINT(&lg, "a", .i=0);
-    PRINT(&lg, "b", .i=1);
-    PRINT(&lg, "c", .i=2);
-    PRINT(&lg, "d", .i=3);
-    PRINT(&lg, "e", .i=4);
-    PRINT(&lg, "indented\nmulti\nline\nstring", .i=5);
+    PRINT(logger, "a", .i=0);
+    PRINT(logger, "b", .i=1);
+    PRINT(logger, "c", .i=2);
+    PRINT(logger, "d", .i=3);
+    PRINT(logger, "e", .i=4);
+    PRINT(logger, "indented\nmulti\nline\nstring", .i=5);
 
     // verify overwrite_prev_print works after regular log.print()
-    PRINT(&lg, "test", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "test", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "overwrite_prev_print", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "overwrite_prev_print", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "after", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "after", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "regular print()", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "regular print()", .i=i, .overwrite_prev_print=true);
     sleep(sleep_time);
-    PRINT(&lg, "", .i=0, .end="", .overwrite_prev_print=true);
+    PRINT(logger, "", .i=0, .end="", .overwrite_prev_print=true);
     sleep(sleep_time);
 
-    PRINT(&lg, "test regular print() after overwrite_prev_print", .i=0, .ne=true);
+    PRINT(logger, "test regular print() after overwrite_prev_print", .i=0, .ne=true);
 
 }
 
@@ -414,23 +414,29 @@ void test_overwrite_prev_print() {
 
 int main(void) {
     get_full_base_dir();
+    char *log_filepath;
     #ifdef _WIN32
-        lg.filepath = FMT("%s\\log\\log.txt", BASE_DIR);
+        log_filepath = FMT("%s\\log\\log.txt", BASE_DIR);
     #else
-        lg.filepath = FMT("%s/log/log.txt", BASE_DIR);
+        log_filepath = FMT("%s/log/log.txt", BASE_DIR);
     #endif
-    printf("log filepath: %s\n", lg.filepath); fflush(stdout); // print immediately (no buffer)
+    printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
-    // closest i could get to setting optional args for a c struct initilization:
-    lg.output_to_console = true;
-    lg.output_to_logfile = true;
-    lg.clear_old_log = true;
-    init_log(&lg);
+    logger = INIT_LOG(
+        .filepath = log_filepath,
+        .output_to_console = true,
+        .output_to_logfile = true,
+        .clear_old_log = true
+    ); // closest i could get to setting optional args for a c struct initilization, could not pass struct pointer and return error code. if logger is NULL, then init failed
+    if (!logger) {
+        fprintf(stderr, "Failed to initialize logger.\n");
+        return -1;
+    }
 
-    // test_print();
-	// test_print_json();
-	test_overwrite_prev_print();
+    test_print();
+	test_print_json();
+	// test_overwrite_prev_print();
 
-    close_log(&lg);
+    close_log(logger);
     return 0;
 }

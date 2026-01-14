@@ -20,6 +20,10 @@
 #endif
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define LOGGING_ENABLED true // toggle logging entirely
 #define MAX_INDENTS 10 // max number of indents the user can indent a log message
@@ -27,7 +31,6 @@
 #define MAX_LINE_CHARS 1000 // max number of characters per line (must be less than MAX_MESSAGE_CHARS), tested w/ value: 150
 // #define MAX_MESSAGE_CHARS 500 // FOR TESTING PURPOSES ONLY
 // #define MAX_LINE_CHARS 150 // FOR TESTING PURPOSES ONLY
-
 
 
 typedef struct {
@@ -50,15 +53,21 @@ typedef struct {
 
 } Log;
 
-#define DEFAULT_LOG (Log) { \
+#define DEFAULT_LOG_OPTIONS \
     .filepath = NULL, .file_permissions = 0644, .file_descriptor = -1, \
     .output_to_console = true, .output_to_logfile = true, .clear_old_log = true, \
     .console_indent = "|   ", .logfile_indent = "    ", \
     .prepend_datetime_fmt = NULL, .timezone = "UTC", \
-    .prepend_memory_usage = false \
-}
-
-void init_log(Log* log);
+    .prepend_memory_usage = false
+Log *_init_log(Log *opts);
+#define INIT_LOG(...) _init_log(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
+// #define INIT_LOG(logger, ...) _init_log((logger), &(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
+// #define INIT_LOG(logger, ...) _init_log((logger), &(static Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
+// #define INIT_LOG(logger, ...) \
+//     do { \
+//         Log tmp = { DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ }; \
+//         _init_log((logger), &tmp); \
+//     } while(0)
 
 void close_log(Log *log);
 
@@ -93,18 +102,20 @@ typedef struct {
         _buffer; \
     })
 
-// macro used to swap pointers to avoid extra character copies and speed up performance
-#define PTR_SWAP(a, b) do { char *tmp = (a); (a) = (b); (b) = tmp; } while (0)
-
 int _log_print(
     Log *log,
     const char *msg,
     PrintOptions *opts);
 
 // this macro exists to simulate optional args in C
-#define PRINT(log, msg, ...) if (LOGGING_ENABLED) _log_print((log), (msg), &(PrintOptions){ DEFAULT_PRINT_OPTIONS, ##__VA_ARGS__})
+#define PRINT(logger, msg, ...) if (LOGGING_ENABLED) _log_print((logger), (msg), &(PrintOptions){ DEFAULT_PRINT_OPTIONS, ##__VA_ARGS__})
 // NOTE: __VA_ARGS__ override default print options because when they're later in the struct initialization
 // The prepended "##" characters is a GNU extension that removes the comma if __VA_ARGS__ is empty. This is widely supported but not part of the C standard.
 
+
+
+#ifdef __cplusplus
+}
 #endif
+#endif // LOG_UTILS_H
 

@@ -44,7 +44,13 @@
 #endif
 
 
-int _count_lines(const char* str) {
+
+// macro used to swap pointers to avoid extra character copies and speed up performance
+#define PTR_SWAP(a, b) do { char *tmp = (a); (a) = (b); (b) = tmp; } while (0)
+
+
+
+static int _count_lines(const char* str) {
     int count = 0;
     for (const char* p = str; *p; p++) {
         if (*p == '\n') count++;
@@ -52,7 +58,7 @@ int _count_lines(const char* str) {
     return count;
 }
 
-void console_clear_previous_message(Log *log) {
+static void _console_clear_previous_message(Log *log) {
     int line_count = _count_lines(log->prev_console_message);
 
     #if PLATFORM_WINDOWS
@@ -73,7 +79,7 @@ void console_clear_previous_message(Log *log) {
         // write(STDOUT_FILENO, "\033[K", 3);  // Clear line
 }
 
-char* _fix_utc_format(char* fmt, const char* timezone) {
+static char* _fix_utc_format(char* fmt, const char* timezone) {
     /* if "%Z" substring in prepend_datetime_fmt and timezone = "UTC", replace "%Z" with hardcoded "UTC" */
 
     if (!fmt || !timezone) return fmt;
@@ -95,52 +101,62 @@ char* _fix_utc_format(char* fmt, const char* timezone) {
     return fixed; // swap pointer, pointer swap
 }
 
-void init_log(Log* log) {
+Log *_init_log(Log *opts) {
+
+    // init default log options if none overwritten by user
+    Log *logger = malloc(sizeof(Log));
+    if (!logger) return NULL; // allocation failed
+    if (!opts)
+        opts = &(Log){ DEFAULT_LOG_OPTIONS }; // in case user calls _init_log without INIT_LOG macro
+    *logger = *opts;
+
+    if (!LOGGING_ENABLED) return logger; // return opts if logging disabled
 
     // enable ansi on windows
     #if PLATFORM_WINDOWS
         static int ansi_enabled = 0;
-        if (!ansi_enabled && log->output_to_console) {
+        if (!ansi_enabled && logger->output_to_console) {
             enable_virtual_terminal_processing();
             ansi_enabled = 1;
         }
     #endif
 
-    log->output_to_logfile = (log->filepath != NULL) ? log->output_to_logfile : false;
+    logger->output_to_logfile = (logger->filepath != NULL) ? logger->output_to_logfile : false;
 
     // create logfile if it doesn't exist, and clear it if user specified to do so
-    if (log->filepath != NULL) {
+    if (logger->filepath != NULL) {
         int flags = O_CREAT | O_WRONLY; // O_CREAT - create the file if it doesn't exist, O_WRONLY - open for writing
-        if (log->clear_old_log) flags |= O_TRUNC;
-        log->file_descriptor = open(
-            log->filepath,
+        if (logger->clear_old_log) flags |= O_TRUNC;
+        logger->file_descriptor = open(
+            logger->filepath,
             flags,
-            log->file_permissions // file permissions (ignored on non-Unix systems where defaults will be used instead)
+            logger->file_permissions // file permissions (ignored on non-Unix systems where defaults will be used instead)
         );
     }
 
     // fix weird timezone bug: if "%Z" substring in prepend_datetime_fmt
     // and timezone = "UTC", replace "%Z" with hardcoded "UTC"
-    if (log->prepend_datetime_fmt && log->timezone) {
-        char* fixed_fmt = _fix_utc_format(log->prepend_datetime_fmt, log->timezone);
+    if (logger->prepend_datetime_fmt && logger->timezone) {
+        char* fixed_fmt = _fix_utc_format(logger->prepend_datetime_fmt, logger->timezone);
         // only replace pointer if a new string was returned
-        if (fixed_fmt != log->prepend_datetime_fmt) {
+        if (fixed_fmt != logger->prepend_datetime_fmt) {
             // free old string if it was heap-allocated
             // NOTE: be careful not to free literals
             // optional: track if fmt was heap-allocated; otherwise just assign
-            log->prepend_datetime_fmt = fixed_fmt;
+            logger->prepend_datetime_fmt = fixed_fmt;
         }
     }
     // TODO: assert valid prepend_datetime_fmt
     // TODO: assert valid timezone
 
-    log->prev_console_message = NULL;
-    log->prev_logfile_message = NULL;
-    log->prev_console_message_len = 0;
-    log->prev_logfile_message_len = 0;
-    log->prev_logfile_start = -1;
-    log->prev_logfile_end   = -1;
+    logger->prev_console_message = NULL;
+    logger->prev_logfile_message = NULL;
+    logger->prev_console_message_len = 0;
+    logger->prev_logfile_message_len = 0;
+    logger->prev_logfile_start = -1;
+    logger->prev_logfile_end   = -1;
 
+    return logger;
 }
 
 void close_log(Log *log) {
@@ -150,30 +166,7 @@ void close_log(Log *log) {
     if (log->prev_logfile_message) free(log->prev_logfile_message);
 }
 
-char* _get_memory_str(size_t bytes) {
-    // converts the int number of bytes to a string with appropriate units
-    static char buffer[64];
-    const char* units[] = {"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
-    const int num_units = sizeof(units) / sizeof(units[0]);
-    double b = (double)bytes;
-    int index = 0;
-    while (b >= 1024 && index < num_units - 1) {
-        b /= 1024.0;
-        index++;
-    }
-    if (index == 0) {
-        if (bytes == 1) {
-            snprintf(buffer, sizeof(buffer), "1 byte");
-        } else {
-            snprintf(buffer, sizeof(buffer), "%zu bytes", bytes);
-        }
-    } else {
-        snprintf(buffer, sizeof(buffer), "%.4f %s", b, units[index]);
-    }
-    return buffer;
-}
-
-int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_cap, char *fmt) {
+static int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_cap, char *fmt) {
 
     // get current time down to microsecond precision
     struct tm tm_info;
@@ -239,7 +232,30 @@ int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_
     return 0;
 }
 
-int _get_process_memory_usage(char *buf, size_t buf_cap) {
+static char* _get_memory_str(size_t bytes) {
+    // converts the int number of bytes to a string with appropriate units
+    static char buffer[64];
+    const char* units[] = {"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+    const int num_units = sizeof(units) / sizeof(units[0]);
+    double b = (double)bytes;
+    int index = 0;
+    while (b >= 1024 && index < num_units - 1) {
+        b /= 1024.0;
+        index++;
+    }
+    if (index == 0) {
+        if (bytes == 1) {
+            snprintf(buffer, sizeof(buffer), "1 byte");
+        } else {
+            snprintf(buffer, sizeof(buffer), "%zu bytes", bytes);
+        }
+    } else {
+        snprintf(buffer, sizeof(buffer), "%.4f %s", b, units[index]);
+    }
+    return buffer;
+}
+
+static int _get_process_memory_usage(char *buf, size_t buf_cap) {
     if (!buf || buf_cap == 0)
         return -1;
     size_t bytes = 0;
@@ -281,15 +297,16 @@ int _get_process_memory_usage(char *buf, size_t buf_cap) {
         goto fail;
 
     #endif
-        snprintf(buf, buf_cap, "%s used  ", _get_memory_str(bytes));
-        return 0;
+
+    snprintf(buf, buf_cap, "%14s used  ", _get_memory_str(bytes));
+    return 0;
 
     fail:
     snprintf(buf, buf_cap, "%s", "Memory read error  ");
     return -1;
 }
 
-static size_t snprintf_append(char *dest, size_t dest_cap, size_t *pos, const char *fmt, ...) {
+static size_t _snprintf_append(char *dest, size_t dest_cap, size_t *pos, const char *fmt, ...) {
     // Append src string (formatted) to dest buffer with length tracking
     if (!dest || !pos || *pos >= dest_cap) return *pos;
 
@@ -304,14 +321,14 @@ static size_t snprintf_append(char *dest, size_t dest_cap, size_t *pos, const ch
     return *pos;
 }
 
-static void append_inline_truncation_message(
+static void _append_inline_truncation_message(
     char *buf,                // buffer to modify
     size_t *pos,              // current length / position in buffer
     const char *truncate_msg, // e.g. " ... log message truncated ..."
     const char *end           // e.g. opts->end ("\n" etc), can be NULL
 ) {
     // Overwrite end of buffer with a truncation message
-    if (!buf || !pos || !end ||*pos == 0) return;
+    if (!buf || !pos || !end || *pos == 0) return;
 
     size_t end_len = end ? strlen(end) : 0;
     size_t msg_len = strlen(truncate_msg) + end_len;
@@ -326,7 +343,7 @@ static void append_inline_truncation_message(
     *pos = write_pos + strlen(truncate_msg) + end_len;
 }
 
-int _get_formatted_message(
+static int _get_formatted_message(
     Log* log,
     const char* message,
     const char* indent,
@@ -443,8 +460,8 @@ int _get_formatted_message(
     // Add starting newline if requested
     if (opts->ns) {
         if (prepend_stuff)
-            snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", p0);
-        snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent);
+            _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", p0);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent);
     }
 
     // Format each line in the log message
@@ -461,24 +478,24 @@ int _get_formatted_message(
         size_t fmt_line_len = 0;
         if (prepend_stuff) {
             if (line_len == 0)
-                snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s", blank_p);
+                _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s", blank_p);
             else
-                snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s", p0, p);
+                _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s", p0, p);
         }
         const char *line_indent = line_len == 0 ? total_indent : total_indent0;
 
         // append line
-        snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s%s", line_indent, line, opts->end);
+        _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s%s", line_indent, line, opts->end);
 
         // truncate fmt_line if it exceeds MAX_LINE_CHARS
         if (fmt_line_len >= MAX_LINE_CHARS)
-            append_inline_truncation_message(
+            _append_inline_truncation_message(
                 fmt_line, &fmt_line_len,
                 " ... log line truncated ...", opts->end);
 
         // truncate fmt_msg if it exceeds MAX_MESSAGE_CHARS
         if (fmt_msg_len + fmt_line_len >= MAX_MESSAGE_CHARS) {
-            append_inline_truncation_message(
+            _append_inline_truncation_message(
                 fmt_msg, &fmt_msg_len,
                 " ... log message truncated ...", opts->end);
             message_truncated = true;
@@ -486,7 +503,7 @@ int _get_formatted_message(
         }
 
         // Append formatted line to fmt_msg
-        snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", fmt_line);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", fmt_line);
         // assert(fmt_msg_len == strlen(fmt_msg)); // FOR TESTING PURPOSES ONLY
 
         // Move to next line
@@ -496,8 +513,8 @@ int _get_formatted_message(
     // Add ending newline if requested
     if (opts->ne && !message_truncated) {
         if (prepend_stuff)
-            snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", blank_p);
-        snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent);
+            _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", blank_p);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent);
     }
 
     // Copy final result to formatted_message
@@ -518,7 +535,7 @@ int _get_formatted_message(
     return -1;
 }
 
-int _update_prev_message(
+static int _update_prev_message(
     Log* log,
     char* str,
     size_t str_len,
@@ -578,7 +595,7 @@ int _log_print(
 
         // Move cursor up and clear previous string if user set overwrite_prev_print to true
         if (opts->overwrite_prev_print && log->prev_console_message != NULL)
-            console_clear_previous_message(log);
+            _console_clear_previous_message(log);
         
         // Format string and print to console
         if(_get_formatted_message(log, msg, log->console_indent, &console_str, &console_str_len, opts) != 0) {
