@@ -82,6 +82,7 @@ static int _count_lines(const char* str) {
 static void _console_clear_previous_message(Log *logger) {
     int line_count = _count_lines(logger->prev_console_message);
 
+    // // NOTE: not needed after switching from write() to fwrite(), maybe delete one day
     // #if PLATFORM_WINDOWS
     //     /* ANSI version (preferred on modern Windows) */
     //     DWORD written;
@@ -93,7 +94,7 @@ static void _console_clear_previous_message(Log *logger) {
     //     }
     // #endif
 
-    /* POSIX fallback using fwrite instead of write */
+    // Using C standard fwrite for cross-platform console output
     const char *seq = "\033[F\033[K";  // cursor up + clear line
     for (int i = 0; i < line_count; i++) {
         fwrite(seq, 1, 6, logger->console_stream);
