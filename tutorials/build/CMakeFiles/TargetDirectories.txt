@@ -1,3 +1,0 @@
-/home/luke/rooms/tech/software/tutorials/c/c/build/CMakeFiles/myprogram.dir
-/home/luke/rooms/tech/software/tutorials/c/c/build/CMakeFiles/edit_cache.dir
-/home/luke/rooms/tech/software/tutorials/c/c/build/CMakeFiles/rebuild_cache.dir
