@@ -2,6 +2,7 @@
 # log utils
 /utils/log_utils/build/
 /utils/log_utils/log/
+/tutorials/build/
 
 # file explorer astetics
 .C_icon.png
