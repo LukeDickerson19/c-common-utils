@@ -92,6 +92,19 @@ void test_print() {
 	PRINT(logger, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
 	PRINT(logger, "new line end = false", .i=1, .ne=false);
 
+	// test return values
+    char *console_str = NULL, *logfile_str = NULL;
+	PRINT(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str);
+    fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
+    fwrite(logfile_str, 1, strlen(logfile_str), stdout);
+    free(console_str);
+    free(logfile_str);
+	PRINT(logger, "test multiline\nprint return value", .i=3, .console_str=&console_str, .logfile_str=&logfile_str);
+    fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
+    fwrite(logfile_str, 1, strlen(logfile_str), stdout);
+    free(console_str);
+    free(logfile_str);
+
 	// test prepend datetime
     logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
     logger->timezone = "local"; // valid options: "UTC", "local"
@@ -433,9 +446,9 @@ int main(void) {
         return -1;
     }
 
-    test_print();
-	test_print_json();
-	// test_overwrite_prev_print();
+    // test_print();
+	// test_print_json();
+	test_overwrite_prev_print();
 
     close_log(logger);
     return 0;

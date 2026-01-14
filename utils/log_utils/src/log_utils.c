@@ -58,26 +58,49 @@ static int _count_lines(const char* str) {
     return count;
 }
 
+// static void _console_clear_previous_message(Log *logger) {
+//     int line_count = _count_lines(logger->prev_console_message);
+
+//     #if PLATFORM_WINDOWS
+//         /* ANSI version (preferred on modern Windows) */
+//         DWORD written;
+//         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//         if (hOut != INVALID_HANDLE_VALUE) {
+//             for (int i = 0; i < line_count; i++)
+//                 WriteConsoleA(hOut, "\x1b[F\x1b[K", 6, &written, NULL);
+//             return;
+//         }
+//     #endif
+
+//     /* POSIX / fallback */
+//     for (int i = 0; i < line_count; i++)
+//         write(STDOUT_FILENO, "\033[F\033[K", 6);
+//         // write(STDOUT_FILENO, "\033[F", 3);  // Cursor up 1 line
+//         // write(STDOUT_FILENO, "\033[K", 3);  // Clear line
+// }
+
 static void _console_clear_previous_message(Log *logger) {
     int line_count = _count_lines(logger->prev_console_message);
 
-    #if PLATFORM_WINDOWS
-        /* ANSI version (preferred on modern Windows) */
-        DWORD written;
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (hOut != INVALID_HANDLE_VALUE) {
-            for (int i = 0; i < line_count; i++)
-                WriteConsoleA(hOut, "\x1b[F\x1b[K", 6, &written, NULL);
-            return;
-        }
-    #endif
+    // #if PLATFORM_WINDOWS
+    //     /* ANSI version (preferred on modern Windows) */
+    //     DWORD written;
+    //     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    //     if (hOut != INVALID_HANDLE_VALUE) {
+    //         for (int i = 0; i < line_count; i++)
+    //             WriteConsoleA(hOut, "\x1b[F\x1b[K", 6, &written, NULL);
+    //         return;
+    //     }
+    // #endif
 
-    /* POSIX / fallback */
-    for (int i = 0; i < line_count; i++)
-        write(STDOUT_FILENO, "\033[F\033[K", 6);
-        // write(STDOUT_FILENO, "\033[F", 3);  // Cursor up 1 line
-        // write(STDOUT_FILENO, "\033[K", 3);  // Clear line
+    /* POSIX fallback using fwrite instead of write */
+    const char *seq = "\033[F\033[K";  // cursor up + clear line
+    for (int i = 0; i < line_count; i++) {
+        fwrite(seq, 1, 6, logger->console_stream);
+        fflush(logger->console_stream);  // ensure immediate effect
+    }
 }
+
 
 static char* _fix_utc_format(char* fmt, const char* timezone) {
     /* if "%Z" substring in prepend_datetime_fmt and timezone = "UTC", replace "%Z" with hardcoded "UTC" */
@@ -621,8 +644,17 @@ int _log_print(
 
         // Update previous message tracking
         int rc = _update_prev_message(logger, console_str, console_str_len, 0);
-        free(console_str);
-        if (rc != 0) return rc;
+        if (rc != 0) {
+            return rc;
+            free(console_str);
+        }
+
+        // Return console_str to user if requested
+        if (opts->console_str) {
+            *opts->console_str = console_str; // user now owns memory
+        } else {
+            free(console_str);
+        }
     }
 
     // Print to log file
@@ -664,8 +696,17 @@ int _log_print(
 
         // then free the logfile message memory, and update prev_logfile_message
         int rc = _update_prev_message(logger, logfile_str, logfile_str_len, 1);
-        free(logfile_str);
-        if (rc != 0) return rc;
+        if (rc != 0) {
+            return rc;
+            free(logfile_str);
+        }
+
+        // Return logfile_str to user if requested
+        if (opts->logfile_str) {
+            *opts->logfile_str = logfile_str; // user now owns memory
+        } else {
+            free(logfile_str);
+        }
     }
 
     return 0;

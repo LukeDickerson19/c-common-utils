@@ -75,8 +75,8 @@ typedef struct {
     bool d;  // draw a line on the blank line before or after the string, defaults to false
     bool overwrite_prev_print; // overwrite previous print statement in console, does nothing in logfile, defaults to false
     char *end; // last character(s) to print at the end of the string, optional arg - defaults to '\n'
-    // char *console_str; // string printed to console
-    // char *logfile_str; // string printed to logfile // TODO: return these strings from _log_print if the user passes a string buffer, throw error if buffer is too small
+    char **console_str; // pointer to string printed to console
+    char **logfile_str; // pointer to string printed to logfile
 } PrintOptions;
 
 #define DEFAULT_PRINT_OPTIONS \
@@ -87,9 +87,9 @@ typedef struct {
     .of = -1, \
     .d = false, \
     .overwrite_prev_print = false, \
-    .end = "\n" //
-    // .console_str = NULL, \
-    // .logfile_str = NULL
+    .end = "\n", \
+    .console_str = NULL, \
+    .logfile_str = NULL
 
 // macro used to format log messages
 // NOTE: _buffer variable's life time is the entire program cause its "static"
