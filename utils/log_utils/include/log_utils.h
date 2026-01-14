@@ -35,12 +35,12 @@ extern "C" {
 
 typedef struct {
     char *filepath; // path to the log file
-    unsigned int file_permissions; // log file permissions
-    int file_descriptor; // A file descriptor (FD) is a small integer used by the OS (Unix/Linux) to represent an open I/O resource.
+    FILE *console_stream; // FILE* stream to print console output to (e.g., stdout, stderr)
+    FILE *file_pointer; // FILE* pointer to the log file
+    bool clear_old_log; // flag to clear the log file or not
     bool output_to_console; // flag to print to the console or not
     bool output_to_logfile; // flag to print to the log file or not
-    bool clear_old_log; // flag to clear the log file or not
-    char *console_indent; // what an indent lochar *suffix, oks like in the console
+    char *console_indent; // what an indent looks like in the console
     char *logfile_indent; // what an indent looks like in the log file
     char *prepend_datetime_fmt; // format specifying datetime to prepend to each line printed
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
@@ -54,32 +54,29 @@ typedef struct {
 } Log;
 
 #define DEFAULT_LOG_OPTIONS \
-    .filepath = NULL, .file_permissions = 0644, .file_descriptor = -1, \
-    .output_to_console = true, .output_to_logfile = true, .clear_old_log = true, \
+    .filepath = NULL, \
+    .console_stream = stdout, .file_pointer = NULL, \
+    .output_to_logfile = true, .clear_old_log = true, \
+    .output_to_console = true, \
     .console_indent = "|   ", .logfile_indent = "    ", \
     .prepend_datetime_fmt = NULL, .timezone = "UTC", \
     .prepend_memory_usage = false
 Log *_init_log(Log *opts);
 #define INIT_LOG(...) _init_log(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
-// #define INIT_LOG(logger, ...) _init_log((logger), &(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
-// #define INIT_LOG(logger, ...) _init_log((logger), &(static Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
-// #define INIT_LOG(logger, ...) \
-//     do { \
-//         Log tmp = { DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ }; \
-//         _init_log((logger), &tmp); \
-//     } while(0)
 
 void close_log(Log *log);
 
 typedef struct {
-    int i;   // number of indents to put in front of the string, defaults to 0
+    int  i;  // number of indents to put in front of the string, defaults to 0
     bool ns; // print a new line in before the string, defaults to false
     bool ne; // print a new line in after the string, defaults to false
-    int oc;  // output to console, defaults to -1, which uses the Log struct's output_to_console bool, else oc (0 = false, 1 = true)
-    int of;  // output to logfile, defaults to -1, which uses the Log struct's output_to_logfile bool, else of (0 = false, 1 = true)
+    int  oc; // output to console, defaults to -1, which uses the Log struct's output_to_console bool, else oc (0 = false, 1 = true)
+    int  of; // output to logfile, defaults to -1, which uses the Log struct's output_to_logfile bool, else of (0 = false, 1 = true)
     bool d;  // draw a line on the blank line before or after the string, defaults to false
     bool overwrite_prev_print; // overwrite previous print statement in console, does nothing in logfile, defaults to false
     char *end; // last character(s) to print at the end of the string, optional arg - defaults to '\n'
+    // char *console_str; // string printed to console
+    // char *logfile_str; // string printed to logfile // TODO: return these strings from _log_print if the user passes a string buffer, throw error if buffer is too small
 } PrintOptions;
 
 #define DEFAULT_PRINT_OPTIONS \
@@ -90,7 +87,9 @@ typedef struct {
     .of = -1, \
     .d = false, \
     .overwrite_prev_print = false, \
-    .end = "\n"
+    .end = "\n" //
+    // .console_str = NULL, \
+    // .logfile_str = NULL
 
 // macro used to format log messages
 // NOTE: _buffer variable's life time is the entire program cause its "static"

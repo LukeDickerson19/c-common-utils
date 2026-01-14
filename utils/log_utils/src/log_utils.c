@@ -58,8 +58,8 @@ static int _count_lines(const char* str) {
     return count;
 }
 
-static void _console_clear_previous_message(Log *log) {
-    int line_count = _count_lines(log->prev_console_message);
+static void _console_clear_previous_message(Log *logger) {
+    int line_count = _count_lines(logger->prev_console_message);
 
     #if PLATFORM_WINDOWS
         /* ANSI version (preferred on modern Windows) */
@@ -125,14 +125,17 @@ Log *_init_log(Log *opts) {
 
     // create logfile if it doesn't exist, and clear it if user specified to do so
     if (logger->filepath != NULL) {
-        int flags = O_CREAT | O_WRONLY; // O_CREAT - create the file if it doesn't exist, O_WRONLY - open for writing
-        if (logger->clear_old_log) flags |= O_TRUNC;
-        logger->file_descriptor = open(
+        logger->file_pointer = fopen(
             logger->filepath,
-            flags,
-            logger->file_permissions // file permissions (ignored on non-Unix systems where defaults will be used instead)
+            logger->clear_old_log ? "w" : "a" // w = truncate, a = append
         );
     }
+
+    // disable buffering for immedate output
+    if (logger->output_to_console)
+        setvbuf(logger->console_stream, NULL, _IONBF, 0); // disable buffering for console_stream
+    if (logger->output_to_logfile && logger->file_pointer != NULL)
+        setvbuf(logger->file_pointer, NULL, _IONBF, 0); // disable buffering for logfile
 
     // fix weird timezone bug: if "%Z" substring in prepend_datetime_fmt
     // and timezone = "UTC", replace "%Z" with hardcoded "UTC"
@@ -159,11 +162,11 @@ Log *_init_log(Log *opts) {
     return logger;
 }
 
-void close_log(Log *log) {
-    if (!log) return;
-    if (log->file_descriptor >= 0) close(log->file_descriptor);
-    if (log->prev_console_message) free(log->prev_console_message);
-    if (log->prev_logfile_message) free(log->prev_logfile_message);
+void close_log(Log *logger) {
+    if (!logger) return;
+    if (logger->file_pointer != NULL) fclose(logger->file_pointer);
+    if (logger->prev_console_message) free(logger->prev_console_message);
+    if (logger->prev_logfile_message) free(logger->prev_logfile_message);
 }
 
 static int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_cap, char *fmt) {
@@ -344,7 +347,7 @@ static void _append_inline_truncation_message(
 }
 
 static int _get_formatted_message(
-    Log* log,
+    Log* logger,
     const char* message,
     const char* indent,
     char** formatted_message,
@@ -381,17 +384,17 @@ static int _get_formatted_message(
     char p0[256] = {0};
     size_t p0_len = 0;
 
-    bool prepend_stuff = (log->prepend_datetime_fmt || log->prepend_memory_usage);
+    bool prepend_stuff = (logger->prepend_datetime_fmt || logger->prepend_memory_usage);
     if (prepend_stuff) {
 
         // Prepend datetime in specified format
-        if (log->prepend_datetime_fmt) {
+        if (logger->prepend_datetime_fmt) {
             char datetime_str[128];
             if (_get_current_time(
-                    log->timezone,
+                    logger->timezone,
                     datetime_str,
                     sizeof(datetime_str),
-                    log->prepend_datetime_fmt
+                    logger->prepend_datetime_fmt
                 ) != 0)
                 goto fail;
             p_len = snprintf(
@@ -402,10 +405,10 @@ static int _get_formatted_message(
         }
 
         // Prepend memory usage
-        if (log->prepend_memory_usage) {
+        if (logger->prepend_memory_usage) {
             char mem_usage_str[256];
             _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
-            if (log->prepend_datetime_fmt) {
+            if (logger->prepend_datetime_fmt) {
                 p_len = snprintf(
                     scratch,
                     sizeof(p_buf2),
@@ -536,116 +539,131 @@ static int _get_formatted_message(
 }
 
 static int _update_prev_message(
-    Log* log,
-    char* str,
+    Log* logger,
+    const char* str,
     size_t str_len,
     int output_location // 0 = console, 1 = logfile
 ) {
-    if (!log || !str) return -1;
+    if (!logger || !str) return -1;
 
     char **prev_msg_ptr = NULL;
     size_t *prev_msg_len_ptr = NULL;
 
     if (output_location == 0) {
-        prev_msg_ptr = &log->prev_console_message;
-        prev_msg_len_ptr = &log->prev_console_message_len;
+        prev_msg_ptr = &logger->prev_console_message;
+        prev_msg_len_ptr = &logger->prev_console_message_len;
     } else if (output_location == 1) {
-        prev_msg_ptr = &log->prev_logfile_message;
-        prev_msg_len_ptr = &log->prev_logfile_message_len;
+        prev_msg_ptr = &logger->prev_logfile_message;
+        prev_msg_len_ptr = &logger->prev_logfile_message_len;
     } else {
         return -1;
     }
 
     // free old message if any
-    if (*prev_msg_ptr != NULL) free(*prev_msg_ptr);
+    if (*prev_msg_ptr != NULL) {
+        free(*prev_msg_ptr);
+        *prev_msg_ptr = NULL;
+    }
 
-    // allocate and copy new message
+    // allocate and copy new message (include null terminator)
     size_t len = str_len + 1;
-    *prev_msg_ptr = malloc(len);
+    *prev_msg_ptr = (char*)malloc(len);
     if (!*prev_msg_ptr) {
         const char *error_msg = (output_location == 0)
-            ? "failed to allocate memory for prev_console_message"
-            : "failed to allocate memory for prev_logfile_message";
-        write(STDOUT_FILENO, error_msg, strlen(error_msg));
+            ? "failed to allocate memory for prev_console_message\n"
+            : "failed to allocate memory for prev_logfile_message\n";
+        fprintf(stderr, "%s", error_msg);
         return -1;
     }
-    memcpy(*prev_msg_ptr, str, len);
+    memcpy(*prev_msg_ptr, str, str_len);
+    (*prev_msg_ptr)[str_len] = '\0';  // null-terminate
     *prev_msg_len_ptr = str_len;
 
     return 0;
 }
 
 int _log_print(
-    Log* log,          // pointer to log struct to use
-    const char *msg,   // message to print
-    PrintOptions *opts // print optional arguments (see struct PrintOptions for details)
+    Log* logger,              // pointer to log struct to use
+    const char *msg,          // message to print
+    PrintOptions *opts        // optional print arguments
 ) {
 
     // Validate arguments
-    if (!log || !msg) perror("must pass a Log struct pointer and string message");
+    if (!logger || !msg) {
+        perror("must pass a Log struct pointer and string message");
+        return -1;
+    }
     if (opts == NULL) {
         opts = &(PrintOptions){DEFAULT_PRINT_OPTIONS};
     }
 
     // Print to console
-    char *console_str = NULL, *error_msg = NULL;
-    size_t console_str_len;
-    bool output_to_console = (opts->oc == -1) ? log->output_to_console : opts->oc;
+    bool output_to_console = (opts->oc == -1) ? logger->output_to_console : opts->oc;
     if (output_to_console) {
 
         // Move cursor up and clear previous string if user set overwrite_prev_print to true
-        if (opts->overwrite_prev_print && log->prev_console_message != NULL)
-            _console_clear_previous_message(log);
-        
-        // Format string and print to console
-        if(_get_formatted_message(log, msg, log->console_indent, &console_str, &console_str_len, opts) != 0) {
-            error_msg = "failed to get formatted console string";
-            write(STDOUT_FILENO, error_msg, strlen(error_msg));
+        if (opts->overwrite_prev_print && logger->prev_console_message != NULL)
+            _console_clear_previous_message(logger);
+
+        // Format string
+        char *console_str = NULL;
+        size_t console_str_len = 0;
+        if (_get_formatted_message(logger, msg, logger->console_indent, &console_str, &console_str_len, opts) != 0) {
+            fprintf(stderr, "failed to get formatted console string\n");
             return -1;
-        } else {
-            write(STDOUT_FILENO, console_str, console_str_len);
-            int rc = _update_prev_message(log, console_str, console_str_len, 0);
-            free(console_str);
-            if (rc != 0) return rc;
         }
+
+        // Print formatted string to console
+        fwrite(console_str, 1, console_str_len, logger->console_stream);
+        // NOTES: using fwrite() instead of write() even though its buffered because it works with FILE* streams,
+        // is fully cross-platform, and we can disable buffering with setvbuf(_IONBF).
+        // fprintf() automatically handles \0-terminated strings, Use fwrite to respect console_str_len if binary content
+
+        // Update previous message tracking
+        int rc = _update_prev_message(logger, console_str, console_str_len, 0);
+        free(console_str);
+        if (rc != 0) return rc;
     }
 
     // Print to log file
-    char *logfile_str = NULL;
-    size_t logfile_str_len;
-    bool output_to_logfile = (opts->of == -1) ? log->output_to_logfile : opts->of;
-    if (output_to_logfile && log->file_descriptor != -1) {
+    bool output_to_logfile = (opts->of == -1) ? logger->output_to_logfile : opts->of;
+    if (output_to_logfile && logger->file_pointer != NULL) { // use FILE* instead of fd
+
+        // Clear previous message in log file if user set overwrite_prev_print to true
+        if (opts->overwrite_prev_print && logger->prev_logfile_message != NULL) {
+            // move file cursor to start of previous message
+            fseek(logger->file_pointer, logger->prev_logfile_start, SEEK_SET);
+        }
 
         // Format string for log file
-        if(_get_formatted_message(log, msg, log->logfile_indent, &logfile_str, &logfile_str_len, opts) != 0) {
-            error_msg = "failed to get formatted log file string";
-            write(STDOUT_FILENO, error_msg, strlen(error_msg));
+        char *logfile_str = NULL;
+        size_t logfile_str_len = 0;
+        if (_get_formatted_message(logger, msg, logger->logfile_indent, &logfile_str, &logfile_str_len, opts) != 0) {
+            fprintf(stderr, "failed to get formatted log file string\n");
             return -1;
         }
 
-        // Clear previous message in log file if user set overwrite_prev_print to true
-        // and print formatted message to log file
-        if (opts->overwrite_prev_print && log->prev_logfile_message != NULL) {
-            off_t start = log->prev_logfile_start;
-            lseek(log->file_descriptor, start, SEEK_SET);
-            write(log->file_descriptor, logfile_str, logfile_str_len);
-            off_t new_end = start + logfile_str_len;
+        // Print formatted message to log file
+        fwrite(logfile_str, 1, logfile_str_len, logger->file_pointer);
 
-            // truncate if new message is shorter
-            if (new_end < log->prev_logfile_end)
-                ftruncate(log->file_descriptor, new_end);
-            log->prev_logfile_end = new_end;
+        // Update previous message tracking
+        if (opts->overwrite_prev_print) {
+            long start = logger->prev_logfile_start;
+            long new_end = start + logfile_str_len;
+            fseek(logger->file_pointer, new_end, SEEK_SET);
 
+            // truncate file if new message is shorter
+            ftruncate(fileno(logger->file_pointer), new_end);
+            logger->prev_logfile_end = new_end;
         } else {
-            // Normal append
-            log->prev_logfile_start = lseek(log->file_descriptor, 0, SEEK_CUR);
-            write(log->file_descriptor, logfile_str, logfile_str_len);
-            log->prev_logfile_end = lseek(log->file_descriptor, 0, SEEK_CUR);
+            // normal append
+            fseek(logger->file_pointer, 0, SEEK_END);
+            logger->prev_logfile_start = ftell(logger->file_pointer) - logfile_str_len;
+            logger->prev_logfile_end = ftell(logger->file_pointer);
         }
-        fsync(log->file_descriptor);
 
         // then free the logfile message memory, and update prev_logfile_message
-        int rc = _update_prev_message(log, logfile_str, logfile_str_len, 1);
+        int rc = _update_prev_message(logger, logfile_str, logfile_str_len, 1);
         free(logfile_str);
         if (rc != 0) return rc;
     }
