@@ -8,6 +8,7 @@
 #include <stdlib.h>   // for malloc, free, exit
 #if defined(_WIN32)
     #define PLATFORM_WINDOWS 1
+    #include <windows.h>
     #include <io.h>
     typedef long off_t;  // Windows fallback for file offsets
 #else
@@ -48,9 +49,9 @@ typedef struct {
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
     bool prepend_memory_usage; // prepend the memory used and allocated to the python program
 
-    // variables used for overwrite_prev_print
-    char *prev_console_message, *prev_logfile_message;
-    size_t prev_console_message_len, prev_logfile_message_len;
+    // variables used for overwrite_prev_msg
+    char *prev_console_message;
+    size_t prev_console_message_len;
     off_t prev_logfile_start, prev_logfile_end;
 
     // thread safety struct member
@@ -82,7 +83,7 @@ typedef struct {
     int  oc; // output to console, defaults to -1, which uses the Log struct's output_to_console bool, else oc (0 = false, 1 = true)
     int  of; // output to logfile, defaults to -1, which uses the Log struct's output_to_logfile bool, else of (0 = false, 1 = true)
     bool d;  // draw a line on the blank line before or after the string, defaults to false
-    bool overwrite_prev_print; // overwrite previous print statement in console, does nothing in logfile, defaults to false
+    bool overwrite_prev_msg; // overwrite previous printed message in console and logfile
     char *end; // last character(s) to print at the end of the string, optional arg - defaults to '\n'
     char **console_str; // pointer to string printed to console
     char **logfile_str; // pointer to string printed to logfile
@@ -95,7 +96,7 @@ typedef struct {
     .oc = -1, \
     .of = -1, \
     .d = false, \
-    .overwrite_prev_print = false, \
+    .overwrite_prev_msg = false, \
     .end = "\n", \
     .console_str = NULL, \
     .logfile_str = NULL

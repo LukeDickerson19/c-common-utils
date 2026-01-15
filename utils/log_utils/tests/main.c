@@ -345,61 +345,61 @@ void test_print_json() {
 
 }
 
-void test_overwrite_prev_print() {
-	PRINT(logger, "\ntest_overwrite_prev_print():");
+void test_overwrite_prev_msg() {
+	PRINT(logger, "\ntest_overwrite_prev_msg():");
 
     int sleep_time = 1; // seconds
     int i = 1;
 
     // new text has shorter lines
-	PRINT(logger, "aaaa", .i=i, .overwrite_prev_print=false);
+	PRINT(logger, "aaaa", .i=i, .overwrite_prev_msg=false);
 	sleep(sleep_time);
-	PRINT(logger, "bbb", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "bbb", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "cc", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "cc", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "d", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "d", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "", .i=0, .overwrite_prev_print=true);
+	PRINT(logger, "", .i=0, .overwrite_prev_msg=true);
 	sleep(sleep_time);
 
     // new text has longer lines
-	PRINT(logger, "a", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "a", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "bb", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "bb", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "ccc", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "ccc", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "dddd", .i=i, .overwrite_prev_print=true);
+	PRINT(logger, "dddd", .i=i, .overwrite_prev_msg=true);
 	sleep(sleep_time);
-	PRINT(logger, "", .i=0, .overwrite_prev_print=true);
+	PRINT(logger, "", .i=0, .overwrite_prev_msg=true);
 	sleep(sleep_time);
 
     // new text has more lines
-    PRINT(logger, "a", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "a", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "b\nb", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "b\nb", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "c\nc\nc", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "c\nc\nc", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "d\nd\nd\nd", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "d\nd\nd\nd", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "", .i=0, .end="", .overwrite_prev_print=true);
+    PRINT(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
     sleep(sleep_time);
 
     // new text has less lines
-    PRINT(logger, "a\na\na\na", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "a\na\na\na", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "b\nb\nb", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "b\nb\nb", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "c\nc", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "c\nc", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "d", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "d", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "", .i=0, .end="", .overwrite_prev_print=true);
+    PRINT(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
     sleep(sleep_time);
 
-	// verify regular log.print() works after overwrite_prev_print
+	// verify regular log.print() works after overwrite_prev_msg
     PRINT(logger, "a", .i=0);
     PRINT(logger, "b", .i=1);
     PRINT(logger, "c", .i=2);
@@ -407,19 +407,19 @@ void test_overwrite_prev_print() {
     PRINT(logger, "e", .i=4);
     PRINT(logger, "indented\nmulti\nline\nstring", .i=5);
 
-    // verify overwrite_prev_print works after regular log.print()
-    PRINT(logger, "test", .i=i, .overwrite_prev_print=true);
+    // verify overwrite_prev_msg works after regular log.print()
+    PRINT(logger, "test", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "overwrite_prev_print", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "overwrite_prev_msg", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "after", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "after", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "regular print()", .i=i, .overwrite_prev_print=true);
+    PRINT(logger, "regular PRINT()", .i=i, .overwrite_prev_msg=true);
     sleep(sleep_time);
-    PRINT(logger, "", .i=0, .end="", .overwrite_prev_print=true);
+    PRINT(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
     sleep(sleep_time);
 
-    PRINT(logger, "test regular print() after overwrite_prev_print", .i=0, .ne=true);
+    PRINT(logger, "test regular PRINT() after overwrite_prev_msg", .i=0, .ne=true);
 
 }
 
@@ -448,7 +448,7 @@ int main(void) {
 
     test_print();
 	test_print_json();
-	// test_overwrite_prev_print();
+	// test_overwrite_prev_msg();
 
     close_log(logger);
     return 0;

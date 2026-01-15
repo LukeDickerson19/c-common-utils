@@ -18,11 +18,12 @@
 #include <stdbool.h>
 #include "log_utils.h"
 
-Log *logger;
-const int THREAD_COUNT = 4;
-const int ITERATIONS = 20;
+#define THREAD_COUNT 4
+#define ITERATIONS 20
 
-#if defined(_WIN32)
+Log *logger;
+
+#if PLATFORM_WINDOWS
     #include <windows.h>
     DWORD WINAPI thread_print_loop(LPVOID arg) {
         int thread_id = (int)(intptr_t)arg;

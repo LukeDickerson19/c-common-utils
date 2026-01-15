@@ -154,11 +154,9 @@ Log *_init_log(Log *opts) {
     // TODO: assert valid prepend_datetime_fmt
     // TODO: assert valid timezone
 
-    // init overwrite_prev_print variables
+    // init overwrite_prev_msg variables
     logger->prev_console_message = NULL;
-    logger->prev_logfile_message = NULL;
     logger->prev_console_message_len = 0;
-    logger->prev_logfile_message_len = 0;
     logger->prev_logfile_start = 0;
     logger->prev_logfile_end   = 0;
 
@@ -178,7 +176,6 @@ void close_log(Log *logger) {
     if (!logger) return;
     if (logger->file_pointer != NULL) fclose(logger->file_pointer);
     if (logger->prev_console_message) free(logger->prev_console_message);
-    if (logger->prev_logfile_message) free(logger->prev_logfile_message);
 
     // destroy mutex
     #if PLATFORM_WINDOWS
@@ -560,23 +557,12 @@ static int _get_formatted_message(
 static int _update_prev_message(
     Log* logger,
     const char* str,
-    size_t str_len,
-    int output_location // 0 = console, 1 = logfile
+    size_t str_len
 ) {
     if (!logger || !str) return -1;
 
-    char **prev_msg_ptr = NULL;
-    size_t *prev_msg_len_ptr = NULL;
-
-    if (output_location == 0) {
-        prev_msg_ptr = &logger->prev_console_message;
-        prev_msg_len_ptr = &logger->prev_console_message_len;
-    } else if (output_location == 1) {
-        prev_msg_ptr = &logger->prev_logfile_message;
-        prev_msg_len_ptr = &logger->prev_logfile_message_len;
-    } else {
-        return -1;
-    }
+    char **prev_msg_ptr = &logger->prev_console_message;
+    size_t *prev_msg_len_ptr = &logger->prev_console_message_len;
 
     // free old message if any
     if (*prev_msg_ptr != NULL) {
@@ -588,9 +574,7 @@ static int _update_prev_message(
     size_t len = str_len + 1;
     *prev_msg_ptr = (char*)malloc(len);
     if (!*prev_msg_ptr) {
-        const char *error_msg = (output_location == 0)
-            ? "failed to allocate memory for prev_console_message\n"
-            : "failed to allocate memory for prev_logfile_message\n";
+        const char *error_msg = "failed to allocate memory for prev_console_message\n";
         fprintf(stderr, "%s", error_msg);
         return -1;
     }
@@ -620,8 +604,8 @@ int _log_print_unlocked(
     bool output_to_console = (opts->oc == -1) ? logger->output_to_console : opts->oc;
     if (output_to_console || opts->console_str) {
 
-        // Move cursor up and clear previous string if user set overwrite_prev_print to true
-        if (opts->overwrite_prev_print && logger->prev_console_message != NULL)
+        // Move cursor up and clear previous string if user set overwrite_prev_msg to true
+        if (opts->overwrite_prev_msg && logger->prev_console_message != NULL)
             _console_clear_previous_message(logger);
 
         // Format string
@@ -640,7 +624,7 @@ int _log_print_unlocked(
         // fprintf() automatically handles \0-terminated strings, Use fwrite to respect console_str_len if binary content
 
         // Update previous message tracking
-        int rc = _update_prev_message(logger, console_str, console_str_len, 0);
+        int rc = _update_prev_message(logger, console_str, console_str_len);
         if (rc != 0) {
             free(console_str);
             return rc;
@@ -658,16 +642,23 @@ int _log_print_unlocked(
     bool output_to_logfile = (opts->of == -1) ? logger->output_to_logfile : opts->of;
     if ((output_to_logfile || opts->logfile_str) && logger->file_pointer != NULL) {
 
-        // Clear previous message in log file if user set overwrite_prev_print to true
-        if (opts->overwrite_prev_print && logger->prev_logfile_message != NULL) {
-            // move file cursor to start of previous message
+        long write_pos; // move file cursor to start of previous message
+
+        // Clear previous message in log file if user set overwrite_prev_msg to true
+        if (opts->overwrite_prev_msg && logger->prev_logfile_end > logger->prev_logfile_start) {
+            write_pos = logger->prev_logfile_start;
             fseek(logger->file_pointer, logger->prev_logfile_start, SEEK_SET);
+        } else {
+            write_pos = ftell(logger->file_pointer);
+            logger->prev_logfile_start = write_pos;
         }
 
-        // Format string for log file
+        // Format message for log file
         char *logfile_str = NULL;
         size_t logfile_str_len = 0;
-        if (_get_formatted_message(logger, msg, logger->logfile_indent, &logfile_str, &logfile_str_len, opts) != 0) {
+        if (_get_formatted_message(
+                logger, msg, logger->logfile_indent,
+                &logfile_str, &logfile_str_len, opts) != 0) {
             fprintf(stderr, "failed to get formatted log file string\n");
             return -1;
         }
@@ -676,34 +667,17 @@ int _log_print_unlocked(
         if (output_to_logfile)
             fwrite(logfile_str, 1, logfile_str_len, logger->file_pointer);
 
-        // Update previous message tracking
-        if (opts->overwrite_prev_print) {
-            long new_end = logger->prev_logfile_start + logfile_str_len;
-            fseek(logger->file_pointer, new_end, SEEK_SET);
-
-            // truncate file if new message is shorter
+        // Update previous message
+        long new_end = write_pos + logfile_str_len;
+        if (opts->overwrite_prev_msg) // Truncate if overwriting shorter content
             ftruncate(fileno(logger->file_pointer), new_end);
-            logger->prev_logfile_end = new_end;
-        } else {
-            // normal append
-            long pos_before = ftell(logger->file_pointer);
-            logger->prev_logfile_start = pos_before;
-            logger->prev_logfile_end = pos_before + logfile_str_len;
-        }
+        logger->prev_logfile_end = new_end;
 
-        // then free the logfile message memory, and update prev_logfile_message
-        int rc = _update_prev_message(logger, logfile_str, logfile_str_len, 1);
-        if (rc != 0) {
+        // Return logfile_str to user if requested it, else free its memory
+        if (opts->logfile_str)
+            *opts->logfile_str = logfile_str;
+        else
             free(logfile_str);
-            return rc;
-        }
-
-        // Return logfile_str to user if requested
-        if (opts->logfile_str) {
-            *opts->logfile_str = logfile_str; // user now owns memory
-        } else {
-            free(logfile_str);
-        }
     }
 
     return 0;
@@ -726,7 +700,7 @@ int _log_print(
         pthread_mutex_lock(&logger->mutex);
     #endif
 
-    // Call _log_print()
+    // Call _log_print_unlocked()
     int rc = _log_print_unlocked(logger, msg, opts);
 
     // Unlock mutex
