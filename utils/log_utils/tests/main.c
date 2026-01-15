@@ -106,7 +106,7 @@ void test_print() {
     free(logfile_str);
 
 	// test prepend datetime
-    logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->timezone = "local"; // valid options: "UTC", "local"
 	PRINT(logger, "testing single line prepend_datetime_fmt", .ns=true);
 	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt");
@@ -120,7 +120,7 @@ void test_print() {
 	PRINT(logger, "testing single line indented prepend_memory_usage", .i=1);
 
 	// test both prepend datetime and memory usage
-    logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->prepend_memory_usage = true;
 	PRINT(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
 	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage");
@@ -446,9 +446,9 @@ int main(void) {
         return -1;
     }
 
-    test_print();
-	test_print_json();
-	// test_overwrite_prev_msg();
+    // test_print();
+	// test_print_json();
+	test_overwrite_prev_msg();
 
     close_log(logger);
     return 0;

@@ -4,7 +4,7 @@ Log *logger; // global variable so you don't need to pass it to each function us
 
 int main(void) {
 
-    // init any non default lof settings (see include/log_utils.h for all settings)
+    // init any non default log settings (see include/log_utils.h for all settings)
     logger = INIT_LOG(
         .filepath = "log.txt",
         .output_to_console = true,
@@ -22,12 +22,13 @@ int main(void) {
 	PRINT(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
 
 	// prepend datetime and memory usage
-    logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+	logger->timezone = "local"; // valid options: "UTC", "local"
 	PRINT(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
     logger->prepend_datetime_fmt = NULL;
     logger->prepend_memory_usage = true;
 	PRINT(logger, "multiline\nmessage\nwith\nprepend_memory_usage");
-    logger->prepend_datetime_fmt = "%y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
 	PRINT(logger, "message", .i=0);
 	PRINT(logger, "with", .i=1);
 	PRINT(logger, "both", .i=1);
