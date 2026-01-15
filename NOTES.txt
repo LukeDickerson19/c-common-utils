@@ -119,13 +119,14 @@ USAGE:
             winget install Ninja-build.Ninja # install ninja
             ninja --version
 
-        BUILD:
-            cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang # from project root dir
+        BUILD: # from project root dir with cmakelists.txt
+            rmdir .\build\
+            cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang
             cmake --build build
 
         RUN:
             cd .\build\
-            .\log_utils_test.exe
+            .\build\log_utils_test.exe
 
         CREATE NEW PROJECT (FOLDER STRUCTURE):
             same as linux/mac

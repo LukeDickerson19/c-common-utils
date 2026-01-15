@@ -20,7 +20,7 @@
     static int stdout_fd(void) {
         return _fileno(stdout);
     }
-    #define STDOUT_FILENO stdout_fd()
+    // #define STDOUT_FILENO stdout_fd() // unneeded after switching from write() to fwrite()
     static void enable_virtual_terminal_processing(void) {
         // Enable ANSI on Windows. Windows does not enable ANSI by default.
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -58,27 +58,6 @@ static int _count_lines(const char* str) {
     return count;
 }
 
-// static void _console_clear_previous_message(Log *logger) {
-//     int line_count = _count_lines(logger->prev_console_message);
-
-//     #if PLATFORM_WINDOWS
-//         /* ANSI version (preferred on modern Windows) */
-//         DWORD written;
-//         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-//         if (hOut != INVALID_HANDLE_VALUE) {
-//             for (int i = 0; i < line_count; i++)
-//                 WriteConsoleA(hOut, "\x1b[F\x1b[K", 6, &written, NULL);
-//             return;
-//         }
-//     #endif
-
-//     /* POSIX / fallback */
-//     for (int i = 0; i < line_count; i++)
-//         write(STDOUT_FILENO, "\033[F\033[K", 6);
-//         // write(STDOUT_FILENO, "\033[F", 3);  // Cursor up 1 line
-//         // write(STDOUT_FILENO, "\033[K", 3);  // Clear line
-// }
-
 static void _console_clear_previous_message(Log *logger) {
     int line_count = _count_lines(logger->prev_console_message);
 
@@ -101,7 +80,6 @@ static void _console_clear_previous_message(Log *logger) {
         fflush(logger->console_stream);  // ensure immediate effect
     }
 }
-
 
 static char* _fix_utc_format(char* fmt, const char* timezone) {
     /* if "%Z" substring in prepend_datetime_fmt and timezone = "UTC", replace "%Z" with hardcoded "UTC" */

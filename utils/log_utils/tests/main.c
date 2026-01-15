@@ -446,9 +446,9 @@ int main(void) {
         return -1;
     }
 
-    // test_print();
-	// test_print_json();
-	test_overwrite_prev_print();
+    test_print();
+	test_print_json();
+	// test_overwrite_prev_print();
 
     close_log(logger);
     return 0;
