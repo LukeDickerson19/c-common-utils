@@ -154,21 +154,38 @@ Log *_init_log(Log *opts) {
     // TODO: assert valid prepend_datetime_fmt
     // TODO: assert valid timezone
 
+    // init overwrite_prev_print variables
     logger->prev_console_message = NULL;
     logger->prev_logfile_message = NULL;
     logger->prev_console_message_len = 0;
     logger->prev_logfile_message_len = 0;
-    logger->prev_logfile_start = -1;
-    logger->prev_logfile_end   = -1;
+    logger->prev_logfile_start = 0;
+    logger->prev_logfile_end   = 0;
+
+    // init mutex
+    #if PLATFORM_WINDOWS
+        InitializeCriticalSection(&logger->mutex);
+    #else
+        pthread_mutex_init(&logger->mutex, NULL);
+    #endif
 
     return logger;
 }
 
 void close_log(Log *logger) {
+
+    // free struct members
     if (!logger) return;
     if (logger->file_pointer != NULL) fclose(logger->file_pointer);
     if (logger->prev_console_message) free(logger->prev_console_message);
     if (logger->prev_logfile_message) free(logger->prev_logfile_message);
+
+    // destroy mutex
+    #if PLATFORM_WINDOWS
+        DeleteCriticalSection(&logger->mutex);
+    #else
+        pthread_mutex_destroy(&logger->mutex);
+    #endif
 }
 
 static int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_cap, char *fmt) {
@@ -584,10 +601,10 @@ static int _update_prev_message(
     return 0;
 }
 
-int _log_print(
-    Log* logger,              // pointer to log struct to use
-    const char *msg,          // message to print
-    PrintOptions *opts        // optional print arguments
+int _log_print_unlocked(
+    Log* logger,       // pointer to log struct to use
+    const char *msg,   // message to print
+    PrintOptions *opts // optional print arguments
 ) {
 
     // Validate arguments
@@ -601,7 +618,7 @@ int _log_print(
 
     // Print to console
     bool output_to_console = (opts->oc == -1) ? logger->output_to_console : opts->oc;
-    if (output_to_console) {
+    if (output_to_console || opts->console_str) {
 
         // Move cursor up and clear previous string if user set overwrite_prev_print to true
         if (opts->overwrite_prev_print && logger->prev_console_message != NULL)
@@ -616,7 +633,8 @@ int _log_print(
         }
 
         // Print formatted string to console
-        fwrite(console_str, 1, console_str_len, logger->console_stream);
+        if (output_to_console)
+            fwrite(console_str, 1, console_str_len, logger->console_stream);
         // NOTES: using fwrite() instead of write() even though its buffered because it works with FILE* streams,
         // is fully cross-platform, and we can disable buffering with setvbuf(_IONBF).
         // fprintf() automatically handles \0-terminated strings, Use fwrite to respect console_str_len if binary content
@@ -624,8 +642,8 @@ int _log_print(
         // Update previous message tracking
         int rc = _update_prev_message(logger, console_str, console_str_len, 0);
         if (rc != 0) {
-            return rc;
             free(console_str);
+            return rc;
         }
 
         // Return console_str to user if requested
@@ -638,7 +656,7 @@ int _log_print(
 
     // Print to log file
     bool output_to_logfile = (opts->of == -1) ? logger->output_to_logfile : opts->of;
-    if (output_to_logfile && logger->file_pointer != NULL) { // use FILE* instead of fd
+    if ((output_to_logfile || opts->logfile_str) && logger->file_pointer != NULL) {
 
         // Clear previous message in log file if user set overwrite_prev_print to true
         if (opts->overwrite_prev_print && logger->prev_logfile_message != NULL) {
@@ -655,12 +673,12 @@ int _log_print(
         }
 
         // Print formatted message to log file
-        fwrite(logfile_str, 1, logfile_str_len, logger->file_pointer);
+        if (output_to_logfile)
+            fwrite(logfile_str, 1, logfile_str_len, logger->file_pointer);
 
         // Update previous message tracking
         if (opts->overwrite_prev_print) {
-            long start = logger->prev_logfile_start;
-            long new_end = start + logfile_str_len;
+            long new_end = logger->prev_logfile_start + logfile_str_len;
             fseek(logger->file_pointer, new_end, SEEK_SET);
 
             // truncate file if new message is shorter
@@ -668,16 +686,16 @@ int _log_print(
             logger->prev_logfile_end = new_end;
         } else {
             // normal append
-            fseek(logger->file_pointer, 0, SEEK_END);
-            logger->prev_logfile_start = ftell(logger->file_pointer) - logfile_str_len;
-            logger->prev_logfile_end = ftell(logger->file_pointer);
+            long pos_before = ftell(logger->file_pointer);
+            logger->prev_logfile_start = pos_before;
+            logger->prev_logfile_end = pos_before + logfile_str_len;
         }
 
         // then free the logfile message memory, and update prev_logfile_message
         int rc = _update_prev_message(logger, logfile_str, logfile_str_len, 1);
         if (rc != 0) {
-            return rc;
             free(logfile_str);
+            return rc;
         }
 
         // Return logfile_str to user if requested
@@ -689,4 +707,34 @@ int _log_print(
     }
 
     return 0;
+}
+
+int _log_print(
+    Log* logger,       // pointer to log struct to use
+    const char *msg,   // message to print
+    PrintOptions *opts // optional print arguments
+) {
+    if (!logger || !msg) {
+        perror("must pass a Log struct pointer and string message");
+        return -1;
+    }
+
+    // Lock mutex
+    #if PLATFORM_WINDOWS
+        EnterCriticalSection(&logger->mutex);
+    #else
+        pthread_mutex_lock(&logger->mutex);
+    #endif
+
+    // Call _log_print()
+    int rc = _log_print_unlocked(logger, msg, opts);
+
+    // Unlock mutex
+    #if PLATFORM_WINDOWS
+        LeaveCriticalSection(&logger->mutex);
+    #else
+        pthread_mutex_unlock(&logger->mutex);
+    #endif
+
+    return rc;
 }

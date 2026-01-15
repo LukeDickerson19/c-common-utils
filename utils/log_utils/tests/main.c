@@ -94,12 +94,12 @@ void test_print() {
 
 	// test return values
     char *console_str = NULL, *logfile_str = NULL;
-	PRINT(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str);
+	PRINT(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
     fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
     fwrite(logfile_str, 1, strlen(logfile_str), stdout);
     free(console_str);
     free(logfile_str);
-	PRINT(logger, "test multiline\nprint return value", .i=3, .console_str=&console_str, .logfile_str=&logfile_str);
+	PRINT(logger, "test multiline\nprint return\nvalue", .i=3, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
     fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
     fwrite(logfile_str, 1, strlen(logfile_str), stdout);
     free(console_str);

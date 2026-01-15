@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(log_utils C)
 
+find_package(Threads REQUIRED)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -25,9 +27,11 @@ add_library(log_utils
     src/log_utils.c
 )
 
-target_compile_definitions(log_utils
-    PRIVATE _POSIX_C_SOURCE=200809L
-)
+if(NOT MSVC)
+    target_compile_definitions(log_utils
+        PRIVATE _POSIX_C_SOURCE=200809L
+    )
+endif()
 
 target_include_directories(log_utils
     PUBLIC
@@ -44,31 +48,22 @@ target_include_directories(cjson
         ${CMAKE_CURRENT_SOURCE_DIR}/external/cjson
 )
 
-# ---- test executable ----
-add_executable(log_utils_test
-    tests/main.c
+target_link_libraries(log_utils
+    PUBLIC Threads::Threads
 )
-target_link_libraries(log_utils_test
-    PRIVATE
-        log_utils
-        cjson
-)
-# define POSIX macro for Linux when compiling the test executable
+
+# ---- test executables ----
+add_executable(log_utils_test tests/main.c)
+add_executable(readme_example tests/readme_example.c)
+add_executable(test_thread_safety tests/test_thread_safety.c)
+
+target_link_libraries(log_utils_test PRIVATE log_utils cjson)
+target_link_libraries(readme_example PRIVATE log_utils cjson)
+target_link_libraries(test_thread_safety PRIVATE log_utils)
+
 if(NOT MSVC)
     target_compile_definitions(log_utils_test
         PRIVATE _POSIX_C_SOURCE=200809L
     )
 endif()
 
-enable_testing()
-add_test(NAME log_utils_basic_test COMMAND log_utils_test)
-
-# ---- README example executable ----
-add_executable(readme_example
-    tests/readme_example.c
-)
-target_link_libraries(readme_example
-    PRIVATE
-        log_utils
-        cjson
-)

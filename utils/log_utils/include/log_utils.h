@@ -5,12 +5,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>   // for malloc, free, exit
 #if defined(_WIN32)
     #define PLATFORM_WINDOWS 1
     #include <io.h>
     typedef long off_t;  // Windows fallback for file offsets
 #else
     #define PLATFORM_WINDOWS 0
+    #include <pthread.h>
     #include <sys/types.h> // for off_t
     #if defined(__APPLE__)
         // #include <mach/mach.h> // INCLUDED IN log_utils.c
@@ -50,6 +52,13 @@ typedef struct {
     char *prev_console_message, *prev_logfile_message;
     size_t prev_console_message_len, prev_logfile_message_len;
     off_t prev_logfile_start, prev_logfile_end;
+
+    // thread safety struct member
+    #if PLATFORM_WINDOWS
+        CRITICAL_SECTION mutex;
+    #else
+        pthread_mutex_t mutex;
+    #endif
 
 } Log;
 
@@ -91,16 +100,6 @@ typedef struct {
     .console_str = NULL, \
     .logfile_str = NULL
 
-// macro used to format log messages
-// NOTE: _buffer variable's life time is the entire program cause its "static"
-// however each time FMT(...) is called this same memory is overwritten
-#define FMT(...) \
-    ({ \
-        static char _buffer[MAX_MESSAGE_CHARS]; \
-        snprintf(_buffer, sizeof(_buffer), __VA_ARGS__); \
-        _buffer; \
-    })
-
 int _log_print(
     Log *log,
     const char *msg,
@@ -111,7 +110,14 @@ int _log_print(
 // NOTE: __VA_ARGS__ override default print options because when they're later in the struct initialization
 // The prepended "##" characters is a GNU extension that removes the comma if __VA_ARGS__ is empty. This is widely supported but not part of the C standard.
 
-
+// macro used to format log messages
+// NOTE: _buf is a stack-allocated array, so each thread calling the macro
+// gets its own independent buffer on its own stack
+#define FMT(...) ({ \
+    char _buf[MAX_MESSAGE_CHARS]; \
+    snprintf(_buf, MAX_MESSAGE_CHARS, __VA_ARGS__); \
+    _buf; \
+})
 
 #ifdef __cplusplus
 }
