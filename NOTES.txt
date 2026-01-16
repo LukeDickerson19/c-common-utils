@@ -2,12 +2,11 @@
 
 TODO:
 
-    push to github
-        clean up READMEs
-
     maybe do some c hackerrank
 
 BACKLOG:
+
+    implement traditional log levels (INFO, ERROR, etc.)
 
     create a test_memory_usage.c test that flags prepend_memory_usage true and uses a for loop to iteratively print the same dummy message over and over, to make sure the memory usage isn't growing continuously
         maybe graph it instead of console output?
