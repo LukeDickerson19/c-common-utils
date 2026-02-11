@@ -93,9 +93,9 @@ typedef struct {
     bool free_others;  // boolean flag to free all other strings in str_lst except the one at output_index, defaults to false
 } ConcatOptions;
 #define DEFAULT_CONCAT_OPTIONS .output_index = 0, .free_others = false
-int _concat(String *str_lst[], const ConcatOptions *opts);
+int _concat(String *str_lst[], const size_t count, const ConcatOptions *opts);
 // this macro exists to simulate optional args in C
-#define concat(str_lst, ...) _concat((str_lst), &(ConcatOptions){ DEFAULT_CONCAT_OPTIONS, ##__VA_ARGS__})
+#define concat(str_lst, ...) _concat((str_lst), (size_t)(sizeof(str_lst) / sizeof(String*)), &(ConcatOptions){ DEFAULT_CONCAT_OPTIONS, ##__VA_ARGS__})
 
 
 /**

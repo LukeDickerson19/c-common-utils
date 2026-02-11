@@ -6,19 +6,20 @@
 #include <stdbool.h> // for bool
 
 
-
 String str(const char *text) {
+    if (text == NULL) text = "";
     size_t len = strlen(text);
     size_t cap = 2 * len + 1; // +1 for null terminator
-    char *content = malloc(cap * sizeof(char));
-    if (content == NULL) {
-        exit(1); // Handle allocation failure (could be improved)
+    char *content = malloc(cap);
+    if (!content) {
+        exit(1);  // Handle allocation failure (could be improved)
     }
-    strcpy(content, text);
+    memcpy(content, text, len);
+    content[len] = '\0';                // explicit and clear
     return (String){
         .text = content,
-        .len  = len,
-        .cap  = cap
+        .len = len,
+        .cap = cap
     };
 }
 
@@ -30,7 +31,7 @@ int resize_string(String *dst, size_t new_len) {
     if (new_content == NULL)
         return -1;
     dst->text = new_content;
-    dst->cap  = new_cap;
+    dst->cap = new_cap;
     return 0;
 }
 
@@ -56,10 +57,8 @@ int _append(String *dst, String *suffix, const AppendOptions *opts) {
     dst->len += suffix->len;
 
     // Clean up suffix if requested
-    if (free_suffix) {
+    if (free_suffix)
         free_string(suffix);
-        suffix = NULL; // optional but recommended to prevent misuse
-    }
 
     return 0;
 }
@@ -88,28 +87,21 @@ int _prepend(String *prefix, String *dst, const PrependOptions *opts) {
     dst->len += prefix->len;
 
     // Clean up prefix if requested
-    if (free_prefix) {
+    if (free_prefix)
         free_string(prefix);
-        prefix = NULL; // optional but recommended to prevent misuse
-    }
 
     return 0;
 }
 
-int _concat(String *str_lst[], const ConcatOptions *opts) {
-    if (str_lst == NULL || str_lst[0] == NULL)
+int _concat(String *str_lst[], const size_t count, const ConcatOptions *opts) {
+    if (count <= 0 || str_lst == NULL || str_lst[0] == NULL)
         return -1;
 
     // Default values if opts is NULL (though the macro always provides one)
     int  output_index = (opts != NULL) ? opts->output_index : 0;
     bool free_others  = (opts != NULL) ? opts->free_others  : false;
 
-    // Validate output_index
-    int num_strings = 0;
-    while (str_lst[num_strings] != NULL)
-        num_strings++;
-
-    if (output_index < 0 || output_index >= num_strings)
+    if (output_index < 0 || output_index >= count)
         return -1;  // invalid output index
 
     // build the result in str_lst[output_index]
@@ -117,7 +109,7 @@ int _concat(String *str_lst[], const ConcatOptions *opts) {
 
     // compute total length
     size_t total_len = 0;
-    for (int i = 0; i < num_strings; i++)
+    for (int i = 0; i < count; i++)
         total_len += str_lst[i]->len;
 
     // resize result string if necessary
@@ -132,21 +124,22 @@ int _concat(String *str_lst[], const ConcatOptions *opts) {
     size_t tmp_len;
     if (output_index != 0) {
         tmp_len = result->len;
-        tmp = malloc(tmp_len + 1);
-        if (!tmp) return -1;
-        memcpy(tmp, result->text, tmp_len + 1);
-        tmp[tmp_len] = '\0';  // ensure null termination
+        if (tmp_len > 0) {
+            tmp = malloc(tmp_len + 1);
+            if (!tmp) return -1;
+            memcpy(tmp, result->text, tmp_len + 1);
+        }
     }
 
     // Append all other strings
     // and free them immediately if requested
     char *dst = result->text;
     size_t offset = 0;
-    for (int i = 0; i < num_strings; i++) {
+    for (int i = 0; i < count; i++) {
         if (i == output_index) {
             if (output_index == 0) {
                 offset += result->len;
-            } else {
+            } else if (tmp_len > 0) {
                 memcpy(dst + offset, tmp, tmp_len);
                 offset += tmp_len;
                 free(tmp);

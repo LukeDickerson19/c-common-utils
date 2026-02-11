@@ -76,7 +76,7 @@ void test_concat(void) {
     String c = str("beautiful");
     String d = str(" world!");
 
-    String *parts1[] = {&a, &b, &c, &d, NULL};
+    String *parts1[] = {&a, &b, &c, &d};
 
     // Classic: concat into first, free others
     concat(parts1, .free_others = true);
@@ -91,7 +91,7 @@ void test_concat(void) {
     c = str("Three");
     d = str("Four");
 
-    String *parts2[] = {&a, &b, &c, &d, NULL};
+    String *parts2[] = {&a, &b, &c, &d};
 
     // Concat into index 2, do NOT free others
     concat(parts2, .output_index = 2);
@@ -115,7 +115,7 @@ void test_edge_cases(void) {
 
     // Single string concat
     String single = str("alone");
-    String *one[] = {&single, NULL};
+    String *one[] = {&single};
     concat(one);
     print_string(&single, "single after concat (no change)");
 
