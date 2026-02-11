@@ -1,7 +1,7 @@
 // test.c
 #include "string_utils.h"
-#include <stdio.h>
-#include <assert.h>   // for assert (optional - can remove if you prefer)
+#include <stdio.h>  // for printf
+#include <assert.h> // for assert (optional - can remove if you prefer)
 
 void print_string(const String *s, const char *label) {
     if (!s || !s->text) {
@@ -23,9 +23,9 @@ void test_str_init(void) {
     String empty = str("");
     print_string(&empty, "empty");
 
-    free_string(&a);
-    free_string(&b);
-    free_string(&empty);
+    str_free(&a);
+    str_free(&b);
+    str_free(&empty);
 }
 
 void test_append(void) {
@@ -35,17 +35,17 @@ void test_append(void) {
 
     // Append without free
     String suffix1 = str(", how are you?");
-    append(&base, &suffix1);
+    str_append(&base, &suffix1);
     print_string(&base, "base string after append (no free)");
     print_string(&suffix1, "suffix1 (should still exist)");
 
     // Append with free
     String suffix2 = str(" I'm fine.");
-    append(&base, &suffix2, .free_suffix = true);
+    str_append(&base, &suffix2, .free_suffix = true);
     print_string(&base, "base string after append + free");
     print_string(&suffix2, "suffix2 (should be freed/reset)");
 
-    free_string(&base);
+    str_free(&base);
 }
 
 void test_prepend(void) {
@@ -55,17 +55,17 @@ void test_prepend(void) {
 
     // Prepend without free
     String prefix1 = str("Hello, ");
-    prepend(&prefix1, &base);
+    str_prepend(&prefix1, &base);
     print_string(&base, "base string after prepend (no free)");
     print_string(&prefix1, "prefix1 (should still exist)");
 
     // Prepend with free
     String prefix2 = str("Goodbye cruel ");
-    prepend(&prefix2, &base, .free_prefix = true);
+    str_prepend(&prefix2, &base, .free_prefix = true);
     print_string(&base, "base string after prepend + free");
     print_string(&prefix2, "prefix2 (should be freed/reset)");
 
-    free_string(&base);
+    str_free(&base);
 }
 
 void test_concat(void) {
@@ -79,7 +79,7 @@ void test_concat(void) {
     String *parts1[] = {&a, &b, &c, &d};
 
     // Classic: concat into first, free others
-    concat(parts1, .free_others = true);
+    str_concat(parts1, .free_others = true);
     print_string(&a, "string a after concat into string at index 0 + free others");
     print_string(&b, "string b (should be freed)");
     print_string(&c, "string c (should be freed)");
@@ -94,14 +94,14 @@ void test_concat(void) {
     String *parts2[] = {&a, &b, &c, &d};
 
     // Concat into index 2, do NOT free others
-    concat(parts2, .output_index = 2);
+    str_concat(parts2, .output_index = 2);
     print_string(&c, "string c after concat into string at index 2 (no free)");
     print_string(&a, "string a (still exists)");
     print_string(&b, "string b (still exists)");
     print_string(&d, "string d (still exists)");
 
     // Clean up remaining
-    free_strings(parts2);
+    str_free_all(parts2);
 }
 
 void test_edge_cases(void) {
@@ -110,21 +110,21 @@ void test_edge_cases(void) {
     // Empty string append
     String empty = str("");
     String add = str("something");
-    append(&empty, &add, .free_suffix = true);
+    str_append(&empty, &add, .free_suffix = true);
     print_string(&empty, "empty + something");
 
     // Single string concat
     String single = str("alone");
     String *one[] = {&single};
-    concat(one);
+    str_concat(one);
     print_string(&single, "single after concat (no change)");
 
     // Invalid cases (should return -1)
-    int res = append(NULL, &add);
+    int res = str_append(NULL, &add);
     printf("    append(NULL, ...) returned %d (expected -1)\n", res);
 
-    free_string(&empty);
-    free_string(&single);
+    str_free(&empty);
+    str_free(&single);
 }
 
 int main(void) {

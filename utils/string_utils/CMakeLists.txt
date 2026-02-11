@@ -40,8 +40,10 @@ target_include_directories(string_utils
 
 # ---- test executables ----
 add_executable(string_utils_test tests/main.c)
+add_executable(readme_example tests/readme_example.c)
 
 target_link_libraries(string_utils_test PRIVATE string_utils)
+target_link_libraries(readme_example PRIVATE string_utils)
 
 if(NOT MSVC)
     target_compile_definitions(string_utils_test

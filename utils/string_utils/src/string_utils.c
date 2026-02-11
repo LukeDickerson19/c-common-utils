@@ -23,7 +23,7 @@ String str(const char *text) {
     };
 }
 
-int resize_string(String *dst, size_t new_len) {
+int update_capacity(String *dst, size_t new_len) {
     size_t new_cap = dst->cap;
     while (new_len + 1 > new_cap)
         new_cap *= 2;
@@ -35,7 +35,7 @@ int resize_string(String *dst, size_t new_len) {
     return 0;
 }
 
-int _append(String *dst, String *suffix, const AppendOptions *opts) {
+int _str_append(String *dst, String *suffix, const AppendOptions *opts) {
     if (dst == NULL || dst->text == NULL || suffix == NULL || suffix->text == NULL)
         return -1;
 
@@ -45,7 +45,7 @@ int _append(String *dst, String *suffix, const AppendOptions *opts) {
     // Resize dynamic array if needed
     size_t needed = dst->len + suffix->len + 1;
     if (needed > dst->cap) {
-        int rc = resize_string(dst, needed);
+        int rc = update_capacity(dst, needed);
         if (rc != 0)
             return -1;
     }
@@ -58,12 +58,12 @@ int _append(String *dst, String *suffix, const AppendOptions *opts) {
 
     // Clean up suffix if requested
     if (free_suffix)
-        free_string(suffix);
+        str_free(suffix);
 
     return 0;
 }
 
-int _prepend(String *prefix, String *dst, const PrependOptions *opts) {
+int _str_prepend(String *prefix, String *dst, const PrependOptions *opts) {
     if (dst == NULL || dst->text == NULL || prefix == NULL || prefix->text == NULL)
         return -1;
 
@@ -74,7 +74,7 @@ int _prepend(String *prefix, String *dst, const PrependOptions *opts) {
     // Resize dynamic array if needed
     size_t needed = dst->len + prefix->len + 1;
     if (needed > dst->cap) {
-        int rc = resize_string(dst, needed);
+        int rc = update_capacity(dst, needed);
         if (rc != 0)
             return -1;
     }
@@ -88,13 +88,13 @@ int _prepend(String *prefix, String *dst, const PrependOptions *opts) {
 
     // Clean up prefix if requested
     if (free_prefix)
-        free_string(prefix);
+        str_free(prefix);
 
     return 0;
 }
 
-int _concat(String *str_lst[], const size_t count, const ConcatOptions *opts) {
-    if (count <= 0 || str_lst == NULL || str_lst[0] == NULL)
+int _str_concat(String **s_list, const size_t count, const ConcatOptions *opts) {
+    if (count <= 0 || s_list == NULL || s_list[0] == NULL)
         return -1;
 
     // Default values if opts is NULL (though the macro always provides one)
@@ -104,17 +104,17 @@ int _concat(String *str_lst[], const size_t count, const ConcatOptions *opts) {
     if (output_index < 0 || output_index >= count)
         return -1;  // invalid output index
 
-    // build the result in str_lst[output_index]
-    String *result = str_lst[output_index];
+    // build the result in s_list[output_index]
+    String *result = s_list[output_index];
 
     // compute total length
     size_t total_len = 0;
     for (int i = 0; i < count; i++)
-        total_len += str_lst[i]->len;
+        total_len += s_list[i]->len;
 
     // resize result string if necessary
     if (total_len + 1 > result->cap) {
-        int rc = resize_string(result, total_len + 1);
+        int rc = update_capacity(result, total_len + 1);
         if (rc != 0)
             return -1;
     }
@@ -145,16 +145,16 @@ int _concat(String *str_lst[], const size_t count, const ConcatOptions *opts) {
                 free(tmp);
             }
         } else {
-            size_t len = str_lst[i]->len;
-            memcpy(dst + offset, str_lst[i]->text, len);
+            size_t len = s_list[i]->len;
+            memcpy(dst + offset, s_list[i]->text, len);
             offset += len;
 
             // Free right after copying if requested
             if (free_others) {
-                free_string(str_lst[i]);
+                str_free(s_list[i]);
                 // Note: we don't need to NULL the pointer here if you don't plan to reuse
                 // the array afterward — but it's harmless and safer to do so
-                str_lst[i] = NULL;  // optional but recommended to prevent misuse
+                s_list[i] = NULL;  // optional but recommended to prevent misuse
             }
         }
     }
@@ -164,33 +164,24 @@ int _concat(String *str_lst[], const size_t count, const ConcatOptions *opts) {
     return 0;
 }
 
-int free_string(String *string) {
-    if (string == NULL) {
+int str_free(String *s) {
+    if (s == NULL)
         return -1;
+    if (s->text != NULL) {
+        free(s->text);
+        s->text = NULL;
     }
-
-    if (string->text != NULL) {
-        free(string->text);
-        string->text = NULL;
-    }
-
-    string->len = 0;
-    string->cap = 0;
-
+    s->len = 0;
+    s->cap = 0;
     return 0;
 }
 
-int free_strings(String *string_list[]) {
-    if (string_list == NULL) {
+int _str_free_all(String **s_list, size_t count) {
+    if (s_list == NULL || count == 0)
         return -1;
+    for (size_t i = 0; i < count; i++) {
+        str_free(s_list[i]);
+        s_list[i] = NULL;
     }
-
-    int i = 0;
-    while (string_list[i] != NULL) {
-        free_string(string_list[i]);
-        string_list[i] = NULL;  // optional but recommended to prevent misuse
-        i++;
-    }
-
     return 0;
 }

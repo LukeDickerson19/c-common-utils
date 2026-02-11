@@ -48,7 +48,20 @@ TODO:
 
 BACKLOG:
 
-    log_util
+    string_utils
+
+        update the resize function to halve the str cap when its string len is decreased
+            maybe separate into 2 functions: grow, shrink
+
+        give concat function an optional sep (aka separator) arg that is a string itself
+
+        implement functions:
+            clone
+            replace (with first, last, all optional arg)
+            mutate (for true string mutability)
+            insert
+
+    log_utils
 
         update log util to use string_utils
 
