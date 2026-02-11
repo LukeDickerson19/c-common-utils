@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/luke/rooms/tech/software/projects/c-common-utils/utils/string_utils/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

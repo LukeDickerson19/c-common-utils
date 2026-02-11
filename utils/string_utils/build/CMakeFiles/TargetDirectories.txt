@@ -1,4 +1,0 @@
-/home/luke/rooms/tech/software/projects/c-common-utils/utils/string_utils/build/CMakeFiles/string_utils.dir
-/home/luke/rooms/tech/software/projects/c-common-utils/utils/string_utils/build/CMakeFiles/string_utils_test.dir
-/home/luke/rooms/tech/software/projects/c-common-utils/utils/string_utils/build/CMakeFiles/edit_cache.dir
-/home/luke/rooms/tech/software/projects/c-common-utils/utils/string_utils/build/CMakeFiles/rebuild_cache.dir
