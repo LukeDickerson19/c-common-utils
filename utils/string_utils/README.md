@@ -7,10 +7,12 @@
 > Features:
 > - dynamic strings that double memory allocation as the string growns
 > - Functions available:
-> - - str("text")
-> - - str_append(str("text"), str("suffix"))
-> - - str_prepend(str("prefix"), str("text"))
-> - - str_concat(str("prefix"), str("text"))
+>   - str
+>   - str_append
+>   - str_prepend
+>   - str_concat
+>   - str_free
+>   - str_free_all
 
 #### USAGE
 Below is a quick example usage - the tests/main.c file shows how to use this util's features more thoroughly.
