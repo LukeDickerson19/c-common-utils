@@ -2,25 +2,78 @@
 
 TODO:
 
+    learn to use c debugger(s) to compare to print statements / logging
+        gdb (for gcc)
+            https://hugsy.github.io/gef/
+                recommended here: ctrl f "install some good visualizers"
+                    https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
+            https://www.gdbgui.com/
+                recommended in same reddit link, ctrl f "if you prefer a gui you can try gdbgui"
+            ddd
+                https://www.gnu.org/software/ddd/
+                bright UI, is there a dark mode?
+                    https://www.gnu.org/software/ddd/manual/html_mono/ddd-themes.html
+                    google AI:
+                        To enable dark mode in the Data Display Debugger (DDD), you need to manually set X resources by adding specific lines to your
+                        ~/.ddd/init file. DDD uses the Motif widget toolkit, which doesn't have a built-in "dark mode" theme, but its colors can be customized via X resources. 
+                        Steps to Configure Dark Mode
+
+                            Locate or Create the Initialization File: Open (or create) the ~/.ddd/init file in your home directory using a text editor. For example:
+                            bash
+
+                        nano ~/.ddd/init
+
+                        Add X Resource Settings: Add lines to the ~/.ddd/init file to change the background and foreground colors of various DDD components to dark colors.
+                        Save and Restart DDD: Save the changes and restart DDD for the new settings to apply. 
+
+                        Alternative Method (within DDD)
+                        You can also modify settings through the DDD interface and save them: 
+
+                            Navigate to Edit ⇒ Preferences.
+                            Adjust color and font options.
+                            Go to Edit ⇒ Save Options to write these changes to your ~/.ddd/init file. 
+
+                        Manually editing the ~/.ddd/init file offers more granular control over individual components compared to using the in-application preferences.
+            other note:
+                "if you decide to use gdb to make sure to run it with flag -tui to have the source code displayed while debugging"
+                    https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
+        lldb (for clang)
+        Visual Studio debugger
+            "It's very intuitive, you don't have to remember any commands, things can be moused over and inspected, adding breakpoints is very simple, etc. "
+                https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
+        clion
+            https://www.jetbrains.com/clion/buy/?section=personal&billing=monthly
+
     maybe do some c hackerrank
 
 BACKLOG:
 
-    implement traditional log levels (INFO, ERROR, etc.)
+    log_util
 
-    create a test_memory_usage.c test that flags prepend_memory_usage true and uses a for loop to iteratively print the same dummy message over and over, to make sure the memory usage isn't growing continuously
-        maybe graph it instead of console output?
-        maybe use overwrite_prev_msg flag every 1000 iterations or so so that console output is easier to read 
+        update log util to use string_utils
 
-    test logging_utils on android SDL app once you've learned SDL
-        apparently SDL has its own logging?
-            i might need to make my _log_print return a string and put it inside it?
-                or maybe a macro that takes a string and puts it in the SDL logger print call?
-            or maybe this?
-                SDL_LogSetOutputFunction(my_logger_callback, NULL);
+        make these constants Log struct members instead
+            #define LOGGING_ENABLED true // toggle logging entirely
+            #define MAX_INDENTS 10 // max number of indents the user can indent a log message
+            #define MAX_MESSAGE_CHARS 10000 // max number of characters per message, tested w/ value: 500
+            #define MAX_LINE_CHARS 1000 // max number of characters per line (must be less than MAX_MESSAGE_CHARS), tested w/ value: 150
+            // #define MAX_MESSAGE_CHARS 500 // FOR TESTING PURPOSES ONLY
+            // #define MAX_LINE_CHARS 150 // FOR TESTING PURPOSES ONLY
+
+        implement traditional log levels (INFO, ERROR, etc.)
+
+        create a test_memory_usage.c test that flags prepend_memory_usage true and uses a for loop to iteratively print the same dummy message over and over, to make sure the memory usage isn't growing continuously
+            maybe graph it instead of console output?
+            maybe use overwrite_prev_msg flag every 1000 iterations or so so that console output is easier to read 
+
+        test logging_utils on android SDL app once you've learned SDL
+            apparently SDL has its own logging?
+                i might need to make my _log_print return a string and put it inside it?
+                    or maybe a macro that takes a string and puts it in the SDL logger print call?
+                or maybe this?
+                    SDL_LogSetOutputFunction(my_logger_callback, NULL);
 
     create examples for postgres and an n-dimensional GSL table
-
 
 USAGE:
 

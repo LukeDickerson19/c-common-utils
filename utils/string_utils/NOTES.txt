@@ -1,9 +1,0 @@
-
-Docs:
-
-    Intro:
-        String functions to handle strings with predetermined max length in c.
-
-        This was never finished ... Maybe use it in logging utils one day ...
-
-

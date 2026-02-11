@@ -1,34 +1,51 @@
 cmake_minimum_required(VERSION 3.20)
-
 project(string_utils C)
 
-# Use a modern C standard
+find_package(Threads REQUIRED)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-# Warnings (good defaults)
-add_compile_options(-Wall -Wextra -Wpedantic)
+# ---- Compiler Warnings ----
+if (MSVC)
+    # Windows
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    add_compile_options(
+        /W4
+        /wd4996
+        /wd4267
+        /wd4244
+    )
+else()
+    # Linux
+    # add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-# ---- Library ----
+# ---- string_utils library ----
 add_library(string_utils
     src/string_utils.c
 )
+
+if(NOT MSVC)
+    target_compile_definitions(string_utils
+        PRIVATE _POSIX_C_SOURCE=200809L
+    )
+endif()
 
 target_include_directories(string_utils
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# ---- Test executable ----
-add_executable(string_utils_test
-    tests/main.c
-)
+# ---- test executables ----
+add_executable(string_utils_test tests/main.c)
 
-target_link_libraries(string_utils_test
-    PRIVATE string_utils
-)
+target_link_libraries(string_utils_test PRIVATE string_utils)
 
-# ---- Optional: make `make test` work later ----
-enable_testing()
-add_test(NAME string_utils_basic_test COMMAND string_utils_test)
+if(NOT MSVC)
+    target_compile_definitions(string_utils_test
+        PRIVATE _POSIX_C_SOURCE=200809L
+    )
+endif()
+

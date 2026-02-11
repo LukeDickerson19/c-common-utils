@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/string_utils_test.dir/link.d CMakeFiles/string_utils_test.dir/tests/main.c.o -o string_utils_test  libstring_utils.a
