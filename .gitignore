@@ -1,8 +1,13 @@
 
+# tutorial builds
+/tutorials/build/
+
 # log utils
 /utils/log_utils/build/
 /utils/log_utils/log/
-/tutorials/build/
+
+# string utils
+/utils/string_utils/build/
 
 # file explorer astetics
 .C_icon.png
