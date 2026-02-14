@@ -46,7 +46,7 @@ int main(void) {
 	PRINT(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
 
 	// prepend datetime and memory usage
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
 	logger->timezone = "local"; // valid options: "UTC", "local"
 	PRINT(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
     logger->prepend_datetime_fmt = NULL;

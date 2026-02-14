@@ -63,7 +63,20 @@ BACKLOG:
 
     log_utils
 
-        update log util to use string_utils
+        try to find a c lib that converts unix timestamps to a timezone aware datetime
+            this would allow the user to specify any timezone id to their log
+            https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+        update log util to use string_utils or bstring
+            https://bstring.sourceforge.net/
+            https://github.com/websnarf/bstrlib
+
+            save a copy that doesn't use bstring
+                or maybe make them the same functions with a "_raw_char_array" suffix or something
+
+        update log util to do asyncronous logging
+            ideally logging can be done in prod (aka on users' devices without noticably slowing down the app)
+            or maybe on a dedicated separate thread? is this cross platform though?
 
         make these constants Log struct members instead
             #define LOGGING_ENABLED true // toggle logging entirely

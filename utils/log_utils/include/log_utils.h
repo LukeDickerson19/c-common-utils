@@ -47,7 +47,7 @@ typedef struct {
     char *logfile_indent; // what an indent looks like in the log file
     char *prepend_datetime_fmt; // format specifying datetime to prepend to each line printed
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
-    bool prepend_memory_usage; // prepend the memory used and allocated to the python program
+    bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
 
     // variables used for overwrite_prev_msg
     char *prev_console_message;
@@ -84,7 +84,7 @@ typedef struct {
     int  of; // output to logfile, defaults to -1, which uses the Log struct's output_to_logfile bool, else of (0 = false, 1 = true)
     bool d;  // draw a line on the blank line before or after the string, defaults to false
     bool overwrite_prev_msg; // overwrite previous printed message in console and logfile
-    char *end; // last character(s) to print at the end of the string, optional arg - defaults to '\n'
+    char *end; // last character(s) to print at the end of the string, defaults to "\n"
     char **console_str; // pointer to string printed to console
     char **logfile_str; // pointer to string printed to logfile
 } PrintOptions;

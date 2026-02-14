@@ -74,32 +74,32 @@ static void _console_clear_previous_message(Log *logger) {
     // #endif
 
     // Using C standard fwrite for cross-platform console output
-    const char *seq = "\033[F\033[K";  // cursor up + clear line
+    const char *seq = "\033[F\033[K"; // cursor up + clear line
     for (int i = 0; i < line_count; i++) {
         fwrite(seq, 1, 6, logger->console_stream);
         fflush(logger->console_stream);  // ensure immediate effect
     }
 }
 
-static char* _fix_utc_format(char* fmt, const char* timezone) {
+static char* _fix_utc_format(char* format, const char* timezone) {
     /* if "%Z" substring in prepend_datetime_fmt and timezone = "UTC", replace "%Z" with hardcoded "UTC" */
 
-    if (!fmt || !timezone) return fmt;
-    if (strcmp(timezone, "UTC") != 0) return fmt;
-    char* tz_fmt_ptr = strstr(fmt, "%Z");
-    if (!tz_fmt_ptr) return fmt;  // no "%Z" found
+    if (!format || !timezone) return format;
+    if (strcmp(timezone, "UTC") != 0) return format;
+    char* tz_fmt_ptr = strstr(format, "%Z");
+    if (!tz_fmt_ptr) return format;  // no "%Z" found
 
     // Allocate new string: prefix + "UTC" + suffix + null terminator
-    size_t prefix_len = tz_fmt_ptr - fmt;
+    size_t prefix_len = tz_fmt_ptr - format;
     size_t suffix_len = strlen(tz_fmt_ptr + 2); // skip "%Z"
     size_t new_size = prefix_len + 3 + suffix_len + 1;
     char* fixed = malloc(new_size);
-    if (!fixed) return fmt;
-    memcpy(fixed, fmt, prefix_len); // Copy prefix
+    if (!fixed) return format;
+    memcpy(fixed, format, prefix_len); // Copy prefix
     memcpy(fixed + prefix_len, "UTC", 3); // Insert "UTC"
     memcpy(fixed + prefix_len + 3, tz_fmt_ptr + 2, suffix_len); // Copy suffix
     fixed[new_size - 1] = '\0'; // Null-terminate
-    // free(fmt); // ownership transfer
+    // free(format); // ownership transfer
     return fixed; // swap pointer, pointer swap
 }
 
@@ -185,7 +185,7 @@ void close_log(Log *logger) {
     #endif
 }
 
-static int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_cap, char *fmt) {
+static int _get_current_time(const char* timezone, char *datetime_str, size_t datetime_cap, char *format) {
 
     // get current time down to microsecond precision
     struct tm tm_info;
@@ -228,26 +228,26 @@ static int _get_current_time(const char* timezone, char *datetime_str, size_t da
     }
 
     // format string of current time
-    char *us_ptr = strstr(fmt, "%f");
-    char *fmt2 = malloc(datetime_cap);
-    if (!fmt2) return -4;
+    char *us_ptr = strstr(format, "%f");
+    char *format2 = malloc(datetime_cap);
+    if (!format2) return -4;
     if (!us_ptr) {
-        snprintf(fmt2, datetime_cap, "%s", fmt);
+        snprintf(format2, datetime_cap, "%s", format);
     } else {
-        // replace possible "%f" in string fmt with micro_seconds (b/c strftime can't handle microseconds)
-        char us_str[7];  // 6 digits + null terminator
+        // replace possible "%f" in string format with micro_seconds (b/c strftime can't handle microseconds)
+        char us_str[7]; // 6 digits + null terminator
         snprintf(us_str, sizeof(us_str), "%06d", micro_seconds);
-        size_t prefix_len = us_ptr - fmt;
+        size_t prefix_len = us_ptr - format;
         size_t suffix_len = strlen(us_ptr + 2); // skip "%f"
         size_t new_size = prefix_len + 6 + suffix_len + 1;
         if (new_size > datetime_cap) return -4; // Buffer too small
-        memcpy(fmt2, fmt, prefix_len); // Copy prefix
-        memcpy(fmt2 + prefix_len, us_str, 6); // Insert zero padded micro seconds
-        memcpy(fmt2 + prefix_len + 6, us_ptr + 2, suffix_len); // Copy suffix
-        fmt2[new_size - 1] = '\0'; // Null-terminate
+        memcpy(format2, format, prefix_len); // Copy prefix
+        memcpy(format2 + prefix_len, us_str, 6); // Insert zero padded micro seconds
+        memcpy(format2 + prefix_len + 6, us_ptr + 2, suffix_len); // Copy suffix
+        format2[new_size - 1] = '\0'; // Null-terminate
     }
-    strftime(datetime_str, datetime_cap, fmt2, &tm_info);
-    free(fmt2);
+    strftime(datetime_str, datetime_cap, format2, &tm_info);
+    free(format2);
     return 0;
 }
 
@@ -325,13 +325,13 @@ static int _get_process_memory_usage(char *buf, size_t buf_cap) {
     return -1;
 }
 
-static size_t _snprintf_append(char *dest, size_t dest_cap, size_t *pos, const char *fmt, ...) {
+static size_t _snprintf_append(char *dest, size_t dest_cap, size_t *pos, const char *format, ...) {
     // Append src string (formatted) to dest buffer with length tracking
     if (!dest || !pos || *pos >= dest_cap) return *pos;
 
     va_list args;
-    va_start(args, fmt);
-    int n = vsnprintf(dest + *pos, dest_cap - *pos, fmt, args);
+    va_start(args, format);
+    int n = vsnprintf(dest + *pos, dest_cap - *pos, format, args);
     va_end(args);
 
     if (n < 0) return *pos; // snprintf error, leave pos unchanged
@@ -378,27 +378,27 @@ static int _get_formatted_message(
 
     // indent buffers
     size_t indent_len = strlen(indent);
-    char *total_indent0 = calloc(indent_len * i + 1, 1);
-    char *total_indent1 = calloc(indent_len * (i + 1) + 1, 1);
-    if (!total_indent0 || !total_indent1)
+    char *total_indent1 = calloc(indent_len * i + 1, 1);
+    char *total_indent2 = calloc(indent_len * (i + 1) + 1, 1);
+    if (!total_indent1 || !total_indent2)
         goto fail;
     for (int j = 0; j < i; j++)
-        memcpy(total_indent0 + j * indent_len, indent, indent_len);
-    for (int j = 0; j < i + 1; j++)
         memcpy(total_indent1 + j * indent_len, indent, indent_len);
-    const char *total_indent = opts->d ? total_indent1 : total_indent0;
+    for (int j = 0; j < i + 1; j++)
+        memcpy(total_indent2 + j * indent_len, indent, indent_len);
+    const char *total_indent3 = opts->d ? total_indent2 : total_indent1;
 
     // Prepend info buffers and variables
+    char p0[256] = {0}; // p0 = mock indents (if info is prepended to each line, mock indents are tiny indents before the prepended info)
+    size_t p0_len = 0;
     char p_buf1[256] = {0};
+    char *p = p_buf1; // p = prepended info text
     char p_buf2[256] = {0};
-    char *p = p_buf1;
     char *scratch = p_buf2;
     size_t p_len = 0;
     const char div_mark = '-';
     const char *mock_indent = " ";
     size_t mock_indent_len = strlen(mock_indent);
-    char p0[256] = {0};
-    size_t p0_len = 0;
 
     bool prepend_stuff = (logger->prepend_datetime_fmt || logger->prepend_memory_usage);
     if (prepend_stuff) {
@@ -480,7 +480,7 @@ static int _get_formatted_message(
     if (opts->ns) {
         if (prepend_stuff)
             _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", p0);
-        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent3);
     }
 
     // Format each line in the log message
@@ -501,7 +501,7 @@ static int _get_formatted_message(
             else
                 _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s", p0, p);
         }
-        const char *line_indent = line_len == 0 ? total_indent : total_indent0;
+        const char *line_indent = line_len == 0 ? total_indent3 : total_indent1;
 
         // append line
         _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s%s", line_indent, line, opts->end);
@@ -533,7 +533,7 @@ static int _get_formatted_message(
     if (opts->ne && !message_truncated) {
         if (prepend_stuff)
             _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", blank_p);
-        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent3);
     }
 
     // Copy final result to formatted_message
@@ -541,15 +541,15 @@ static int _get_formatted_message(
     *formatted_message_len = fmt_msg_len;
 
     // Free heap memory and return success code
-    free(total_indent0);
     free(total_indent1);
+    free(total_indent2);
     free(blank_p);
     return 0;
 
     // Free heap memory and return failure code
     fail:
-    free(total_indent0);
     free(total_indent1);
+    free(total_indent2);
     free(blank_p);
     return -1;
 }
