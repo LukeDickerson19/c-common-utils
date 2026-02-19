@@ -80,7 +80,9 @@ void test_print() {
 	PRINT(logger, "d", .i=3);
 	PRINT(logger, "e", .i=4);
 	PRINT(logger, "indented\nmulti\nline\nstring", .i=5);
-	PRINT(logger, FMT("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+
+    // test formatted string
+    PRINT(logger, FMT("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 
     // test new line start
 	PRINT(logger, "new line start = true, draw line = false", .i=1, .ns=true);
@@ -109,22 +111,22 @@ void test_print() {
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->timezone = "local"; // valid options: "UTC", "local"
 	PRINT(logger, "testing single line prepend_datetime_fmt", .ns=true);
-	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt");
-	PRINT(logger, "testing single line indented prepend_datetime_fmt", .i=1);
+	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt", .i=1);
+	PRINT(logger, "testing single line indented prepend_datetime_fmt", .i=2);
 
 	// test prepend memory usage
     logger->prepend_datetime_fmt = NULL;
     logger->prepend_memory_usage = true;
 	PRINT(logger, "testing single line prepend_memory_usage", .ns=true);
-	PRINT(logger, "testing\nmulti\nline\nprepend_memory_usage");
-	PRINT(logger, "testing single line indented prepend_memory_usage", .i=1);
+	PRINT(logger, "testing\nmulti\nline\nprepend_memory_usage", .i=1);
+	PRINT(logger, "testing single line indented prepend_memory_usage", .i=2);
 
 	// test both prepend datetime and memory usage
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->prepend_memory_usage = true;
 	PRINT(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
-	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage");
-	PRINT(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=1);
+	PRINT(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
+	PRINT(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
 	logger->prepend_datetime_fmt = NULL;
     logger->prepend_memory_usage = false;
 
@@ -446,9 +448,9 @@ int main(void) {
         return -1;
     }
 
-    // test_print();
-	// test_print_json();
-	test_overwrite_prev_msg();
+    test_print();
+	test_print_json();
+	// test_overwrite_prev_msg();
 
     close_log(logger);
     return 0;

@@ -10,7 +10,7 @@
 #include <errno.h>
 #if PLATFORM_WINDOWS
     #include <windows.h>
-    #include <psapi.h>
+    #include <psapi.h> // for PROCESS_MEMORY_COUNTERS and GetProcessMemoryInfo
     #include <io.h>
     #include <fcntl.h>
     #define open   _open // _sopen_s
@@ -240,7 +240,10 @@ static int _get_current_time(const char* timezone, char *datetime_str, size_t da
         size_t prefix_len = us_ptr - format;
         size_t suffix_len = strlen(us_ptr + 2); // skip "%f"
         size_t new_size = prefix_len + 6 + suffix_len + 1;
-        if (new_size > datetime_cap) return -4; // Buffer too small
+        if (new_size > datetime_cap) {
+            free(format2);
+            return -4; // Buffer too small
+        }
         memcpy(format2, format, prefix_len); // Copy prefix
         memcpy(format2 + prefix_len, us_str, 6); // Insert zero padded micro seconds
         memcpy(format2 + prefix_len + 6, us_ptr + 2, suffix_len); // Copy suffix
@@ -389,13 +392,13 @@ static int _get_formatted_message(
     const char *total_indent3 = opts->d ? total_indent2 : total_indent1;
 
     // Prepend info buffers and variables
-    char p0[256] = {0}; // p0 = mock indents (if info is prepended to each line, mock indents are tiny indents before the prepended info)
-    size_t p0_len = 0;
     char p_buf1[256] = {0};
     char *p = p_buf1; // p = prepended info text
     char p_buf2[256] = {0};
     char *scratch = p_buf2;
     size_t p_len = 0;
+    char p0[256] = {0}; // p0 = mock indents: If info is prepended to each line, mock indents are tiny indents before the prepended info. They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
+    size_t p0_len = 0;
     const char div_mark = '-';
     const char *mock_indent = " ";
     size_t mock_indent_len = strlen(mock_indent);
@@ -443,21 +446,17 @@ static int _get_formatted_message(
             memcpy(p0 + j * mock_indent_len,
                    mock_indent, mock_indent_len);
         p0_len = mock_indent_len * i;
-        p0_len += snprintf(
-            p0 + p0_len,
-            sizeof(p0) - p0_len,
-            "%c ", div_mark);
 
         // Right-align prepend info before any info prepended to the log message.
         // This is so VS Code's code folding feature continues to work with prepended info.
         p_len = snprintf(
             scratch,
             sizeof(p_buf2),
-            "%*s%s%c  ", MAX_INDENTS + 1 - ((int)mock_indent_len * i), "", p, div_mark);
+            "%*s%s%c  ", MAX_INDENTS + 1 - (int)p0_len, "", p, div_mark);
         PTR_SWAP(p, scratch);
     }
 
-    // blank_p = p but w/ prepended info removed, only marks remain
+    // blank_p is the same as p but w/ prepend info removed, only marks remain
     char *blank_p = NULL;
     if (prepend_stuff) {
         size_t blank_cap = p0_len + p_len + 3;
@@ -467,7 +466,7 @@ static int _get_formatted_message(
         snprintf(
             blank_p,
             blank_cap,
-            "%s%*c  ", p0, (int)p_len - 2, div_mark);
+            "%s%c%*c  ", p0, div_mark, (int)p_len - 3, div_mark);
     }
 
     // Init output buffer fmt_msg
@@ -499,7 +498,7 @@ static int _get_formatted_message(
             if (line_len == 0)
                 _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s", blank_p);
             else
-                _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s", p0, p);
+                _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%c%s", p0, div_mark, p);
         }
         const char *line_indent = line_len == 0 ? total_indent3 : total_indent1;
 

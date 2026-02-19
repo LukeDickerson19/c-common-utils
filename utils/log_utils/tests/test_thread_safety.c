@@ -65,6 +65,8 @@ Log *logger;
         return NULL;
     }
     int test_thread_safety() {
+
+        // create and start test threads (pthread_create both creates and starts)
         pthread_t threads[THREAD_COUNT];
         for (int j = 0; j < THREAD_COUNT; j++) {
             if (pthread_create(&threads[j], NULL, thread_print_loop, (void *)(intptr_t)j) != 0) {
@@ -72,8 +74,17 @@ Log *logger;
                 return 1;
             }
         }
+
+        // block the main thread and join the test threads
+        // back into main thread when they're done
         for (int j = 0; j < THREAD_COUNT; j++)
             pthread_join(threads[j], NULL);
+            // pthread_join:
+            // - blocks the calling thread until the thread in its first arg finishes. If the thread has already terminated before you call pthread_join(), then pthread_join() returns immediately
+            // - Once the target thread has finished:
+            //    - Its return value is stored in its 2nd arg *retval. NOTE: if you don't pass NULL this pointer type must match the return type of the thread's function
+            // - The system reclaims the thread’s resources (stack, thread-local storage, etc.)
+            // - The thread ID (pthread_t) becomes invalid / reusable
         return 0;
     }
 #endif
