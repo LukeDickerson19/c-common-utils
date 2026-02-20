@@ -7,7 +7,7 @@
 > Features:
 > - Arbitrary indentation levels per log call (via optional int argument)
 > - Handles indentation for multi-line messages
-> - Microsecond datetime and memory-usage prefixes (vertically aligned without breaking indentation!)
+> - Microsecond datetime and memory-usage prefixes (vertically aligned without breaking indentation)
 > - Overwrite the previously printed log message (via optional bool argument)
 > - Output to console, log file, or both
 > - Thread-safety (using single global mutex)
