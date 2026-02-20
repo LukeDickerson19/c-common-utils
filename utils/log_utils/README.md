@@ -13,7 +13,8 @@
 > - Thread-safety (using single global mutex)
 > 
 > Traditional log levels (INFO, ERROR, etc.) are currently not yet implemented.
-> This project is a rewrite of a previous [Python logging util](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging).
+> This project is a rewrite of a previous [Python logging util](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging). Also available in [Odin lang](https://github.com/LukeDickerson19/odin-common-utils/tree/master/utils/logging_util).
+
 > 
 > Tested on:
 > - Linux   (on Manjaro v25.0.10, x86_64 using gcc)

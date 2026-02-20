@@ -191,7 +191,7 @@ USAGE:
 
     windows:
 
-        SETUP:
+        WINDOWS SETUP:
 
             winget install Kitware.CMake # install cmake
             cmake --version # restart powershell and check version
