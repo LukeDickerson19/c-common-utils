@@ -7,7 +7,7 @@
 /utils/log_utils/log/
 
 # string utils
-/utils/string_utils/build/
+/utils/string_util/build/
 
 # file explorer astetics
 .C_icon.png
