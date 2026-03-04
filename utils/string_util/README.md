@@ -4,7 +4,7 @@
 
 > Dynamic string utility written in C.
 
-###### Main string struct and string init function:
+##### Main string struct and string init function:
 ```c
 typedef struct {
     char   *text;
@@ -15,7 +15,7 @@ typedef struct {
 String str(const char *fmt, ...);
 ```
 
-###### Features:
+##### Features:
 > - dynamic strings that double/halve memory allocation as the string grows/shrinks
 > - Functions:
 >   - Memory:
