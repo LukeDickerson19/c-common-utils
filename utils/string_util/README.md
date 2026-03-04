@@ -16,7 +16,7 @@ String str(const char *fmt, ...);
 ```
 
 ##### Features:
-> - dynamic strings that double/halve memory allocation as the string grows/shrinks
+> - dynamic strings that double/halve heap memory allocation as the string grows/shrinks
 > - Functions:
 >   - **Memory**:
 >     - str_free
