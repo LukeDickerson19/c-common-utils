@@ -18,11 +18,11 @@ String str(const char *fmt, ...);
 ###### Features:
 > - dynamic strings that double/halve memory allocation as the string grows/shrinks
 > - Functions:
->   - Memory Functions:
+>   - Memory:
 >     - str_free
 >     - str_free_all
 >     - str_clone
->   - Mutation Functions:
+>   - Mutation:
 >     - str_append
 >     - str_prepend
 >     - str_concat
@@ -35,7 +35,7 @@ String str(const char *fmt, ...);
 >     - str_trim
 >     - str_trim_left
 >     - str_trim_right
->   - Query Functions:
+>   - Query:
 >     - str_is_empty
 >     - str_starts_with
 >     - str_ends_with
@@ -44,7 +44,7 @@ String str(const char *fmt, ...);
 >     - str_indices_of
 >     - str_equals
 >     - str_count
->   - Extract Functions:
+>   - Extract:
 >     - str_split
 >     - str_slice
 >
