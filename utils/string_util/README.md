@@ -51,8 +51,8 @@ String str(const char *fmt, ...);
 
 
 #### USAGE
-Below is a quick example usage - the tests/main.c file shows how to use all this string_util's features
-```
+Below is a quick example usage - the tests/main.c file shows how to use all this string_util's features.
+```c
 #include "string_util.h"
 #include <stdio.h>
 
