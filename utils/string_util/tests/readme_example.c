@@ -39,7 +39,7 @@ int main(void) {
     str_free(&c);
 
     // free multiple strings at once
-    str_free_all(((String *[]){&e, &f, &g}));
+    str_free(&e, &f, &g);
 
     return 0;
 }

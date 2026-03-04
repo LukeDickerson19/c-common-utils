@@ -20,7 +20,6 @@ String str(const char *fmt, ...);
 > - Functions:
 >   - **Memory**:
 >     - str_free
->     - str_free_all
 >     - str_clone
 >   - **Mutation**:
 >     - str_append
@@ -95,7 +94,7 @@ int main(void) {
     str_free(&c);
 
     // free multiple strings at once
-    str_free_all(((String *[]){&e, &f, &g}));
+    str_free(((String *[]){&e, &f, &g}));
 
     return 0;
 }

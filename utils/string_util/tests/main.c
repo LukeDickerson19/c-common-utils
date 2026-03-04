@@ -38,12 +38,7 @@ void test_str_init(void) {
     print_string(&f3, "f3 (formatted)");
 
     // Clean up
-    str_free(&a);
-    str_free(&b);
-    str_free(&empty);
-    str_free(&f1);
-    str_free(&f2);
-    str_free(&f3);
+    str_free(&a, &b, &empty, &f1, &f2, &f3);
 }
 
 void test_str_clone(void) {
@@ -60,9 +55,7 @@ void test_str_clone(void) {
     print_string(&s1, "s1");
     print_string(&s2, "s2");
 
-    str_free(&s1);
-    str_free(&s2);
-    str_free(&sub);
+    str_free(&s1, &s2, &sub);
 }
 
 void test_append(void) {
@@ -93,8 +86,7 @@ void test_append(void) {
     int res = str_append(NULL, &add);
     printf("    append(NULL, ...) returned %d (expected -1)\n", res);
 
-    str_free(&base);
-    str_free(&empty);
+    str_free(&base, &empty);
 }
 
 void test_prepend(void) {
@@ -156,7 +148,7 @@ void test_concat(void) {
     print_string(&b, "string b (still exists)");
     print_string(&d, "string d (still exists)");
 
-    str_free_all(parts2);
+    str_free(&a, &b, &c, &d);
 
     // --- Test 3: concat with separator ---
     a = str("apple");
@@ -174,8 +166,7 @@ void test_concat(void) {
     print_string(&d, "string d (should still exist)");
     print_string(&sep, "separator string (unchanged)");
 
-    str_free_all(parts3);
-    str_free(&sep);
+    str_free(&a, &b, &c, &d, &sep);
 
     // --- Test 4: single string concat (should remain unchanged) ---
     String single = str("alone");
@@ -198,8 +189,7 @@ void test_is_empty(void) {
     String *null_ptr = NULL;
     printf("    NULL pointer: %d (expected 1)\n", str_is_empty(null_ptr));
 
-    str_free(&empty);
-    str_free(&nonempty);
+    str_free(&empty, &nonempty);
 }
 
 void test_starts_and_ends_with(void) {
@@ -222,8 +212,7 @@ void test_starts_and_ends_with(void) {
     printf("    \"%s\" starts with \"%s\": %d (expected 1)\n", empty.text, empty.text, str_starts_with(&empty, &empty));
     printf("    \"%s\" ends with \"%s\":   %d (expected 1)\n", empty.text, empty.text, str_ends_with(&empty, &empty));
 
-    String *str_to_free[] = {&s, &pre1, &pre2, &suf1, &suf2, &long_prefix, &empty};
-    str_free_all(str_to_free);
+    str_free(&s, &pre1, &pre2, &suf1, &suf2, &long_prefix, &empty);
 }
 
 void test_to_upper_to_lower(void) {
@@ -252,9 +241,8 @@ void test_to_upper_to_lower(void) {
     str_to_lower(&mixed);
     print_string(&mixed, "str_to_lower(&mixed)");
 
-    str_free(&s1);
-    str_free(&empty);
-    str_free(&mixed);
+    // Clean up
+    str_free(&s1, &empty, &mixed);
 }
 
 void test_contains(void) {
@@ -278,13 +266,7 @@ void test_contains(void) {
     printf("    \"%s\" contains \"%s\": %d (expected 1)\n", empty.text, sub_empty.text, str_contains(&empty, &sub_empty));
     printf("    \"%s\" contains \"%s\": %d (expected 0)\n", empty.text, s.text, str_contains(&empty, &s));
 
-    str_free(&s);
-    str_free(&sub1);
-    str_free(&sub2);
-    str_free(&sub3);
-    str_free(&sub4);
-    str_free(&sub_empty);
-    str_free(&empty);
+    str_free(&s, &sub1, &sub2, &sub3, &sub4, &sub_empty, &empty);
 
     // ---- Longer pattern test ("ababcabcabababd") ----
     String s2 = str("ababcabcabababd");
@@ -298,11 +280,7 @@ void test_contains(void) {
     printf("    \"%s\" contains \"%s\": %d (expected 0)\n", s2.text, sub2_3.text, str_contains(&s2, &sub2_3));
     printf("    \"%s\" contains \"%s\": %d (expected 1)\n", s2.text, sub2_empty.text, str_contains(&s2, &sub2_empty));
 
-    str_free(&s2);
-    str_free(&sub2_1);
-    str_free(&sub2_2);
-    str_free(&sub2_3);
-    str_free(&sub2_empty);
+    str_free(&s2, &sub2_1, &sub2_2, &sub2_3, &sub2_empty);
 
 }
 
@@ -334,10 +312,7 @@ void test_index_functions(void) {
     indices = str_indices_of(&s, &sub3, &count);
     printf("    All 'xyz' indices: %p (expected NULL)\n", indices);
 
-    str_free(&s);
-    str_free(&sub1);
-    str_free(&sub2);
-    str_free(&sub3);
+    str_free(&s, &sub1, &sub2, &sub3);
 }
 
 void test_insert(void) {
@@ -370,11 +345,7 @@ void test_insert(void) {
     str_insert(&empty, &sub2, 0);
     printf("    Insert into empty string: \"%s\" (expected \"!!!\")\n", empty.text);
 
-    str_free(&s);
-    str_free(&sub1);
-    str_free(&sub2);
-    str_free(&sub3);
-    str_free(&empty);
+    str_free(&s, &sub1, &sub2, &sub3, &empty);
 }
 
 void test_replace(void) {
@@ -396,9 +367,7 @@ void test_replace(void) {
     str_replace(&s1, &old1, &new1, "last");
     printf("    str_replace(&s1, &old1, &new1, \"last\") sets s1 to: \"%s\"\n", s1.text);
 
-    str_free(&s1);
-    str_free(&old1);
-    str_free(&new1);
+    str_free(&s1, &old1, &new1);
 
     // all occurrences
     String s2 = str("abc abc abc");
@@ -410,9 +379,7 @@ void test_replace(void) {
     str_replace(&s2, &old2, &new2, "all");
     printf("    str_replace(&s2, &old2, &new2, \"all\") sets s2 to: \"%s\"\n", s2.text);
 
-    str_free(&s2);
-    str_free(&old2);
-    str_free(&new2);
+    str_free(&s2, &old2, &new2);
 }
 
 void test_split(void) {
@@ -454,12 +421,7 @@ void test_str_equals(void) {
     printf("    \"%s\" equals \"%s\": %d (expected 1)\n",
            empty1.text, empty2.text, str_equals(&empty1, &empty2));
 
-    str_free(&a);
-    str_free(&b);
-    str_free(&c);
-    str_free(&d);
-    str_free(&empty1);
-    str_free(&empty2);
+    str_free(&a, &b, &c, &d, &empty1, &empty2);
 }
 
 void test_str_slice(void) {
@@ -487,12 +449,7 @@ void test_str_slice(void) {
     printf("    \"%s\" slice(50,60): \"%s\" (expected \"\")\n",
            s.text, e.text);
 
-    str_free(&s);
-    str_free(&a);
-    str_free(&b);
-    str_free(&c);
-    str_free(&d);
-    str_free(&e);
+    str_free(&s, &a, &b, &c, &d, &e);
 }
 
 void test_str_repeat(void) {
@@ -508,10 +465,7 @@ void test_str_repeat(void) {
     String r3 = str_repeat(&s, 5);
     printf("    \"%s\" repeat 5: \"%s\" (expected \"ababababab\")\n", s.text, r3.text);
 
-    str_free(&s);
-    str_free(&r1);
-    str_free(&r2);
-    str_free(&r3);
+    str_free(&s, &r1, &r2, &r3);
 }
 
 void test_str_count(void) {
@@ -529,8 +483,8 @@ void test_str_count(void) {
     printf("    \"%s\" count \"%s\": %zu (expected 1)\n", s.text, sub3.text, str_count(&s, &sub3));
     printf("    \"%s\" count \"%s\": %zu (expected 0)\n", s.text, sub4.text, str_count(&s, &sub4));
 
-    String* str_to_free[] = {&s, &sub1, &sub2, &sub3, &sub4};
-    str_free_all(str_to_free);
+    str_free(&s, &sub1, &sub2, &sub3, &sub4);
+
 }
 
 void test_str_remove(void) {
@@ -583,8 +537,7 @@ void test_str_trim(void) {
     str_trim(&s5);
     printf("    \"      \" -> \"%s\" (expected \"\")\n", s5.text);
 
-    String* str_to_free[] = {&s1, &s2, &s3, &s4, &s5};
-    str_free_all(str_to_free);
+    str_free(&s1, &s2, &s3, &s4, &s5);
 }
 
 int main(void) {

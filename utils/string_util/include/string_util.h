@@ -41,26 +41,16 @@ typedef struct {
 String str(const char *fmt, ...);
 
 /**
- * Frees the dynamically allocated text buffer of a single String
- * and resets the struct fields to a safe empty state.
- *
- * @param string  pointer to the String struct to free
- * @return 0 on success, -1 if string was NULL
- */
-int str_free(String *s);
-
-
-/**
- * Frees the dynamically allocated text buffers of multiple String structs
+ * Frees the memory of one or multiple String structs and their struct members
  * given in a NULL-terminated array of pointers, and resets their fields.
  *
  * @param s_list   NULL-terminated array of String pointers
  * @return 0 on success, -1 if string_list is NULL
  */
-int _str_free_all(String **s_list, size_t count);
-#define str_free_all(list, ...) \
-    _str_free_all((list), sizeof(list)/sizeof((list)[0]), ##__VA_ARGS__)
-
+int _str_free(String **s_list, size_t count);
+#define str_free(...) \
+    _str_free((String*[]){__VA_ARGS__}, \
+    sizeof((String*[]){__VA_ARGS__})/sizeof(String*))
 
 /**
  * Creates a deep copy of the given String.

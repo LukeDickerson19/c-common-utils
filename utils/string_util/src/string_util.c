@@ -92,26 +92,22 @@ static int shrink_capacity(String *s) {
     return 0;
 }
 
-int str_free(String *s) {
-    if (s == NULL)
-        return -1;
-    if (s->text != NULL) {
-        free(s->text);
-        s->text = NULL;
-    }
-    s->len = 0;
-    s->cap = 0;
-    return 0;
-}
-
-int _str_free_all(String **s_list, size_t count) {
+int _str_free(String **s_list, size_t count) {
     if (s_list == NULL || count == 0)
         return -1;
+    int status = 0; // 0 = success, -1 = at least one "problem"
     for (size_t i = 0; i < count; i++) {
-        str_free(s_list[i]);
+        String *s = s_list[i];
+        if (!s) continue; // nothing to free
+        if (s->text) {
+            free(s->text);
+            s->text = NULL;
+        }
+        s->len = 0;
+        s->cap = 0;
         s_list[i] = NULL;
     }
-    return 0;
+    return status; // 0 if all good, -1 if any issues flagged
 }
 
 String str_clone(const String *src) {
@@ -638,7 +634,6 @@ String str_repeat(const String *s, size_t count) {
     result.text[new_len] = '\0';
     return result;
 }
-
 
 size_t str_count(const String *s, const String *substr) {
     if (!s || !substr || !s->text || !substr->text) return 0;
