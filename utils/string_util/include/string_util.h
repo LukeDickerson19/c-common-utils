@@ -42,10 +42,13 @@ String str(const char *fmt, ...);
 
 /**
  * Frees the memory of one or multiple String structs and their struct members
- * given in a NULL-terminated array of pointers, and resets their fields.
+ * given as a variadic list of String pointers, and resets their fields.
  *
- * @param s_list   NULL-terminated array of String pointers
- * @return 0 on success, -1 if string_list is NULL
+ * Example usage:
+ *     str_free(&a, &b, &c);
+ *
+ * @param ...      One or more pointers to String structs to free.
+ * @return 0 on success, -1 if no valid pointers are provided.
  */
 int _str_free(String **s_list, size_t count);
 #define str_free(...) \
