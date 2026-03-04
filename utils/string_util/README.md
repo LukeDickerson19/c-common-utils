@@ -7,15 +7,15 @@
 > Features:
 > - dynamic strings that double/halve memory allocation as the string grows/shrinks
 > - Main string struct and string init function:
-```c
-typedef struct {
-    char   *text;
-    size_t  len;
-    size_t  cap;
-} String;
-
-String str(const char *fmt, ...);
-```
+    ```c
+    typedef struct {
+        char   *text;
+        size_t  len;
+        size_t  cap;
+    } String;
+    
+    String str(const char *fmt, ...);
+    ```
 > - Memory Functions:
 >   - str_free
 >   - str_free_all
