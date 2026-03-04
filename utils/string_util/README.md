@@ -13,7 +13,6 @@
         size_t  len;
         size_t  cap;
     } String;
-    String str(const char *fmt, ...);
     ```
 > - Memory Functions:
 >   - str_free
