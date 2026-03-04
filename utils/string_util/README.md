@@ -3,46 +3,50 @@
 #### DESCRIPTION
 
 > Dynamic string utility written in C.
-> 
-> Features:
+
+## Main string struct and string init function:
+```c
+typedef struct {
+    char   *text;
+    size_t  len;
+    size_t  cap;
+} String;
+
+String str(const char *fmt, ...);
+```
+
+## Features:
 > - dynamic strings that double/halve memory allocation as the string grows/shrinks
-> - Main string struct and string init function:
-    ```c
-    typedef struct {
-        char   *text;
-        size_t  len;
-        size_t  cap;
-    } String;
-    ```
-> - Memory Functions:
->   - str_free
->   - str_free_all
->   - str_clone
-> - Mutation Functions:
->   - str_append
->   - str_prepend
->   - str_concat
->   - str_to_upper
->   - str_to_lower
->   - str_insert
->   - str_replace
->   - str_repeat
->   - str_remove
->   - str_trim
->   - str_trim_left
->   - str_trim_right
-> - Query Functions:
->   - str_is_empty
->   - str_starts_with
->   - str_ends_with
->   - str_contains
->   - str_index_of
->   - str_indices_of
->   - str_equals
->   - str_count
-> - Extract Functions:
->   - str_split
->   - str_slice
+> - Functions:
+>   - Memory Functions:
+>     - str_free
+>     - str_free_all
+>     - str_clone
+>   - Mutation Functions:
+>     - str_append
+>     - str_prepend
+>     - str_concat
+>     - str_to_upper
+>     - str_to_lower
+>     - str_insert
+>     - str_replace
+>     - str_repeat
+>     - str_remove
+>     - str_trim
+>     - str_trim_left
+>     - str_trim_right
+>   - Query Functions:
+>     - str_is_empty
+>     - str_starts_with
+>     - str_ends_with
+>     - str_contains
+>     - str_index_of
+>     - str_indices_of
+>     - str_equals
+>     - str_count
+>   - Extract Functions:
+>     - str_split
+>     - str_slice
 >
 > - see [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/tree/master/utils/string_util/include/string_util.h) for function definitions and descriptions.
 
