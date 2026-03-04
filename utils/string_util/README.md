@@ -17,7 +17,7 @@
 #### USAGE
 Below is a quick example usage - the tests/main.c file shows how to use this util's features more thoroughly.
 ```
-#include "string_utils.h"
+#include "string_util.h"
 #include <stdio.h>
 
 int main(void) {
@@ -67,14 +67,14 @@ int main(void) {
 
 #### EXAMPLE OUTPUT
 ```
-[luke@luke string_utils]$ 
-[luke@luke string_utils]$ 
-[luke@luke string_utils]$ ./build/readme_example 
+[luke@luke string_util]$ 
+[luke@luke string_util]$ 
+[luke@luke string_util]$ ./build/readme_example 
 text = "Hello", length = 5, memory allocated = 11 bytes
 Hello, world!
 Hello, world! How are you?
 AAABBBCCCDDD
 AAABBBCCCDDDEEEFFFGGG
-[luke@luke string_utils]$ 
-[luke@luke string_utils]$ 
+[luke@luke string_util]$ 
+[luke@luke string_util]$ 
 ```
