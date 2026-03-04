@@ -98,7 +98,7 @@ int main(void) {
 ```
 
 #### EXAMPLE OUTPUT
-```bash
+```
 [luke@luke string_util]$ 
 [luke@luke string_util]$ 
 [luke@luke string_util]$ ./build/readme_example 
@@ -112,7 +112,7 @@ AAABBBCCCDDDEEEFFFGGG
 ```
 
 #### BUILD
-```bash
+```
 [luke@luke string_util]$ cmake -S . -B build
 [luke@luke string_util]$ cmake --build build
 ```
