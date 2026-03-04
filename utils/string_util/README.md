@@ -5,17 +5,48 @@
 > Dynamic string util written in C.
 > 
 > Features:
-> - dynamic strings that double memory allocation as the string growns
+> - dynamic strings that double/halve memory allocation as the string grows/shrinks
+> - Main string struct and string init function:
+>
+>     typedef struct {
+>         char   *text;
+>         size_t  len;
+>         size_t  cap;
+>     } String;
+>
+>     String str(const char *fmt, ...);
+>
 > - Functions available:
->   - str
+>   - str_free
+>   - str_free_all
+>   - str_clone
 >   - str_append
 >   - str_prepend
 >   - str_concat
->   - str_free
->   - str_free_all
+>   - str_is_empty
+>   - str_starts_with
+>   - str_ends_with
+>   - str_to_lower
+>   - str_contains
+>   - str_index_of
+>   - str_indices_of
+>   - str_insert
+>   - str_replace
+>   - str_split
+>   - str_equals
+>   - str_slice
+>   - str_repeat
+>   - str_count
+>   - str_remove
+>   - str_trim
+>   - str_trim_left
+>   - str_trim_right
+>
+> - see [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/tree/master/utils/string_util/include/string_util.h) for function definitions and descriptions.
+
 
 #### USAGE
-Below is a quick example usage - the tests/main.c file shows how to use this util's features more thoroughly.
+Below is a quick example usage - the tests/main.c file shows how to use all this string_util's features
 ```
 #include "string_util.h"
 #include <stdio.h>
