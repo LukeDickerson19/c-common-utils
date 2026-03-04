@@ -79,10 +79,7 @@ int main(void) {
     printf("%s\n", s4.text); // "Hello, world! How are you?"
 
     // concat multiple strings into one, with options to set which string to store the output in (defaults to first list item), and whether to free the others or not (defaults to false)
-    String a = str("AAA");
-    String b = str("BBB");
-    String c = str("CCC");
-    String d = str("DDD");
+    String a = str("AAA"), b = str("BBB"), c = str("CCC"), d = str("DDD");
     String *parts[] = {&a, &b, &c, &d};
     str_concat(parts, .output_index=2, .free_others=true);
     printf("%s\n", c.text); // "AAABBBCCCDDD"
@@ -91,10 +88,9 @@ int main(void) {
     String g = str("GGG");
     str_concat(((String *[]){&c, &e, &f, &g}));
     printf("%s\n", c.text); // "AAABBBCCCDDDEEEFFFGGG"
-    str_free(&c);
 
     // free multiple strings at once
-    str_free(&e, &f, &g);
+    str_free(&c, &e, &f, &g);
 
     return 0;
 }
