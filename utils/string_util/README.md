@@ -47,11 +47,11 @@ String str(const char *fmt, ...);
 >     - str_split
 >     - str_slice
 >
-> - see [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/tree/master/utils/string_util/include/string_util.h) for function definitions and descriptions.
+> - see [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/include/string_util.h) for function definitions and descriptions.
 
 
 #### USAGE
-Below is a quick example usage. The [tests/main.c](https://github.com/LukeDickerson19/c-common-utils/tree/master/utils/string_util/include/string_util.h) file shows how to use all this string_util's features.
+Below is a quick example usage. The [tests/main.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/main.c) file shows how to use all this string_util's features.
 ```c
 #include "string_util.h"
 #include <stdio.h>
