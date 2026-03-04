@@ -3,8 +3,10 @@
 /tutorials/build/
 
 # log utils
-/utils/log_utils/build/
-/utils/log_utils/log/
+/utils/logging_util/build/
+/utils/logging_util/log/
+/utils/logging_util_without_string_util/build/
+/utils/logging_util_without_string_util/log/
 
 # string utils
 /utils/string_util/build/
