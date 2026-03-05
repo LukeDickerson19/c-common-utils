@@ -27,7 +27,7 @@ String str(const char *fmt, ...);
 
 
 #### USAGE
-Below is a copy of [tests/full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/tests/full_example.c).
+Below is a copy of [tests/time_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/tests/time_util_full_example.c).
 ```c
 #include "time_util.h"
 #include <stdint.h> // int64_t, int32_t
@@ -127,7 +127,7 @@ int main(void) {
 #### EXAMPLE OUTPUT
 ```
 [luke@luke utils]$ 
-[luke@luke utils]$ ./build/time_util/full_example 
+[luke@luke utils]$ ./build/time_util/time_util_full_example 
 start time:    2026-03-05 04:40:58.705211 GMT
 
 simulating 3 seconds of work...
@@ -140,11 +140,8 @@ end time:      2026-03-05 04:40:58.705211 GMT
 
 #### BUILD
 ```
-cmake -S . -B build -DBUILD_TIME_UTIL=ON # Only build time_util
-cmake --build build
-
 cd c-common-utils/utils
-cmake -S . -B build
+cmake -S . -B build -DBUILD_TIME_UTIL=ON # Only build time_util
 cmake --build build
 ```
 

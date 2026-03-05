@@ -9,16 +9,16 @@ target_include_directories(string_util
 
 # ---- Tests ----
 
-add_executable(string_util_test
-    tests/main.c
+add_executable(string_util_full_example
+    tests/string_util_full_example.c
 )
 
-target_link_libraries(string_util_test
+target_link_libraries(string_util_full_example
     PRIVATE string_util
 )
 
 add_executable(string_util_readme_example
-    tests/readme_example.c
+    tests/string_util_readme_example.c
 )
 
 target_link_libraries(string_util_readme_example

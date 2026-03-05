@@ -8,4 +8,4 @@ C utilities, language tutorials, and example data stuctures
 > - SQLite example
 > - logging_util (also available in [python logging_utils](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging) and [odin logging_util](https://github.com/LukeDickerson19/odin-common-utils/tree/master/utils/logging_util))
 > - string_util (functions for heap allocated dynamic strings)
-
+> - time_util (functions for getting current and elapsed time)

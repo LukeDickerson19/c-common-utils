@@ -34,7 +34,7 @@ target_include_directories(cjson
 # ---- Tests ----
 
 add_executable(logging_util_full_example
-    tests/full_example.c
+    tests/logging_util_full_example.c
 )
 
 target_link_libraries(logging_util_full_example
@@ -42,7 +42,7 @@ target_link_libraries(logging_util_full_example
 )
 
 add_executable(logging_util_readme_example
-    tests/readme_example.c
+    tests/logging_util_readme_example.c
 )
 
 target_link_libraries(logging_util_readme_example

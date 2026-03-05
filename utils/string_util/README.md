@@ -51,7 +51,7 @@ String str(const char *fmt, ...);
 
 
 #### USAGE
-Below is a quick example usage. The [tests/main.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/main.c) file shows how to use all this string_util's features.
+Below is a quick example usage. The [tests/string_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/string_util_full_example.c) file shows how to use all this string_util's features.
 ```c
 #include "string_util.h"
 #include <stdio.h>
@@ -101,7 +101,7 @@ int main(void) {
 ```
 [luke@luke string_util]$ 
 [luke@luke string_util]$ 
-[luke@luke string_util]$ ./build/readme_example 
+[luke@luke string_util]$ ./build/string_util_readme_example 
 text = "Hello", length = 5, memory allocated = 11 bytes
 Hello, world!
 Hello, world! How are you?
@@ -113,7 +113,8 @@ AAABBBCCCDDDEEEFFFGGG
 
 #### BUILD
 ```
-[luke@luke string_util]$ cmake -S . -B build
-[luke@luke string_util]$ cmake --build build
+cd c-common-utils/utils
+cmake -S . -B build -DBUILD_STRING_UTIL=ON # Only build string_util
+cmake --build build
 ```
 
