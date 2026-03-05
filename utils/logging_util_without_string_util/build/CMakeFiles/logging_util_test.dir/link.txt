@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/logging_util_test.dir/link.d CMakeFiles/logging_util_test.dir/tests/main.c.o -o logging_util_test  liblogging_util.a libcjson.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/test_thread_safety.dir/link.d CMakeFiles/test_thread_safety.dir/tests/test_thread_safety.c.o -o test_thread_safety  liblogging_util.a

@@ -1,0 +1,80 @@
+
+test_print():
+a
+    b
+        c
+            d
+                e
+                    indented
+                    multi
+                    line
+                    string
+    formatted string: 7 f hellooo
+    
+    new line start = true, draw line = false
+        
+    new line start = true, draw line = true
+    new line start = false
+    new line end = true, draw line = false
+    
+    new line end = True, draw line = True
+        
+    new line end = false
+
+-           2026-03-04 14:31:11.632867 PST  -  testing single line prepend_datetime_fmt
+ -          2026-03-04 14:31:11.632897 PST  -      testing
+ -          2026-03-04 14:31:11.632897 PST  -      multi
+ -          2026-03-04 14:31:11.632897 PST  -      line
+ -          2026-03-04 14:31:11.632897 PST  -      prepend_datetime_fmt
+  -         2026-03-04 14:31:11.632921 PST  -          testing single line indented prepend_datetime_fmt
+
+-               1.8359 MiB used  -  testing single line prepend_memory_usage
+ -              1.8359 MiB used  -      testing
+ -              1.8359 MiB used  -      multi
+ -              1.8359 MiB used  -      line
+ -              1.8359 MiB used  -      prepend_memory_usage
+  -             1.8359 MiB used  -          testing single line indented prepend_memory_usage
+
+-           2026-03-04 14:31:11.633266 PST  -      1.8359 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage
+ -          2026-03-04 14:31:11.633351 PST  -      1.8359 MiB used  -      testing
+ -          2026-03-04 14:31:11.633351 PST  -      1.8359 MiB used  -      multi
+ -          2026-03-04 14:31:11.633351 PST  -      1.8359 MiB used  -      line
+ -          2026-03-04 14:31:11.633351 PST  -      1.8359 MiB used  -      prepend_datetime_fmt
+ -          2026-03-04 14:31:11.633351 PST  -      1.8359 MiB used  -      and
+ -          2026-03-04 14:31:11.633351 PST  -      1.8359 MiB used  -      prepend_memory_usage
+  -         2026-03-04 14:31:11.633436 PST  -      1.8359 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
+    
+    Test line truncation: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50
+    
+    Test message truncation:
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50
+    
+
+test_print_json():
+    
+    Example 1:
+        {
+        	"name":	"Awesome 4K",
+        	"resolutions":	[{
+        			"width":	1280,
+        			"height":	720
+        		}, {
+        			"width":	1920,
+        			"height":	1080
+        		}, {
+        			"width":	3840,
+        			"height":	2160
+        		}]
+        }
+    
+    Example 2:
+        {
+        	"name":	"Luke",
+        	"age":	30,
+        	"languages":	["C", "Python"]
+        }
+        name = Luke
+        age = 30

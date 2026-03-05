@@ -55,7 +55,7 @@ BACKLOG:
 
         make str_slice work for negative indeces like in python (any maybe indeces greater than str.len too)
 
-    log_utils
+    logging_util
 
         update log util to use string_util or bstring
             https://bstring.sourceforge.net/
@@ -131,7 +131,7 @@ USAGE:
 
                     # ---- Test executable ----
                     add_executable(string_util_test
-                        tests/main.c
+                        tests/full_example.c
                     )
 
                     target_link_libraries(string_util_test
@@ -205,7 +205,7 @@ USAGE:
 
         RUN:
             cd .\build\
-            .\build\log_utils_test.exe
+            .\build\logging_util_test.exe
 
         CREATE NEW PROJECT (FOLDER STRUCTURE):
             same as linux/mac
