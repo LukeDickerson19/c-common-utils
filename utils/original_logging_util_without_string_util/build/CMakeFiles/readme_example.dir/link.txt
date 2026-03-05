@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/readme_example.dir/link.d CMakeFiles/readme_example.dir/tests/readme_example.c.o -o readme_example  liblogging_util.a libcjson.a
