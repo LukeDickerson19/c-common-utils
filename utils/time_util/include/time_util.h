@@ -1,10 +1,15 @@
 
-#ifndef string_util_H
-#define string_util_H
+#ifndef TIME_UTIL_H
+#define TIME_UTIL_H
+
 
 #include <stdint.h>  // Required for int64_t, int32_t
 #include <stddef.h>  // Required for size_t
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /* get_current_unix_time() retrieves the current Unix time with microsecond precision
@@ -77,7 +82,10 @@ void sleep_microseconds(
 );
 
 
+#ifdef __cplusplus
+}
 #endif
+#endif // TIME_UTIL_H
 
 
 

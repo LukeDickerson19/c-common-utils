@@ -4,11 +4,13 @@ add_library(logging_util
     src/logging_util.c
 )
 
+# Include directories for consumers of logging_util
 target_include_directories(logging_util
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Link dependencies
 target_link_libraries(logging_util
     PUBLIC
         string_util
@@ -16,12 +18,13 @@ target_link_libraries(logging_util
         Threads::Threads
 )
 
+# POSIX feature macros for Linux/macOS
 if(NOT MSVC)
     target_compile_definitions(logging_util PRIVATE _POSIX_C_SOURCE=200809L)
 endif()
 
-# ---- cJSON (vendored for tests) ----
 
+# ---- cJSON (vendored, only for tests) ----
 add_library(cjson STATIC
     external/cjson/cJSON.c
 )
@@ -31,32 +34,18 @@ target_include_directories(cjson
         ${CMAKE_CURRENT_SOURCE_DIR}/external/cjson
 )
 
-# ---- Tests ----
 
-add_executable(logging_util_full_example
-    tests/logging_util_full_example.c
-)
+# ---- Test executables ----
 
-target_link_libraries(logging_util_full_example
-    PRIVATE logging_util cjson
-)
+# Helper function to add a test executable
+function(add_logging_util_test TEST_NAME SRC_FILE)
+    add_executable(${TEST_NAME} tests/${SRC_FILE})
+    target_link_libraries(${TEST_NAME} PRIVATE logging_util cjson)
+    if(NOT MSVC)
+        target_compile_definitions(${TEST_NAME} PRIVATE _POSIX_C_SOURCE=200809L)
+    endif()
+endfunction()
 
-add_executable(logging_util_readme_example
-    tests/logging_util_readme_example.c
-)
-
-target_link_libraries(logging_util_readme_example
-    PRIVATE logging_util cjson
-)
-
-add_executable(logging_util_thread_test
-    tests/test_thread_safety.c
-)
-
-target_link_libraries(logging_util_thread_test
-    PRIVATE logging_util
-)
-
-if(NOT MSVC)
-    target_compile_definitions(logging_util_full_example PRIVATE _POSIX_C_SOURCE=200809L)
-endif()
+add_logging_util_test(logging_util_full_example logging_util_full_example.c)
+add_logging_util_test(logging_util_readme_example logging_util_readme_example.c)
+add_logging_util_test(logging_util_thread_test test_thread_safety.c)

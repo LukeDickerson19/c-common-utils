@@ -1,6 +1,6 @@
 // #pragma once
-#ifndef logging_util_H
-#define logging_util_H
+#ifndef LOGGING_UTIL_H
+#define LOGGING_UTIL_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 
-typedef struct {
+typedef struct Log {
 
     bool enabled; // toggle logging entirely
 
@@ -48,7 +48,7 @@ typedef struct {
     int unix_start_time; // unix start time used for prepending elapsed time, defaults to time when init_log() is called
     int start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
-    unsigned char max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
+    int max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
     int max_message_chars; // max number of characters per message
     int max_line_chars; // max number of characters per line
 
@@ -93,7 +93,8 @@ void close_log(
     Log *log
 );
 
-typedef struct {
+
+typedef struct PrintOptions {
     int  i;  // number of indents to put in front of the string, defaults to 0
     bool ns; // print a new line in before the string, defaults to false
     bool ne; // print a new line in after the string, defaults to false
@@ -138,8 +139,9 @@ int _log_print(
     _buf; \
 })
 
+
 #ifdef __cplusplus
 }
 #endif
-#endif // logging_util_H
+#endif // LOGGING_UTIL_H
 

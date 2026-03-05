@@ -22,12 +22,10 @@ String str(const char *fmt, ...);
 >   - format_datetime_str
 >   - get_elapsed_time
 >   - format_elapsed_time
->
-> - see [include/time_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/include/time_util.h) for function definitions and descriptions.
 
 
 #### USAGE
-Below is a copy of [tests/time_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/tests/time_util_full_example.c).
+Below is a copy of [tests/time_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/tests/time_util_full_example.c). See [include/time_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/include/time_util.h) for all function definitions and descriptions.
 ```c
 #include "time_util.h"
 #include <stdint.h> // int64_t, int32_t

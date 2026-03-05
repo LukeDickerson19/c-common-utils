@@ -14,14 +14,13 @@
 > 
 > Traditional log levels (INFO, ERROR, etc.) are currently not yet implemented.
 > This project is a rewrite of a previous [Python logging util](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging). Also available in [Odin lang](https://github.com/LukeDickerson19/odin-common-utils/tree/master/utils/logging_util).
-
 > 
 > Tested on:
 > - Linux   (on Manjaro v25.0.10, x86_64 using gcc)
 > - Windows (on Windows 11, x86_64 using clang/LLVM)
 
 #### USAGE
-Below is a quick example usage - the tests/main.c file shows how to use this util's features more thoroughly.
+Below is a quick example usage - the [tests/logging_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/tests/logging_util_full_example.c) file shows how to use all this util's features. See [include/logging_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/include/logging_util.h) for all function definitions and descriptions.
 ```
 #include "logging_util.h"
 
@@ -70,7 +69,7 @@ int main(void) {
 ```
 [luke@luke build]$ 
 [luke@luke build]$ 
-[luke@luke build]$ ./readme_example 
+[luke@luke build]$ ./logging_util_readme_example 
 a
 |   b
 |   |   c
@@ -101,4 +100,11 @@ a
 [luke@luke build]$ 
 [luke@luke build]$ 
 
+```
+
+#### BUILD
+```
+cd c-common-utils/utils
+cmake -S . -B build -DBUILD_STRING_UTIL=ON -DBUILD_TIME_UTIL=ON -DBUILD_LOGGING_UTIL=ON # build logging util and its dependency utils
+cmake --build build
 ```
