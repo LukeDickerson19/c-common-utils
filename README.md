@@ -1,5 +1,5 @@
 # c-common-utils
-Common C utilities, language tutorials, and example data stuctures:
+C utilities, language tutorials, and example data stuctures
 
 > - [hash map example](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/src/hashmap.c) (example usage of [uthash](https://troydhanson.github.io/uthash/))
 > - [SQLite example](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/src/sqlite.c) (example usage of [sqlite3.c](https://github.com/clibs/sqlite/blob/master/sqlite3.c))
