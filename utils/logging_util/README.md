@@ -2,7 +2,7 @@
 
 #### DESCRIPTION
 
-> Thread-safe logging util written in C supporting hierarchical indentation for log messages — useful for navigating logs in editors that support code folding.
+> Thread-safe logging util written in C supporting hierarchical indentation for log messages - useful for navigating logs in editors that support code folding.
 > 
 > Features:
 > - Arbitrary indentation levels per log call (via optional int argument)
@@ -19,9 +19,16 @@
 > - Linux   (on Manjaro v25.0.10, x86_64 using gcc)
 > - Windows (on Windows 11, x86_64 using clang/LLVM)
 
+#### BUILD
+```
+cd c-common-utils/utils
+cmake -S . -B build -DBUILD_STRING_UTIL=ON -DBUILD_TIME_UTIL=ON -DBUILD_LOGGING_UTIL=ON # build logging util and its dependency utils
+cmake --build build
+```
+
 #### USAGE
 Below is a quick example usage - the [tests/logging_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/tests/logging_util_full_example.c) file shows how to use all this util's features. See [include/logging_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/include/logging_util.h) for all function definitions and descriptions.
-```
+```c
 #include "logging_util.h"
 
 Log *logger; // global variable so you don't need to pass it to each function using it
@@ -100,11 +107,4 @@ a
 [luke@luke build]$ 
 [luke@luke build]$ 
 
-```
-
-#### BUILD
-```
-cd c-common-utils/utils
-cmake -S . -B build -DBUILD_STRING_UTIL=ON -DBUILD_TIME_UTIL=ON -DBUILD_LOGGING_UTIL=ON # build logging util and its dependency utils
-cmake --build build
 ```

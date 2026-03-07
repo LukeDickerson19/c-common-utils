@@ -23,6 +23,12 @@ String str(const char *fmt, ...);
 >   - get_elapsed_time
 >   - format_elapsed_time
 
+#### BUILD
+```
+cd c-common-utils/utils
+cmake -S . -B build -DBUILD_TIME_UTIL=ON # Only build time_util
+cmake --build build
+```
 
 #### USAGE
 Below is a copy of [tests/time_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/tests/time_util_full_example.c). See [include/time_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/include/time_util.h) for all function definitions and descriptions.
@@ -134,12 +140,5 @@ Elapsed time:  00:00:03.000266
 end time:      2026-03-05 04:40:58.705211 GMT
 [luke@luke utils]$ 
 [luke@luke utils]$ 
-```
-
-#### BUILD
-```
-cd c-common-utils/utils
-cmake -S . -B build -DBUILD_TIME_UTIL=ON # Only build time_util
-cmake --build build
 ```
 

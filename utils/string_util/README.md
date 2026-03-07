@@ -4,7 +4,7 @@
 
 > Dynamic string utility written in C.
 
-##### Main struct and string init function:
+##### Main string struct and constructor function:
 ```c
 typedef struct {
     char   *text;
@@ -35,86 +35,84 @@ String str(const char *fmt, ...);
 >     - str_trim_left
 >     - str_trim_right
 >   - **Query**:
+>     - str_equals
 >     - str_is_empty
 >     - str_starts_with
 >     - str_ends_with
 >     - str_contains
+>     - str_count
 >     - str_index_of
 >     - str_indices_of
->     - str_equals
->     - str_count
 >   - **Extract**:
 >     - str_split
 >     - str_slice
->
-> - see [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/include/string_util.h) for function definitions and descriptions.
 
-
-#### USAGE
-Below is a quick example usage. The [tests/string_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/string_util_full_example.c) file shows how to use all this string_util's features.
-```c
-#include "string_util.h"
-#include <stdio.h>
-
-int main(void) {
-
-    // init string and print its struct fields
-    String s1 = str("Hello");
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1.text, s1.len, s1.cap);
-    // text = "Hello", length = 5, memory allocated = 11 bytes
-
-    // append then free suffix after
-    String s2 = str(", ");
-    str_append(&s1, &s2);
-    str_free(&s2);
-
-    // append and free suffix in one line
-    String s3 = str("world!");
-    str_append(&s1, &s3, .free_suffix=true);
-    printf("%s\n", s1.text); // "Hello, world!"
-
-    // prepend and free prefix in one line
-    String s4 = str(" How are you?");
-    str_prepend(&s1, &s4, .free_prefix=true);
-    printf("%s\n", s4.text); // "Hello, world! How are you?"
-
-    // concat multiple strings into one, with options to set which string to store the output in (defaults to first list item), and whether to free the others or not (defaults to false)
-    String a = str("AAA"), b = str("BBB"), c = str("CCC"), d = str("DDD");
-    String *parts[] = {&a, &b, &c, &d};
-    str_concat(parts, .output_index=2, .free_others=true);
-    printf("%s\n", c.text); // "AAABBBCCCDDD"
-    String e = str("EEE");
-    String f = str("FFF");
-    String g = str("GGG");
-    str_concat(((String *[]){&c, &e, &f, &g}));
-    printf("%s\n", c.text); // "AAABBBCCCDDDEEEFFFGGG"
-
-    // free multiple strings at once
-    str_free(&c, &e, &f, &g);
-
-    return 0;
-}
-
-```
-
-#### EXAMPLE OUTPUT
-```
-[luke@luke string_util]$ 
-[luke@luke string_util]$ 
-[luke@luke string_util]$ ./build/string_util_readme_example 
-text = "Hello", length = 5, memory allocated = 11 bytes
-Hello, world!
-Hello, world! How are you?
-AAABBBCCCDDD
-AAABBBCCCDDDEEEFFFGGG
-[luke@luke string_util]$ 
-[luke@luke string_util]$ 
-```
 
 #### BUILD
 ```
 cd c-common-utils/utils
 cmake -S . -B build -DBUILD_STRING_UTIL=ON # Only build string_util
 cmake --build build
+```
+
+
+#### USAGE
+Below is a quick example usage. The [tests/string_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/string_util_full_example.c) file shows how to use all this string_util's features. See [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/include/string_util.h) for all function definitions and descriptions.
+```c
+#include "string_util.h"
+#include <stdio.h>
+
+int main(void) {
+
+    // init string
+    String *s1 = str("Hello");
+    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
+    // outputs: "text = "Hello", length = 5, memory allocated = 11 bytes"
+
+    // append char array to string
+    str_append(s1, ", world");
+    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
+    // outputs: text = "Hello, world", length = 12, memory allocated = 22 byte
+
+    // prepend char array to string
+    str_prepend("... ", s1);
+    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
+    // outputs: text = "... Hello, world", length = 16, memory allocated = 22 bytes
+
+    // free string struct and text
+    str_free(&s1);
+
+    // concat multiple strings into one, with options to set which string
+    // to store the output in (defaults to first list item), and whether
+    // to free the others or not (defaults to false)
+    String *a = str("AAA"), *b = str("BBB"), *c = str("CCC"), *d = str("DDD");
+    String *parts[] = {a, b, c, d};
+    str_concat(parts, .output_index=2);
+    printf("%s\n", c->text); // "AAABBBCCCDDD"
+    String *e = str("EEE");
+    String *f = str("FFF");
+    String *g = str("GGG");
+    str_concat(((String *[]){c, e, f, g}));
+    printf("%s\n", c->text); // "AAABBBCCCDDDEEEFFFGGG"
+
+    // free multiple strings at once
+    str_free(&a, &b, &c, &d, &e, &f, &g);
+
+    return 0;
+}
+```
+
+#### EXAMPLE OUTPUT
+```
+[luke@luke utils]$ 
+[luke@luke utils]$ 
+[luke@luke utils]$ ./build/string_util/string_util_readme_example 
+text = "Hello", length = 5, memory allocated = 11 bytes
+text = "Hello, world", length = 12, memory allocated = 22 bytes
+text = "... Hello, world", length = 16, memory allocated = 22 bytes
+AAABBBCCCDDD
+AAABBBCCCDDDEEEFFFGGG
+[luke@luke utils]$ 
+[luke@luke utils]$ 
 ```
 
