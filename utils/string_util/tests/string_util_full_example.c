@@ -10,7 +10,7 @@ static void print_string(const String *s, const char *label) {
 }
 
 void test_str_init(void) {
-    printf("\n=== Basic creation and print ===\n");
+    printf("\n=== test: str_init() ===\n");
 
     // Simple strings
     String *a = str("Hello");
@@ -40,7 +40,7 @@ void test_str_init(void) {
 }
 
 void test_str_clone(void) {
-    printf("\n=== Clone tests ===\n");
+    printf("\n=== test: str_clone() ===\n");
     String *s1 = str("hello world");
     String *s2 = str_clone(s1);
 
@@ -57,7 +57,7 @@ void test_str_clone(void) {
 }
 
 void test_append(void) {
-    printf("\n=== Append tests ===\n");
+    printf("\n=== test: str_append() ===\n");
 
     String *base = str("Hello");
 
@@ -82,7 +82,7 @@ void test_append(void) {
 }
 
 void test_prepend(void) {
-    printf("\n=== Prepend tests ===\n");
+    printf("\n=== test: str_prepend() ===\n");
 
     String *base = str("world!");
 
@@ -108,7 +108,7 @@ void test_prepend(void) {
 }
 
 void test_concat(void) {
-    printf("\n=== Concat tests ===\n");
+    printf("\n=== test: str_concat() ===\n");
 
     // --- Test 1: classic concat into first + free others ---
     String *a = str("Hello");
@@ -166,47 +166,8 @@ void test_concat(void) {
     str_free(&single);
 }
 
-void test_is_empty(void) {
-    printf("\n=== is_empty tests ===\n");
-
-    String *empty = str("");
-    String *nonempty = str("Hello");
-
-    printf("    empty: %d (expected 1)\n", str_is_empty(empty));
-    printf("    nonempty: %d (expected 0)\n", str_is_empty(nonempty));
-
-    // Edge case: NULL pointer
-    String *null_ptr = NULL;
-    printf("    NULL pointer: %d (expected 1)\n", str_is_empty(null_ptr));
-
-    str_free(&empty, &nonempty);
-}
-
-void test_starts_and_ends_with(void) {
-    printf("\n=== starts_with / ends_with tests ===\n");
-
-    String *s           = str("hello world");
-    String *pre1        = str("hello");
-    String *pre2        = str("world");
-    String *suf1        = str("world");
-    String *suf2        = str("hello");
-    String *long_prefix = str("hello world!!!"); // longer than s
-    printf("    \"%s\" starts with \"%s\": %d (expected 1)\n", s->text, pre1->text, str_starts_with(s, pre1));
-    printf("    \"%s\" starts with \"%s\": %d (expected 0)\n", s->text, pre2->text, str_starts_with(s, pre2));
-    printf("    \"%s\" ends with \"%s\":   %d (expected 1)\n", s->text, suf1->text, str_ends_with(s, suf1));
-    printf("    \"%s\" ends with \"%s\":   %d (expected 0)\n", s->text, suf2->text, str_ends_with(s, suf2));
-    printf("    \"%s\" starts with \"%s\": %d (expected 0)\n", s->text, long_prefix->text, str_starts_with(s, long_prefix));
-
-    // Edge cases: empty string
-    String *empty = str("");
-    printf("    \"%s\" starts with \"%s\": %d (expected 1)\n", empty->text, empty->text, str_starts_with(empty, empty));
-    printf("    \"%s\" ends with \"%s\":   %d (expected 1)\n", empty->text, empty->text, str_ends_with(empty, empty));
-
-    str_free(&s, &pre1, &pre2, &suf1, &suf2, &long_prefix, &empty);
-}
-
 void test_to_upper_to_lower(void) {
-    printf("\n=== to_upper / to_lower tests ===\n");
+    printf("\n=== test: str_to_upper(), str_to_lower() ===\n");
 
     String *s1 = str("Hello World!");
     print_string(s1, "s1");
@@ -235,8 +196,219 @@ void test_to_upper_to_lower(void) {
     str_free(&s1, &empty, &mixed);
 }
 
+void test_insert(void) {
+    printf("\n=== test: str_insert() ===\n");
+
+    String *s    = str("Hello world");
+    String *sub1 = str(", cruel");
+    String *sub2 = str("!!!");
+    String *sub3 = str("Start: ");
+
+    print_string(s, "s");
+    print_string(sub1, "sub1");
+    print_string(sub2, "sub2");
+    print_string(sub3, "sub3");
+
+    // Insert in the middle
+    str_insert(s, sub1, 5);
+    printf("\n    After inserting \"%s\" at index 5: \"%s\" (expected \"Hello, cruel world\")\n", sub1->text, s->text);
+
+    // Insert at end
+    str_insert(s, sub2, s->len);
+    printf("    After inserting \"%s\" at end: \"%s\" (expected \"Hello, cruel world!!!\")\n", sub2->text, s->text);
+
+    // Insert at beginning
+    str_insert(s, sub3, 0);
+    printf("    After inserting \"%s\" at start: \"%s\" (expected \"Start: Hello, cruel world!!!\")\n", sub3->text, s->text);
+
+    // Edge case: empty string
+    String *empty = str("");
+    str_insert(empty, sub2, 0);
+    printf("    Insert into empty string: \"%s\" (expected \"!!!\")\n", empty->text);
+
+    str_free(&s, &sub1, &sub2, &sub3, &empty);
+}
+
+void test_replace(void) {
+    printf("\n=== test: str_replace() ===\n");
+
+    String *s1   = str("the quick brown fox jumps over the lazy fox");
+    String *old1 = str("fox");
+    String *new1 = str("dog");
+
+    print_string(s1, "s1");
+    print_string(old1, "old1");
+    print_string(new1, "new1");
+
+    // first occurrence
+    str_replace(s1, old1, new1, "first");
+    printf("    str_replace(&s1, &old1, &new1, \"first\") sets s1 to: \"%s\"\n", s1->text);
+
+    // last occurrence
+    str_replace(s1, old1, new1, "last");
+    printf("    str_replace(&s1, &old1, &new1, \"last\") sets s1 to: \"%s\"\n", s1->text);
+
+    str_free(&s1, &old1, &new1);
+
+    // all occurrences
+    String *s2   = str("abc abc abc");
+    String *old2 = str("abc");
+    String *new2 = str("xyz");
+    print_string(s2, "s2");
+    print_string(old2, "old2");
+    print_string(new2, "new2");
+    str_replace(s2, old2, new2, "all");
+    printf("    str_replace(&s2, &old2, &new2, \"all\") sets s2 to: \"%s\"\n", s2->text);
+
+    str_free(&s2, &old2, &new2);
+}
+
+void test_str_repeat(void) {
+    printf("\n=== test: str_repeat() ===\n");
+
+    
+    String *s = str("ha");
+    int rc;
+    printf("    str_repeat(\"%s\", 1) -> ", s->text);
+    rc = str_repeat(s, 1);
+    if (rc != 0) {
+        printf("failed\n");
+    } else {
+        printf("\"%s\", expected: \"ha\"\n", s->text);
+    }
+
+    printf("    str_repeat(\"%s\", 3) -> ", s->text);
+    rc = str_repeat(s, 3);
+    if (rc != 0) {
+        printf("failed\n");
+    } else {
+        printf("\"%s\", expected: \"hahaha\"\n", s->text);
+    }
+
+    printf("    str_repeat(\"%s\", 0) -> ", s->text);
+    rc = str_repeat(s, 0);
+    if (rc != 0) {
+        printf("failed\n");
+    } else {
+        printf("\"%s\", expected: \"\"\n", s->text);
+    }
+
+    str_free(&s);
+}
+
+void test_str_remove(void) {
+    printf("\n=== test: str_remove() ===\n");
+
+    String *s;
+
+    s = str("Hello, world!");
+    str_remove(s, 5, 2); // remove ", "
+    printf("    \"%s\" after remove(5,2): \"%s\" (expected \"Helloworld!\")\n", "Hello, world!", s->text);
+    str_free(&s);
+
+    s = str("Hello world!");
+    str_remove(s, 0, 6); // remove "Hello "
+    printf("    \"%s\" after remove(0,6): \"%s\" (expected \"world!\")\n", "Hello world!", s->text);
+    str_free(&s);
+
+    s = str("world!");
+    str_remove(s, 3, 10); // remove past end
+    printf("    \"%s\" after remove(3,10): \"%s\" (expected \"wor\")\n", "world!", s->text);
+    str_free(&s);
+
+    s = str("wor");
+    str_remove(s, 5, 2); // remove beyond string length → nothing happens
+    printf("    \"%s\" after remove(5,2): \"%s\" (expected \"wor\")\n", "wor", s->text);
+    str_free(&s);
+}
+
+void test_str_trim(void) {
+    printf("\n=== test: str_trim(), str_trim_left(), str_trim_right() ===\n");
+
+    String *s1 = str("   Hello world!  ");
+    str_trim(s1);
+    printf("    \"   Hello world!  \" -> \"%s\" (expected \"Hello world!\")\n", s1->text);
+
+    String *s2 = str("   Leading");
+    str_trim_left(s2);
+    printf("    \"   Leading\" -> \"%s\" (expected \"Leading\")\n", s2->text);
+
+    String *s3 = str("Trailing   ");
+    str_trim_right(s3);
+    printf("    \"Trailing   \" -> \"%s\" (expected \"Trailing\")\n", s3->text);
+
+    String *s4 = str("   Both sides   ");
+    str_trim_left(s4);
+    str_trim_right(s4);
+    printf("    \"   Both sides   \" -> \"%s\" (expected \"Both sides\")\n", s4->text);
+
+    String *s5 = str("      "); // all spaces
+    str_trim(s5);
+    printf("    \"      \" -> \"%s\" (expected \"\")\n", s5->text);
+
+    str_free(&s1, &s2, &s3, &s4, &s5);
+}
+
+void test_str_equals(void) {
+    printf("\n=== test: str_equals() ===\n");
+
+    String *a = str("hello");
+    String *b = str("hello");
+    String *c = str("world");
+    String *d = str("hello!");
+    String *empty1 = str("");
+    String *empty2 = str("");
+
+    printf("    \"%s\" equals \"%s\": %d (expected 1)\n", a->text, b->text, str_equals(a, b));
+    printf("    \"%s\" equals \"%s\": %d (expected 0)\n", a->text, c->text, str_equals(a, c));
+    printf("    \"%s\" equals \"%s\": %d (expected 0)\n", a->text, d->text, str_equals(a, d));
+    printf("    \"%s\" equals \"%s\": %d (expected 1)\n",
+        empty1->text, empty2->text, str_equals(empty1, empty2));
+
+    str_free(&a, &b, &c, &d, &empty1, &empty2);
+}
+
+void test_is_empty(void) {
+    printf("\n=== test: str_is_empty() ===\n");
+
+    String *empty = str("");
+    String *nonempty = str("Hello");
+
+    printf("    empty: %d (expected 1)\n", str_is_empty(empty));
+    printf("    nonempty: %d (expected 0)\n", str_is_empty(nonempty));
+
+    // Edge case: NULL pointer
+    String *null_ptr = NULL;
+    printf("    NULL pointer: %d (expected 1)\n", str_is_empty(null_ptr));
+
+    str_free(&empty, &nonempty);
+}
+
+void test_starts_and_ends_with(void) {
+    printf("\n=== test: str_starts_with(), str_ends_with() ===\n");
+
+    String *s           = str("hello world");
+    String *pre1        = str("hello");
+    String *pre2        = str("world");
+    String *suf1        = str("world");
+    String *suf2        = str("hello");
+    String *long_prefix = str("hello world!!!"); // longer than s
+    printf("    \"%s\" starts with \"%s\": %d (expected 1)\n", s->text, pre1->text, str_starts_with(s, pre1));
+    printf("    \"%s\" starts with \"%s\": %d (expected 0)\n", s->text, pre2->text, str_starts_with(s, pre2));
+    printf("    \"%s\" ends with \"%s\":   %d (expected 1)\n", s->text, suf1->text, str_ends_with(s, suf1));
+    printf("    \"%s\" ends with \"%s\":   %d (expected 0)\n", s->text, suf2->text, str_ends_with(s, suf2));
+    printf("    \"%s\" starts with \"%s\": %d (expected 0)\n", s->text, long_prefix->text, str_starts_with(s, long_prefix));
+
+    // Edge cases: empty string
+    String *empty = str("");
+    printf("    \"%s\" starts with \"%s\": %d (expected 1)\n", empty->text, empty->text, str_starts_with(empty, empty));
+    printf("    \"%s\" ends with \"%s\":   %d (expected 1)\n", empty->text, empty->text, str_ends_with(empty, empty));
+
+    str_free(&s, &pre1, &pre2, &suf1, &suf2, &long_prefix, &empty);
+}
+
 void test_contains(void) {
-    printf("\n=== contains tests ===\n");
+    printf("\n=== test: str_contains() ===\n");
 
     String *s         = str("hello world");
     String *sub1      = str("hello");
@@ -274,8 +446,27 @@ void test_contains(void) {
 
 }
 
+void test_str_count(void) {
+    printf("\n=== test: str_count() ===\n");
+
+    String *s = str("abababacaca");
+
+    String *sub1 = str("ab");
+    String *sub2 = str("a");
+    String *sub3 = str("abc");
+    String *sub4 = str("x");
+
+    printf("    \"%s\" count \"%s\": %zu (expected 3)\n", s->text, sub1->text, str_count(s, sub1));
+    printf("    \"%s\" count \"%s\": %zu (expected 7)\n", s->text, sub2->text, str_count(s, sub2));
+    printf("    \"%s\" count \"%s\": %zu (expected 1)\n", s->text, sub3->text, str_count(s, sub3));
+    printf("    \"%s\" count \"%s\": %zu (expected 0)\n", s->text, sub4->text, str_count(s, sub4));
+
+    str_free(&s, &sub1, &sub2, &sub3, &sub4);
+
+}
+
 void test_index_functions(void) {
-    printf("\n=== Index tests ===\n");
+    printf("\n=== test: str_index_of(), str_indeces_of() ===\n");
 
     String *s    = str("abababacaca");
     String *sub1 = str("ab");
@@ -313,75 +504,8 @@ void test_index_functions(void) {
     str_free(&s, &sub1, &sub2, &sub3);
 }
 
-void test_insert(void) {
-    printf("\n=== Insert tests ===\n");
-
-    String *s    = str("Hello world");
-    String *sub1 = str(", cruel");
-    String *sub2 = str("!!!");
-    String *sub3 = str("Start: ");
-
-    print_string(s, "s");
-    print_string(sub1, "sub1");
-    print_string(sub2, "sub2");
-    print_string(sub3, "sub3");
-
-    // Insert in the middle
-    str_insert(s, sub1, 5);
-    printf("\n    After inserting \"%s\" at index 5: \"%s\" (expected \"Hello, cruel world\")\n", sub1->text, s->text);
-
-    // Insert at end
-    str_insert(s, sub2, s->len);
-    printf("    After inserting \"%s\" at end: \"%s\" (expected \"Hello, cruel world!!!\")\n", sub2->text, s->text);
-
-    // Insert at beginning
-    str_insert(s, sub3, 0);
-    printf("    After inserting \"%s\" at start: \"%s\" (expected \"Start: Hello, cruel world!!!\")\n", sub3->text, s->text);
-
-    // Edge case: empty string
-    String *empty = str("");
-    str_insert(empty, sub2, 0);
-    printf("    Insert into empty string: \"%s\" (expected \"!!!\")\n", empty->text);
-
-    str_free(&s, &sub1, &sub2, &sub3, &empty);
-}
-
-void test_replace(void) {
-    printf("\n=== Replace tests ===\n");
-
-    String *s1   = str("the quick brown fox jumps over the lazy fox");
-    String *old1 = str("fox");
-    String *new1 = str("dog");
-
-    print_string(s1, "s1");
-    print_string(old1, "old1");
-    print_string(new1, "new1");
-
-    // first occurrence
-    str_replace(s1, old1, new1, "first");
-    printf("    str_replace(&s1, &old1, &new1, \"first\") sets s1 to: \"%s\"\n", s1->text);
-
-    // last occurrence
-    str_replace(s1, old1, new1, "last");
-    printf("    str_replace(&s1, &old1, &new1, \"last\") sets s1 to: \"%s\"\n", s1->text);
-
-    str_free(&s1, &old1, &new1);
-
-    // all occurrences
-    String *s2   = str("abc abc abc");
-    String *old2 = str("abc");
-    String *new2 = str("xyz");
-    print_string(s2, "s2");
-    print_string(old2, "old2");
-    print_string(new2, "new2");
-    str_replace(s2, old2, new2, "all");
-    printf("    str_replace(&s2, &old2, &new2, \"all\") sets s2 to: \"%s\"\n", s2->text);
-
-    str_free(&s2, &old2, &new2);
-}
-
 void test_split(void) {
-    printf("\n=== Split tests ===\n");
+    printf("\n=== test: str_split() ===\n");
     String *s = str("one,two,three,four");
     size_t count;
     String **parts = str_split(s, ',', &count);
@@ -394,27 +518,8 @@ void test_split(void) {
     str_free(&s);  // free original string
 }
 
-void test_str_equals(void) {
-    printf("\n=== str_equals tests ===\n");
-
-    String *a = str("hello");
-    String *b = str("hello");
-    String *c = str("world");
-    String *d = str("hello!");
-    String *empty1 = str("");
-    String *empty2 = str("");
-
-    printf("    \"%s\" equals \"%s\": %d (expected 1)\n", a->text, b->text, str_equals(a, b));
-    printf("    \"%s\" equals \"%s\": %d (expected 0)\n", a->text, c->text, str_equals(a, c));
-    printf("    \"%s\" equals \"%s\": %d (expected 0)\n", a->text, d->text, str_equals(a, d));
-    printf("    \"%s\" equals \"%s\": %d (expected 1)\n",
-        empty1->text, empty2->text, str_equals(empty1, empty2));
-
-    str_free(&a, &b, &c, &d, &empty1, &empty2);
-}
-
 void test_str_slice(void) {
-    printf("\n=== str_slice tests ===\n");
+    printf("\n=== test: str_slice() ===\n");
 
     String *s = str("Hello, world!");
 
@@ -434,135 +539,30 @@ void test_str_slice(void) {
     str_free(&s, &a, &b, &c, &d, &e);
 }
 
-void test_str_repeat(void) {
-    printf("\n=== str_repeat tests ===\n");
-
-    
-    String *s = str("ha");
-    int rc;
-    printf("    str_repeat(\"%s\", 1) -> ", s->text);
-    rc = str_repeat(s, 1);
-    if (rc != 0) {
-        printf("failed\n");
-    } else {
-        printf("\"%s\", expected: \"ha\"\n", s->text);
-    }
-
-    printf("    str_repeat(\"%s\", 3) -> ", s->text);
-    rc = str_repeat(s, 3);
-    if (rc != 0) {
-        printf("failed\n");
-    } else {
-        printf("\"%s\", expected: \"hahaha\"\n", s->text);
-    }
-
-    printf("    str_repeat(\"%s\", 0) -> ", s->text);
-    rc = str_repeat(s, 0);
-    if (rc != 0) {
-        printf("failed\n");
-    } else {
-        printf("\"%s\", expected: \"\"\n", s->text);
-    }
-
-    str_free(&s);
-}
-
-void test_str_count(void) {
-    printf("\n=== str_count tests ===\n");
-
-    String *s = str("abababacaca");
-
-    String *sub1 = str("ab");
-    String *sub2 = str("a");
-    String *sub3 = str("abc");
-    String *sub4 = str("x");
-
-    printf("    \"%s\" count \"%s\": %zu (expected 3)\n", s->text, sub1->text, str_count(s, sub1));
-    printf("    \"%s\" count \"%s\": %zu (expected 7)\n", s->text, sub2->text, str_count(s, sub2));
-    printf("    \"%s\" count \"%s\": %zu (expected 1)\n", s->text, sub3->text, str_count(s, sub3));
-    printf("    \"%s\" count \"%s\": %zu (expected 0)\n", s->text, sub4->text, str_count(s, sub4));
-
-    str_free(&s, &sub1, &sub2, &sub3, &sub4);
-
-}
-
-void test_str_remove(void) {
-    printf("\n=== str_remove tests ===\n");
-
-    String *s;
-
-    s = str("Hello, world!");
-    str_remove(s, 5, 2); // remove ", "
-    printf("    \"%s\" after remove(5,2): \"%s\" (expected \"Helloworld!\")\n", "Hello, world!", s->text);
-    str_free(&s);
-
-    s = str("Hello world!");
-    str_remove(s, 0, 6); // remove "Hello "
-    printf("    \"%s\" after remove(0,6): \"%s\" (expected \"world!\")\n", "Hello world!", s->text);
-    str_free(&s);
-
-    s = str("world!");
-    str_remove(s, 3, 10); // remove past end
-    printf("    \"%s\" after remove(3,10): \"%s\" (expected \"wor\")\n", "world!", s->text);
-    str_free(&s);
-
-    s = str("wor");
-    str_remove(s, 5, 2); // remove beyond string length → nothing happens
-    printf("    \"%s\" after remove(5,2): \"%s\" (expected \"wor\")\n", "wor", s->text);
-    str_free(&s);
-}
-
-void test_str_trim(void) {
-    printf("\n=== str_trim tests ===\n");
-
-    String *s1 = str("   Hello world!  ");
-    str_trim(s1);
-    printf("    \"   Hello world!  \" -> \"%s\" (expected \"Hello world!\")\n", s1->text);
-
-    String *s2 = str("   Leading");
-    str_trim_left(s2);
-    printf("    \"   Leading\" -> \"%s\" (expected \"Leading\")\n", s2->text);
-
-    String *s3 = str("Trailing   ");
-    str_trim_right(s3);
-    printf("    \"Trailing   \" -> \"%s\" (expected \"Trailing\")\n", s3->text);
-
-    String *s4 = str("   Both sides   ");
-    str_trim_left(s4);
-    str_trim_right(s4);
-    printf("    \"   Both sides   \" -> \"%s\" (expected \"Both sides\")\n", s4->text);
-
-    String *s5 = str("      "); // all spaces
-    str_trim(s5);
-    printf("    \"      \" -> \"%s\" (expected \"\")\n", s5->text);
-
-    str_free(&s1, &s2, &s3, &s4, &s5);
-}
-
 int main(void) {
-    printf("====== String Utils Tests ======\n");
+    printf("====== string_util tests: ======\n");
 
     test_str_init();
     test_str_clone();
     test_append();
     test_prepend();
     test_concat();
-    test_is_empty();
-    test_starts_and_ends_with();
     test_to_upper_to_lower();
-    test_contains();
-    test_index_functions();
     test_insert();
     test_replace();
-    test_split();
-    test_str_equals();
-    test_str_slice();
     test_str_repeat();
-    test_str_count();
     test_str_remove();
     test_str_trim();
+    test_str_equals();
+    test_is_empty();
+    test_starts_and_ends_with();
+    test_contains();
+    test_str_count();
+    test_index_functions();
+    test_split();
+    test_str_slice();
 
-    printf("\n====== All tests completed =====\n");
+    printf("\n====== All tests complete =====\n");
     return 0;
 }
 
