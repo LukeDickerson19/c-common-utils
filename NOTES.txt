@@ -53,7 +53,7 @@ BACKLOG:
 
     string_util
 
-        make str_slice work for negative indeces like in python (any maybe indeces greater than str.len too)
+        make str_slice wrap for negative indeces like in python (any maybe indeces greater than str.len too)
 
     logging_util
 

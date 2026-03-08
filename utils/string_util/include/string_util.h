@@ -3,7 +3,7 @@
 #define STRING_UTIL_H
 
 #include <stddef.h> // for size_t
-#include <stdlib.h> // for malloc, free, realloc, exit
+#include <stdlib.h> // for malloc, free, realloc
 #include <stdbool.h> // for bool type
 
 #ifdef __cplusplus
@@ -52,7 +52,6 @@ String *str(const char *fmt, ...);
 
 ////////////////////////////// Memory Functions ///////////////////////////
 
-
 /**
  * Frees the memory of one or multiple String structs and their struct members
  * given as a variadic list of String pointers, and resets their fields.
@@ -66,25 +65,6 @@ void _str_free(String ***list, size_t count);
 #define str_free(...) \
     _str_free((String**[]){__VA_ARGS__}, \
     sizeof((String**[]){__VA_ARGS__}) / sizeof(String**))
-
-// void _str_free(String **s_list, size_t count);
-// #define str_free(...) \
-//     _str_free((String*[]){__VA_ARGS__}, \
-//     sizeof((String*[]){__VA_ARGS__})/sizeof(String*))
-
-// static inline void _str_free_one(String **p) {
-//     if (!p || !*p) return;
-//     free((*p)->text);
-//     free(*p);
-//     *p = NULL;
-// }
-// #define str_free(...) \
-//     do { \
-//         String* _arr[] = {__VA_ARGS__}; \
-//         for (size_t _i = 0; _i < sizeof(_arr)/sizeof(_arr[0]); _i++) { \
-//             _str_free_one(&_arr[_i]); \
-//         } \
-//     } while(0)
 
 /**
  * Creates a deep copy of the given String.
@@ -291,9 +271,7 @@ bool str_ends_with(const String *s, const String *suffix);
 
 
 /**
- * Returns true if `s` contains `substr`, using the Knuth–Morris–Pratt (KMP) algorithm
- * for efficient searching in O(n + m) time (where n = s->len, m = substr->len).
- * source: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
+ * Returns true if `s` contains `substr`, using naive search.
  *
  * @param s       string to search in (must not be NULL)
  * @param substr  substring to search for (must not be NULL)
@@ -338,10 +316,10 @@ int str_index_of(const String *s, const String *substr, const char *mode);
  * @param s        string to search in (must not be NULL)
  * @param substr   substring to search for (must not be NULL)
  * @param out_len  pointer to size_t that will receive number of occurrences found
- * @return         dynamically allocated array of size_t indices (must be freed by caller),
+ * @return         dynamically allocated array of int indices (must be freed by caller),
  *                 or NULL if none found or invalid input
  */
-size_t* str_indices_of(const String *s, const String *substr, size_t *out_len);
+int* str_indices_of(const String *s, const String *substr, size_t *out_len);
 
 
 ////////////////////////////// Extract Functions //////////////////////////

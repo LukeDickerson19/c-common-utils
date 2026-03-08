@@ -1,10 +1,10 @@
 #include "string_util.h"
-#include <stdlib.h>     // malloc, realloc, free
 #include <string.h>     // strlen, strcat, memcpy, memmove
 #include <stdbool.h> // for bool
 #include <ctype.h>  // for toupper, tolower
 #include <stdio.h> // for va_list
 #include <stdarg.h> // for [tbd]
+#include <stdint.h> // for SIZE_MAX
 
 ///////////////////////// String Struct Constructor ///////////////////////
 
@@ -26,6 +26,8 @@ String *str(const char *fmt, ...) {
     }
 
     size_t len = (size_t)needed;
+    if (len > (SIZE_MAX - 1) / 2)
+        return NULL;
     size_t cap = 2 * len + 1; // double for growth + null terminator
     char *content = malloc(cap);
     if (!content) {
@@ -103,54 +105,24 @@ static int shrink_capacity(String *s) {
     return 0;
 }
 
-// old version
-// void _str_free(String **s_list, size_t count) {
-//     if (s_list == NULL || count == 0) return;
-//     for (size_t i = 0; i < count; i++) {
-//         String *s = s_list[i];
-//         if (!s) continue; // nothing to free
-//         if (s->text) free(s->text);
-//         s->len = 0;
-//         s->cap = 0;
-//         free(s); // free the struct itself
-//         s_list[i] = NULL; // prevent dangling pointer
-//     }
-// }
-
-// void _str_free(String ***list, size_t count) {
-//     if (!list || count == 0) return;
-//     for (size_t i = 0; i < count; i++) {
-//         String **p = list[i];
-//         if (!p || !*p) continue;
-//         String *s = *p;
-//         if (s->text) {
-//             free(s->text);
-//             s->text = NULL;
-//         }
-//         free(s);
-//         *p = NULL; // prevent dangling pointer
-//     }
-// }
-// commented version
 void _str_free(String ***list, size_t count) {
-    // Safety check: if the list itself is NULL or empty, nothing to do
+
+    // do nothing for empty list of 0 count
     if (!list || count == 0) return;
 
-    // Iterate over each pointer passed in the variadic macro
+    // Iterate over each String pointer
     for (size_t i = 0; i < count; i++) {
 
-        // Each element in the list is a pointer to the caller's String*
-        // Example: if the caller wrote str_free(&a), then:
-        // list[i] -> &a
+        // Get the pointer to the pointer of the String
         String **p = list[i];
 
-        // Skip if the pointer itself is NULL or if the caller's pointer is already NULL
+        // Skip if the pointer is NULL or the caller's pointer is already NULL
         if (!p || !*p) continue;
 
         // Dereference once to get the actual String struct
         String *s = *p;
 
-        // Free the dynamically allocated text buffer inside the struct
+        // Free the dynamically allocated text inside the struct
         if (s->text) {
             free(s->text);
             s->text = NULL;  // defensive reset (not strictly necessary)
@@ -159,12 +131,7 @@ void _str_free(String ***list, size_t count) {
         // Free the String struct itself
         free(s);
 
-        // IMPORTANT:
-        // Set the caller's pointer to NULL to prevent a dangling pointer.
-        // Because the caller passed &a, this sets:
-        //
-        //     a = NULL;
-        //
+        // Set the caller's pointer to NULL to prevent a dangling pointer
         *p = NULL;
     }
 }
@@ -274,6 +241,8 @@ int _str_concat(String **s_list, const size_t count, const ConcatOptions *opts) 
     size_t offset = 0;
     bool first_appended = false;
     for (size_t i = 0; i < count; i++) {
+        if (!s_list[i]) continue;
+
         if (i == (size_t)output_index) {
             if (tmp) {
                 memcpy(dst + offset, tmp, tmp_len);
@@ -352,7 +321,7 @@ int str_replace(String *dst, const String *old_sub, const String *new_sub, const
     if (!dst || !dst->text || !old_sub || !old_sub->text || !new_sub || !new_sub->text)
         return -1;
 
-    if (old_sub->len == 0) return -1;  // invalid
+    if (old_sub->len == 0 || dst->len < old_sub->len) return -1;  // invalid
 
     if (!mode) mode = "first"; // default mode
 
@@ -441,18 +410,20 @@ int str_replace(String *dst, const String *old_sub, const String *new_sub, const
 }
 
 int str_repeat(String *s, const size_t n) {
-    if (!s || !s->text)
-        return -1; // invalid input
+    if (!s || !s->text) return -1; // invalid input
 
     // Return empty string if n == 0
     if (n == 0) {
         s->text[0] = '\0';
         s->len = 0;
         s->cap = 1;
-        s->text = realloc(s->text, s->cap);
-        if (!s->text) return -1;
+        char *tmp = realloc(s->text, s->cap);
+        if (!tmp) return -1;
+        s->text = tmp;
         return 0;
     }
+
+    if (s->len != 0 && n > SIZE_MAX / s->len) return -1;
         
     // Resize dynamic array if needed
     size_t old_len = s->len;
@@ -565,59 +536,8 @@ bool str_ends_with(const String *s, const String *suffix) {
     return memcmp(s->text + s->len - suffix->len, suffix->text, suffix->len) == 0;
 }
 
-// static tbd_type kmp_search() {
-//     // use the Knuth–Morris–Pratt (KMP) string search algorithm for O(n + m) time complexity
-//     // https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-
-// }
-
 bool str_contains(const String *s, const String *substr) {
-    // uses the Knuth–Morris–Pratt (KMP) string search algorithm for O(n + m) time complexity
-    // https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-
-    if (s == NULL || substr == NULL) return false;
-    if (substr->len == 0) return true;
-    if (substr->len > s->len) return false;
-
-    size_t n = s->len;
-    size_t m = substr->len;
-
-    // Build longest prefix-suffix (LPS) table
-    size_t *lps = malloc(m * sizeof(size_t));
-    if (!lps) return false; // allocation failure
-    lps[0] = 0;
-    size_t len = 0;
-    for (size_t i = 1; i < m; i++) {
-        while (len > 0 && substr->text[i] != substr->text[len]) {
-            len = lps[len - 1];
-        }
-        if (substr->text[i] == substr->text[len]) {
-            len++;
-        }
-        lps[i] = len;
-    }
-
-    size_t i = 0; // index for s
-    size_t j = 0; // index for substr
-    while (i < n) {
-        if (s->text[i] == substr->text[j]) {
-            i++;
-            j++;
-            if (j == m) {
-                free(lps);
-                return true; // match found
-            }
-        } else {
-            if (j != 0) {
-                j = lps[j - 1]; // fallback in pattern
-            } else {
-                i++;
-            }
-        }
-    }
-
-    free(lps);
-    return false; // no match
+    return str_index_of(s, substr, "first") != -1;
 }
 
 size_t str_count(const String *s, const String *substr) {
@@ -643,13 +563,23 @@ int str_index_of(const String *s, const String *substr, const char *mode) {
     if (!mode) mode = "first";
 
     if (strcmp(mode, "first") == 0) {
-        for (int i = 0; i <= (int)(s->len - substr->len); i++) {
-            if (strncmp(s->text + i, substr->text, substr->len) == 0)
+        const char *text = s->text;
+        const char *pat  = substr->text;
+        int n = s->len;
+        int m = substr->len;
+        char first = pat[0];
+        for (int i = 0; i <= n - m; i++) {
+            if (text[i] == first && memcmp(text + i, pat, m) == 0)
                 return i;
         }
     } else if (strcmp(mode, "last") == 0) {
-        for (int i = (int)(s->len - substr->len); i >= 0; i--) {
-            if (strncmp(s->text + i, substr->text, substr->len) == 0)
+        const char *text = s->text;
+        const char *pat  = substr->text;
+        int n = s->len;
+        int m = substr->len;
+        char first = pat[0];
+        for (int i = n - m; i >= 0; i--) {
+            if (text[i] == first && memcmp(text + i, pat, m) == 0)
                 return i;
         }
     } else {
@@ -659,32 +589,32 @@ int str_index_of(const String *s, const String *substr, const char *mode) {
     return -1; // not found
 }
 
-size_t* str_indices_of(const String *s, const String *substr, size_t *count) {
+int* str_indices_of(const String *s, const String *substr, size_t *count) {
 
-    // set count to 0 and return NULL for invalid arg inputs
-    *count = 0;
+    // return NULL for invalid arg inputs
     if (!s || !s->text || !substr || !substr->text || !count)
         return NULL;
 
-    // return NULL to represent empty list if s is empty
+    // set count to 0 and return NULL to represent empty list if s is empty
+    *count = 0;
     if (substr->len == 0 || s->len < substr->len)
         return NULL;
 
     // Allocate worst-case array
-    size_t *indices = malloc(s->len * sizeof(size_t));
+    int *indices = malloc(s->len * sizeof(int));
     if (!indices) return NULL;
 
     // fill worst-case sized array with each substr match in s
-    for (size_t i = 0; i <= s->len - substr->len; i++) {
+    for (int i = 0; i <= s->len - substr->len; i++) {
         if (strncmp(s->text + i, substr->text, substr->len) == 0) {
             indices[(*count)++] = i;
-            i += substr->len - 1; // skip past current occurrence
+            i += substr->len - 1; // skip past this match
         }
     }
 
     // Trim array to exact size (O(1) for shrinking)
     // NOTE: if substr was never found, realloc(..., 0) returns NULL
-    size_t *result = realloc(indices, *count * sizeof(size_t));
+    int *result = realloc(indices, *count * sizeof(int));
     if (!result && *count > 0)
         return indices; // if realloc fails, just return the untrimmed array
     return result;

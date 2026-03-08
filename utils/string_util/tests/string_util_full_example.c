@@ -481,12 +481,12 @@ void test_index_functions(void) {
 
     // all occurrences
     size_t count;
-    size_t *indices = str_indices_of(s, sub1, &count);
+    int *indices = str_indices_of(s, sub1, &count);
     if (indices == NULL) {
         printf("    str_indices_of() failed, indices == NULL\n");
     } else {
         printf("    All \"ab\" indices in \"%s\": ", s->text);
-        for (size_t i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
             printf("%d ", indices[i]);
         printf("(expected: 0 2 4)\n");
         free(indices);
