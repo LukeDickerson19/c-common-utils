@@ -341,9 +341,10 @@ static int _get_formatted_message(
     size_t indent_len = strlen(indent);
     char *total_indent1 = calloc(indent_len * i + 1, 1);
     char *total_indent2 = calloc(indent_len * (i + 1) + 1, 1);
-    if (!total_indent1 || !total_indent2)
+    if (!total_indent1 || !total_indent2) {
         fprintf(stderr, "failed to calloc total_indent1 or total_indent2");
         goto fail;
+    }
     for (int j = 0; j < i; j++)
         memcpy(total_indent1 + j * indent_len, indent, indent_len);
     for (int j = 0; j < i + 1; j++)
@@ -366,21 +367,21 @@ static int _get_formatted_message(
     if (prepend_stuff) {
 
         // get current time if needed
-        int64_t *unix_seconds;
-        int32_t *microseconds;
+        int64_t unix_seconds;
+        int32_t microseconds;
         if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
-            if (get_current_unix_time(unix_seconds, microseconds) != 0) {
+            if (get_current_unix_time(&unix_seconds, &microseconds) != 0) {
                 fprintf(stderr, "LOG ERROR: failed to get current time\n");
                 goto fail;
             }
         }
-
+        
         // Prepend datetime in specified format
         if (log->prepend_datetime_fmt) {
             char datetime_str[128];
             if (format_datetime_str(
-                *unix_seconds,
-                *microseconds,
+                unix_seconds,
+                microseconds,
                 log->timezone,
                 log->prepend_datetime_fmt,
                 datetime_str,
@@ -398,22 +399,22 @@ static int _get_formatted_message(
 
         // Prepend elapsed time since log's start time in HH:MM:SS.ffffff format
         if (log->prepend_elapsed_time) {
-            int32_t *elapsed_sec, *elapsed_usec;
+            int32_t elapsed_sec, elapsed_usec;
             if (get_elapsed_time(
                 log->unix_start_time,
                 log->start_time_microseconds,
-                *unix_seconds,
-                *microseconds,
-                elapsed_sec,
-                elapsed_usec) != 0) {
+                unix_seconds,
+                microseconds,
+                &elapsed_sec,
+                &elapsed_usec) != 0) {
 
                 fprintf(stderr, "LOG ERROR: failed to get elapsed time\n");
                 goto fail;
             }
             char elapsed_time_str[128];
             if (format_elapsed_time(
-                *elapsed_sec,
-                *elapsed_usec,
+                elapsed_sec,
+                elapsed_usec,
                 elapsed_time_str,
                 sizeof(elapsed_time_str)) != 0) {
 
@@ -481,8 +482,7 @@ static int _get_formatted_message(
     }
 
     // Init output buffer fmt_msg
-    int max_msg_chars = log->max_message_chars;
-    char *fmt_msg = malloc(max_msg_chars);
+    char *fmt_msg = malloc(MAX_MESSAGE_CHARS);
     if (!fmt_msg)
         goto fail;
     size_t fmt_msg_len = 0;
@@ -490,43 +490,42 @@ static int _get_formatted_message(
     // Add starting newline if requested
     if (opts->ns) {
         if (prepend_stuff)
-            _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", p0);
-        _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s\n", total_indent3);
+            _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", p0);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent3);
     }
 
     // Format each line in the log message
     const char *line_start = message;
     bool message_truncated = false;
-    int max_line_chars = log->max_line_chars;
-    char *line = malloc(max_line_chars);
-    char *fmt_line = malloc(max_line_chars);
+    char *line = malloc(MAX_LINE_CHARS);
+    char *fmt_line = malloc(MAX_LINE_CHARS);
     do {
         const char *line_end = strchr(line_start, '\n'); // strchr() returns pointer to next occurrence of '\n'
         size_t line_len = line_end ? (size_t)(line_end - line_start) : strlen(line_start);
-        if (line_len >= max_line_chars) line_len = max_line_chars - 1;
+        if (line_len >= MAX_LINE_CHARS) line_len = MAX_LINE_CHARS - 1;
         memcpy(line, line_start, line_len);
         line[line_len] = '\0';
         fmt_line[0] = '\0';
         size_t fmt_line_len = 0;
         if (prepend_stuff) {
             if (line_len == 0)
-                _snprintf_append(fmt_line, max_line_chars, &fmt_line_len, "%s", blank_p);
+                _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s", blank_p);
             else
-                _snprintf_append(fmt_line, max_line_chars, &fmt_line_len, "%s%c%s", p0, div_mark, p);
+                _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%c%s", p0, div_mark, p);
         }
         const char *line_indent = line_len == 0 ? total_indent3 : total_indent1;
 
         // append line
-        _snprintf_append(fmt_line, max_line_chars, &fmt_line_len, "%s%s%s", line_indent, line, opts->end);
+        _snprintf_append(fmt_line, MAX_LINE_CHARS, &fmt_line_len, "%s%s%s", line_indent, line, opts->end);
 
-        // truncate fmt_line if it exceeds max_line_chars
-        if (fmt_line_len >= max_line_chars)
+        // truncate fmt_line if it exceeds MAX_LINE_CHARS
+        if (fmt_line_len >= MAX_LINE_CHARS)
             _append_inline_truncation_message(
                 fmt_line, &fmt_line_len,
                 " ... log line truncated ...", opts->end);
 
         // truncate fmt_msg if it exceeds MAX_MESSAGE_CHARS
-        if (fmt_msg_len + fmt_line_len >= max_msg_chars) {
+        if (fmt_msg_len + fmt_line_len >= MAX_MESSAGE_CHARS) {
             _append_inline_truncation_message(
                 fmt_msg, &fmt_msg_len,
                 " ... log message truncated ...", opts->end);
@@ -535,7 +534,7 @@ static int _get_formatted_message(
         }
 
         // Append formatted line to fmt_msg
-        _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", fmt_line);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", fmt_line);
         // assert(fmt_msg_len == strlen(fmt_msg)); // FOR TESTING PURPOSES ONLY
 
         // Move to next line
@@ -545,8 +544,8 @@ static int _get_formatted_message(
     // Add ending newline if requested
     if (opts->ne && !message_truncated) {
         if (prepend_stuff)
-            _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", blank_p);
-        _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s\n", total_indent3);
+            _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s", blank_p);
+        _snprintf_append(fmt_msg, MAX_MESSAGE_CHARS, &fmt_msg_len, "%s\n", total_indent3);
     }
 
     // Copy final result to formatted_message
@@ -627,7 +626,7 @@ int _log_print_unlocked(
         char *console_str = NULL;
         size_t console_str_len = 0;
         if (_get_formatted_message(log, msg, log->console_indent, &console_str, &console_str_len, opts) != 0) {
-            fprintf(stderr, "failed to get formatted console string\n");
+            fprintf(stderr, "LOG ERROR: failed to get formatted console string\n");
             return -1;
         }
 
@@ -674,7 +673,7 @@ int _log_print_unlocked(
         if (_get_formatted_message(
                 log, msg, log->logfile_indent,
                 &logfile_str, &logfile_str_len, opts) != 0) {
-            fprintf(stderr, "failed to get formatted log file string\n");
+            fprintf(stderr, "LOG ERROR: failed to get formatted log file string\n");
             return -1;
         }
 
@@ -707,6 +706,8 @@ int _log_print(
         perror("must pass a Log struct pointer and string message");
         return -1;
     }
+
+    if (!log->enabled) return 0;
 
     // Lock mutex
     #if PLATFORM_WINDOWS
