@@ -1,6 +1,7 @@
 
 # tutorial builds
 /tutorials/build/
+/tutorials/AddressSanitizer_and_gdb_tutorial/build/
 
 # util builds
 /utils/build/
