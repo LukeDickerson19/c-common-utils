@@ -17,7 +17,8 @@ int main(void) {
 	print(logger, "b", .i=1); // 1 indent
 	print(logger, "c", .i=2); // 2 indents
 	print(logger, "indented\nmulti\nline\nstring", .i=3);
-	print(logger, fmt("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+	char buffer[MAX_MESSAGE_CHARS];
+	print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 	print(logger, "new line before log message", .i=1, .ns=true); // ns = newline start
 	print(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
 

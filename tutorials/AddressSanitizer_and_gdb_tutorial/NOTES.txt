@@ -1,0 +1,104 @@
+
+
+GDB: GNU Debugger:
+
+
+    Sources:
+
+        cmds:
+            gdb help
+            gdb man
+
+        https://sourceware.org/gdb/
+            "GDB, the GNU Project debugger, allows you to see what is going on `inside' another program while it executes -- or what another program was doing at the moment it crashed."
+
+            as of March 8th 2026
+                GDB supports the following languages (in alphabetical order):
+                    Ada, Assembly, C, C++, D, Fortran, Go, Objective-C, OpenCL, Modula-2, Pascal, Rust
+
+
+
+
+
+Address Sanitizer:
+
+    Usage:
+
+        The typical debugging cycle is:
+            1. compile with ASan
+            2. run program normally
+            3. ASan reports memory bug
+            4. rerun with GDB to inspect state
+
+        Address Sanitizer (aka ASan) with GCC:
+
+            Compile with cmd:
+                gcc \
+                    -fsanitize=address \
+                    -g \
+                    -O0 \
+                    -fno-omit-frame-pointer \
+                    c_error_examples.c -o c_error_examples
+
+                    | Flag                           | Why                                                               |
+                    | ------------------------------ | ----------------------------------------------------------------- |
+                    | `-fsanitize=address`           | enable ASan                                                       |
+                    | `-g`                           | debug symbols                                                     |
+                    | `-O0`                          | no optimizations for full asan info (O1 is hiding it idk why)     |
+                    | `-fno-omit-frame-pointer`      | better stack traces                                               |
+                    | `-ASAN_OPTIONS=detect_leaks=1` | detect memory leaks (happens by default in Clang, but not GCC)    |
+
+                    one liner:
+                        gcc -fsanitize=address -g -O0 -fno-omit-frame-pointer c_error_examples.c -o c_error_examples
+
+            Run It:
+                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 ./c_error_examples
+                    Args:
+                        detect_leaks=1      ->   check for memory leaks
+                                                    gcc doesn't detect memory leaks by default, like clang does, so run it with "ASAN_OPTIONS=detect_leaks=1"
+                        abort_on_error=1    ->   stop program immediately on first error (helpful for GDB)
+                        log_path=asan.log   ->   optional, log output to file
+
+            Run it with GDB:
+
+                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 gdb ./c_error_examples
+                # When the error occurs, GDB will stop on the abort signal.
+
+                USEFUL TIP:
+                    ASan calls an internal function when a violation occurs.
+                    You can set a breakpoint on it:
+                        (gdb) break __asan_report_error
+
+                    Then run:
+                        (gdb) run
+
+                    Now GDB will stop when ASan detects a bad memory access, before the full report prints.
+                    This lets you inspect:
+                        (gdb) bt
+                        (gdb) info locals
+                        (gdb) print x
+
+        Address Sanitizer (aka ASan) with CMake:
+            # see CMakeLists.txt example (TODO: works on linux, currently untested on windows)
+            linux:
+                cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+                cmake --build build
+            windows:
+                cmake -S . -B build
+                cmake --build build --config Debug
+
+            Run It:
+                same as GCC
+
+            Run It with GDB:
+                same as GCC
+
+    Sources:
+
+        ChatGPT convo:
+            ctrl f "please teach e to use addresssanitizer (or asan as its called), first how do i install it on linux"
+            https://chatgpt.com/c/69adb785-d060-8331-a452-9ff050126332
+
+        AddressSanitizer Docs:
+            https://clang.llvm.org/docs/AddressSanitizer.html
+

@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/luke/rooms/tech/software/projects/c-common-utils/tutorials/AddressSanitizer_and_gdb_tutorial/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

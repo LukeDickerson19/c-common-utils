@@ -1,0 +1,1 @@
+/usr/bin/cc -g -fsanitize=address -Wl,--dependency-file=CMakeFiles/c_error_examples.dir/link.d CMakeFiles/c_error_examples.dir/c_error_examples.c.o -o c_error_examples

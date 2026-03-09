@@ -28,8 +28,9 @@ Log *logger;
     DWORD WINAPI thread_print_loop(LPVOID arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
+        char buffer[MAX_MESSAGE_CHARS];
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt("thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
         }
         return 0;
     }
@@ -59,8 +60,9 @@ Log *logger;
     void *thread_print_loop(void *arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
+        char buffer[MAX_MESSAGE_CHARS];
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt("thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
         }
         return NULL;
     }

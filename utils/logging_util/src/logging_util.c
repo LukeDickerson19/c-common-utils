@@ -363,7 +363,10 @@ static int _get_formatted_message(
     const char *mock_indent = " ";
     size_t mock_indent_len = strlen(mock_indent);
 
-    bool prepend_stuff = (log->prepend_datetime_fmt || log->prepend_memory_usage);
+    bool prepend_stuff = \
+        log->prepend_datetime_fmt || \
+        log->prepend_elapsed_time || \
+        log->prepend_memory_usage;
     if (prepend_stuff) {
 
         // get current time if needed
@@ -375,7 +378,7 @@ static int _get_formatted_message(
                 goto fail;
             }
         }
-        
+
         // Prepend datetime in specified format
         if (log->prepend_datetime_fmt) {
             char datetime_str[128];

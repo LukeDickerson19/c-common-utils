@@ -61,73 +61,78 @@ void get_full_base_dir(void) {
     if (!p) return;
     *p = '\0';
 
-    // remove last directory from path
-    p = strrchr(exe_path, sep);
-    if (!p) return;
-    *p = '\0';
+    // remove 2 parent directories
+    int num_lvls = 2; // number of directory levels to go up
+    for (int i = 0; i < num_lvls; i++) {
+        // remove last directory from path
+        p = strrchr(exe_path, sep);
+        if (!p) return;
+        *p = '\0';
+    }
 
     strncpy(BASE_DIR, exe_path, PATH_MAX_CHARS);
     printf("BASE_DIR:     %s\n", BASE_DIR); fflush(stdout); // print immediately (no buffer)
 }
 
 void test_print() {
-	print(logger, "\ntest_print():");
+    print(logger, "\ntest_print():");
 
-	// test num_indents and multi line indentation
-	print(logger, "a", .i=0);
-	print(logger, "b", .i=1);
-	print(logger, "c", .i=2);
-	print(logger, "d", .i=3);
-	print(logger, "e", .i=4);
-	print(logger, "indented\nmulti\nline\nstring", .i=5);
+    // test num_indents and multi line indentation
+    print(logger, "a", .i=0);
+    print(logger, "b", .i=1);
+    print(logger, "c", .i=2);
+    print(logger, "d", .i=3);
+    print(logger, "e", .i=4);
+    print(logger, "indented\nmulti\nline\nstring", .i=5);
 
     // test formatted string
-    print(logger, fmt("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+    char buffer[MAX_MESSAGE_CHARS];
+    print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 
     // test new line start
-	print(logger, "new line start = true, draw line = false", .i=1, .ns=true);
-	print(logger, "new line start = true, draw line = true", .i=1, .ns=true, .d=true);
-	print(logger, "new line start = false", .i=1, .ns=false);
+    print(logger, "new line start = true, draw line = false", .i=1, .ns=true);
+    print(logger, "new line start = true, draw line = true", .i=1, .ns=true, .d=true);
+    print(logger, "new line start = false", .i=1, .ns=false);
 
-	// test new line end
-	print(logger, "new line end = true, draw line = false", .i=1, .ne=true);
-	print(logger, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
-	print(logger, "new line end = false", .i=1, .ne=false);
+    // test new line end
+    print(logger, "new line end = true, draw line = false", .i=1, .ne=true);
+    print(logger, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
+    print(logger, "new line end = false", .i=1, .ne=false);
 
-	// test return values
+    // test return values
     char *console_str = NULL, *logfile_str = NULL;
-	print(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
+    print(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
     fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
     fwrite(logfile_str, 1, strlen(logfile_str), stdout);
     free(console_str);
     free(logfile_str);
-	print(logger, "test multiline\nprint return\nvalue", .i=3, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
+    print(logger, "test multiline\nprint return\nvalue", .i=3, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
     fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
     fwrite(logfile_str, 1, strlen(logfile_str), stdout);
     free(console_str);
     free(logfile_str);
 
-	// test prepend datetime
+    // test prepend datetime
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->timezone = "local"; // valid options: "UTC", "local"
-	print(logger, "testing single line prepend_datetime_fmt", .ns=true);
-	print(logger, "testing\nmulti\nline\nprepend_datetime_fmt", .i=1);
-	print(logger, "testing single line indented prepend_datetime_fmt", .i=2);
+    print(logger, "testing single line prepend_datetime_fmt", .ns=true);
+    print(logger, "testing\nmulti\nline\nprepend_datetime_fmt", .i=1);
+    print(logger, "testing single line indented prepend_datetime_fmt", .i=2);
 
-	// test prepend memory usage
+    // test prepend memory usage
     logger->prepend_datetime_fmt = NULL;
     logger->prepend_memory_usage = true;
-	print(logger, "testing single line prepend_memory_usage", .ns=true);
-	print(logger, "testing\nmulti\nline\nprepend_memory_usage", .i=1);
-	print(logger, "testing single line indented prepend_memory_usage", .i=2);
+    print(logger, "testing single line prepend_memory_usage", .ns=true);
+    print(logger, "testing\nmulti\nline\nprepend_memory_usage", .i=1);
+    print(logger, "testing single line indented prepend_memory_usage", .i=2);
 
-	// test both prepend datetime and memory usage
+    // test both prepend datetime and memory usage
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->prepend_memory_usage = true;
-	print(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
-	print(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
-	print(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
-	logger->prepend_datetime_fmt = NULL;
+    print(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
+    print(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
+    print(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
+    logger->prepend_datetime_fmt = NULL;
     logger->prepend_memory_usage = false;
 
     // test line and message truncation
@@ -280,12 +285,12 @@ int write_json_file(cJSON *json, const char *filepath) {
 }
 
 void test_print_json() {
-	print(logger, "\ntest_print_json():");
+    print(logger, "\ntest_print_json():");
 
-	// json object struct members:
-	// https://github.com/DaveGamble/cJSON/tree/v1.7.19?tab=readme-ov-file#data-structure
+    // json object struct members:
+    // https://github.com/DaveGamble/cJSON/tree/v1.7.19?tab=readme-ov-file#data-structure
 
-	/* cJSON library:
+    /* cJSON library:
 
 		Printing JSON
 			source: https://github.com/DaveGamble/cJSON/tree/v1.7.19?tab=readme-ov-file#printing-json
@@ -304,28 +309,28 @@ void test_print_json() {
 	
 	*/
 
-	print(logger, "\nExample 1:", .i=1);
-	cJSON *example_json = create_example_json();
-	// char *json_string = cJSON_print(example_json);
-	char json_string[1024]; // 1 KB buffer
-	if (cJSON_PrintPreallocated(example_json, json_string, sizeof(json_string), cJSON_False) != 1) {
-		fprintf(stderr, "Failed to print json_string.\n");
-	} else {
-		print(logger, json_string, .i=2);
-	}
-	cJSON_Delete(example_json);
-	// free(json_string);
+    print(logger, "\nExample 1:", .i=1);
+    cJSON *example_json = create_example_json();
+    // char *json_string = cJSON_print(example_json);
+    char json_string[1024]; // 1 KB buffer
+    if (cJSON_PrintPreallocated(example_json, json_string, sizeof(json_string), cJSON_False) != 1) {
+    	fprintf(stderr, "Failed to print json_string.\n");
+    } else {
+    	print(logger, json_string, .i=2);
+    }
+    cJSON_Delete(example_json);
+    // free(json_string);
 
     // json file read/write example
-	print(logger, "\nExample 2:", .i=1);
-	char *filename = "json_example.json";
+    print(logger, "\nExample 2:", .i=1);
+    char *filename = "json_example.json";
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
     cJSON_AddNumberToObject(root, "age", 30);
     cJSON *langs = cJSON_AddArrayToObject(root, "languages");
     cJSON_AddItemToArray(langs, cJSON_CreateString("C"));
     cJSON_AddItemToArray(langs, cJSON_CreateString("Python"));
-	if (write_json_file(root, filename) != 0) {
+    if (write_json_file(root, filename) != 0) {
         print(logger, "Failed to write JSON\n");
     }
     cJSON_Delete(root);
@@ -334,16 +339,17 @@ void test_print_json() {
         print(logger, "Failed to read JSON\n");
         return;
     }
-	char *loaded_string = cJSON_Print(loaded);
+    char *loaded_string = cJSON_Print(loaded);
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
-	print(logger, loaded_string, .i=2);
+    print(logger, loaded_string, .i=2);
+    char buffer[MAX_MESSAGE_CHARS];
     if (cJSON_IsString(name))
-        print(logger, fmt("name = %s", name->valuestring), .i=2);
+        print(logger, fmt(buffer, "name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
-        print(logger, fmt("age = %d", age->valueint), .i=2);
-    cJSON_Delete(loaded);
-	free(loaded_string);
+        print(logger, fmt(buffer, "age = %d", age->valueint), .i=2);
+        cJSON_Delete(loaded);
+    free(loaded_string);
 
 }
 
@@ -429,12 +435,23 @@ void test_overwrite_prev_msg() {
 
 int main(void) {
     get_full_base_dir();
+    // char *log_filepath;
+    // #ifdef _WIN32
+    //     log_filepath = fmt("%s\\logging_util\\log\\log.txt", BASE_DIR);
+    // #else
+    //     log_filepath = fmt("%s/logging_util/log/log.txt", BASE_DIR);
+    // #endif
+
     char *log_filepath;
+
+    // 2. Pass the buffer into the macro
+    char buffer[MAX_MESSAGE_CHARS];
     #ifdef _WIN32
-        log_filepath = fmt("%s\\log\\log.txt", BASE_DIR);
+        log_filepath = fmt(buffer, "%s\\logging_util\\log\\log.txt", BASE_DIR);
     #else
-        log_filepath = fmt("%s/log/log.txt", BASE_DIR);
+        log_filepath = fmt(buffer, "%s/logging_util/log/log.txt", BASE_DIR);
     #endif
+
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
     logger = init_log(

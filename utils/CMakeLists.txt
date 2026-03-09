@@ -10,6 +10,32 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+# Build ALL using AddressSanitizer:
+#     cmake -S . -B build -DBUILD_ALL_UTILS=ON -DENABLE_ASAN=ON -DCMAKE_BUILD_TYPE=Debug # Configure with ASan and Debug symbols
+#     cmake --build build
+# Run with GDB (logging_util example):
+#     export ASAN_OPTIONS=abort_on_error=1
+#     gdb ./build/logging_util/logging_util_full_example
+#     Inside GDB:
+#         (gdb) run
+#         ... wait for crash ...
+#         (gdb) bt
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+if(ENABLE_ASAN)
+    if(MSVC)
+        set(ASAN_FLAGS /fsanitize=address /Zi /Od)
+        set(ASAN_LINK_FLAGS /fsanitize=address /INCREMENTAL:NO)
+    else()
+        # Adding -fno-omit-frame-pointer and -g is vital for GDB traces
+        set(ASAN_FLAGS -fsanitize=address -fno-omit-frame-pointer -g -O0)
+        set(ASAN_LINK_FLAGS -fsanitize=address)
+    endif()
+    
+    # Apply to all libraries/executables defined globally
+    add_compile_options(${ASAN_FLAGS})
+    add_link_options(${ASAN_LINK_FLAGS})
+endif()
+
 # Option to build everything at once
 option(BUILD_ALL_UTILS "Build all utility libraries" OFF)
 

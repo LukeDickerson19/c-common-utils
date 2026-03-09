@@ -135,12 +135,15 @@ int _log_print(
 // macro used to format log messages
 // NOTE: _buf is a stack-allocated array, so each thread calling the macro
 // gets its own independent buffer on its own stack
-#define fmt(...) ({ \
-    char _buf[MAX_MESSAGE_CHARS]; \
-    snprintf(_buf, MAX_MESSAGE_CHARS, __VA_ARGS__); \
-    _buf; \
-})
-
+#define fmt(dst, ...) ( \
+    snprintf(dst, sizeof(dst), __VA_ARGS__), \
+    dst \
+)
+// #define fmt(...) ({ \
+//     char _buf[MAX_MESSAGE_CHARS]; \
+//     snprintf(_buf, MAX_MESSAGE_CHARS, __VA_ARGS__); \
+//     _buf; \
+// })
 
 #ifdef __cplusplus
 }
