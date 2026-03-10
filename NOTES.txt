@@ -2,48 +2,6 @@
 
 TODO:
 
-    learn to use c debugger(s) to compare to print statements / logging
-        gdb (for gcc)
-            https://hugsy.github.io/gef/
-                recommended here: ctrl f "install some good visualizers"
-                    https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
-            https://www.gdbgui.com/
-                recommended in same reddit link, ctrl f "if you prefer a gui you can try gdbgui"
-            ddd
-                https://www.gnu.org/software/ddd/
-                bright UI, is there a dark mode?
-                    https://www.gnu.org/software/ddd/manual/html_mono/ddd-themes.html
-                    google AI:
-                        To enable dark mode in the Data Display Debugger (DDD), you need to manually set X resources by adding specific lines to your
-                        ~/.ddd/init file. DDD uses the Motif widget toolkit, which doesn't have a built-in "dark mode" theme, but its colors can be customized via X resources. 
-                        Steps to Configure Dark Mode
-
-                            Locate or Create the Initialization File: Open (or create) the ~/.ddd/init file in your home directory using a text editor. For example:
-                            bash
-
-                        nano ~/.ddd/init
-
-                        Add X Resource Settings: Add lines to the ~/.ddd/init file to change the background and foreground colors of various DDD components to dark colors.
-                        Save and Restart DDD: Save the changes and restart DDD for the new settings to apply. 
-
-                        Alternative Method (within DDD)
-                        You can also modify settings through the DDD interface and save them: 
-
-                            Navigate to Edit ⇒ Preferences.
-                            Adjust color and font options.
-                            Go to Edit ⇒ Save Options to write these changes to your ~/.ddd/init file. 
-
-                        Manually editing the ~/.ddd/init file offers more granular control over individual components compared to using the in-application preferences.
-            other note:
-                "if you decide to use gdb to make sure to run it with flag -tui to have the source code displayed while debugging"
-                    https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
-        lldb (for clang)
-        Visual Studio debugger
-            "It's very intuitive, you don't have to remember any commands, things can be moused over and inspected, adding breakpoints is very simple, etc. "
-                https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
-        clion
-            https://www.jetbrains.com/clion/buy/?section=personal&billing=monthly
-
     explore c instrumenting profilers
         C instrumenting profilers are performance analysis tools that inject code (hooks or callbacks) directly into a binary or source code, usually at function entry/exit points, to gather highly accurate, detailed metrics. Unlike sampling profilers, they record exact call counts and precise timing for every function call. While providing, they generally incur higher overhead.
 
