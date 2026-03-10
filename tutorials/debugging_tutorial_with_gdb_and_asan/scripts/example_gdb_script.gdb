@@ -26,11 +26,11 @@ r
 define hook-stop
     # Only run if the stop reason is a signal (SIGABRT is signal 6)
     if $_thread && $_siginfo.si_signo == 6
-        echo \n--- GDB LOG --- Program Completed Successfully:\n
+        echo \n--- GDB LOG --- Program Aborted:\n
         # echo --- GDB LOG ---     [Note] ignore this specific error: "LeakSanitizer does not work under ptrace (strace, gdb, etc)"\n
         echo --- GDB LOG ---     [Note] ignore error:\n
         echo ==XXXXX==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)\n
-        echo --- GDB LOG ---     it is a known ptrace conflict between GDB and LSan and is not a memory leak in your code\n\n
+        echo --- GDB LOG ---     it is a known ptrace conflict between GDB and LSan and is not a memory leak in your code. It means your code exitted successfully\n\n
         echo --- GDB LOG ---     quitting gdb.\n
         q
     end

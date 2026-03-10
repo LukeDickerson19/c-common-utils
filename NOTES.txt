@@ -1,263 +1,722 @@
 
 
-TODO:
+TUTORIALS:
 
-    explore c instrumenting profilers
-        C instrumenting profilers are performance analysis tools that inject code (hooks or callbacks) directly into a binary or source code, usually at function entry/exit points, to gather highly accurate, detailed metrics. Unlike sampling profilers, they record exact call counts and precise timing for every function call. While providing, they generally incur higher overhead.
+    C LANG:
 
-    maybe do some c hackerrank
+        USAGE:
 
-BACKLOG:
+            linux/mac:
 
-    string_util
+                CREATE NEW PROJECT (FOLDER STRUCTURE):
+                    cmds:
+                        mkdir <project_dir_name>
+                        cd <project_dir_name>
+                        mkdir include src tests external
+                        touch CMakeLists.txt src/filename.c include/filename.h
+                        # copy template below into CMakeLists.txt file:
+                            cmake_minimum_required(VERSION 3.20)
 
-        make str_slice wrap for negative indeces like in python (any maybe indeces greater than str.len too)
+                            project(string_util C)
 
-    logging_util
+                            # Use a modern C standard
+                            set(CMAKE_C_STANDARD 99)
+                            set(CMAKE_C_STANDARD_REQUIRED ON)
+                            set(CMAKE_C_EXTENSIONS OFF)
 
-        update log util to use string_util or bstring
-            https://bstring.sourceforge.net/
-            https://github.com/websnarf/bstrlib
+                            # Warnings (good defaults)
+                            add_compile_options(-Wall -Wextra -Wpedantic)
 
-            save a copy that doesn't use bstring
-                or maybe make them the same functions with a "_raw_char_array" suffix or something
+                            # ---- Library ----
+                            add_library(string_util
+                                src/string_util.c
+                            )
 
-        try to find a c lib that converts unix timestamps to a timezone aware datetime
-            this would allow the user to specify any timezone id to their log
-            https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+                            target_include_directories(string_util
+                                PUBLIC
+                                    ${CMAKE_CURRENT_SOURCE_DIR}/include
+                            )
 
-        update log util to do asyncronous logging
-            ideally logging can be done in prod (aka on users' devices without noticably slowing down the app)
-            or maybe on a dedicated separate thread? is this cross platform though?
+                            # ---- Test executable ----
+                            add_executable(string_util_test
+                                tests/full_example.c
+                            )
 
-        make these constants Log struct members instead
-            #define LOGGING_ENABLED true // toggle logging entirely
-            #define MAX_INDENTS 10 // max number of indents the user can indent a log message
-            #define MAX_MESSAGE_CHARS 10000 // max number of characters per message, tested w/ value: 500
-            #define MAX_LINE_CHARS 1000 // max number of characters per line (must be less than MAX_MESSAGE_CHARS), tested w/ value: 150
-            // #define MAX_MESSAGE_CHARS 500 // FOR TESTING PURPOSES ONLY
-            // #define MAX_LINE_CHARS 150 // FOR TESTING PURPOSES ONLY
+                            target_link_libraries(string_util_test
+                                PRIVATE string_util
+                            )
 
-        implement traditional log levels (INFO, ERROR, etc.)
+                            # ---- Optional: make `make test` work later ----
+                            enable_testing()
+                            add_test(NAME string_util_basic_test COMMAND string_util_test)
+                        # ... create .c and .h files ...
 
-        create a test_memory_usage.c test that flags prepend_memory_usage true and uses a for loop to iteratively print the same dummy message over and over, to make sure the memory usage isn't growing continuously
-            maybe graph it instead of console output?
-            maybe use overwrite_prev_msg flag every 1000 iterations or so so that console output is easier to read 
+                BUILD:
+                    option 1: use gcc cmd:
+                        cmd: gcc filename.c # produces a.out executable file
+                        cmd: gcc filename.c -o b.out # produces b.out executable file
+                        cmd: gcc -Wall filename.c # Compile with all warnings to catch potential issues
+                        cmd: gcc -Wextra filename.c # enable extra warning messages beyond the standard set from -Wall
+                        cmd: gcc -g filename.c # If you compile without -g, gdb can still run the program, but you only see memory addresses, not source code lines, and variable names are not available
+                            then running cmd: gdb ./a.out
+                                you can:
+                                    break main         # set a breakpoint at main
+                                    run                # start program
+                                    print variable     # inspect variables
+                                    next / step        # step through code line by line
+                                    backtrace          # see function call stack
 
-        test logging_utils on android SDL app once you've learned SDL
-            apparently SDL has its own logging?
-                i might need to make my _log_print return a string and put it inside it?
-                    or maybe a macro that takes a string and puts it in the SDL logger print call?
-                or maybe this?
-                    SDL_LogSetOutputFunction(my_logger_callback, NULL);
+                        derek banas cmd (from project root dir):
+                            gcc -Wall -Wextra -lm src/derek_banas.c -o build/derek_banas
 
-    create examples for postgres and an n-dimensional GSL table
+                    option 2: use make file:
+                        run cmd "make" (from directory w/ a Makefile, usually the project root dir) - this compiles the executable defined in the Makefile (see example Makefile for how). Makefiles are used to only re-build the part of your program that has changed, so it compiles faster.
+                        If you want to build the whole executable again from scratch then run cmd "make clean" and then "make" again.
 
+                    option 3: use cmake cmd:
+                        CMake is a build system generator. Unlike make, it doesn’t build directly; instead, it generates Makefiles (or other build system files like Ninja or Visual Studio project files) based on a CMakeLists.txt configuration file (typically stored in the project root directory)
 
-USAGE:
+                        run cmd: "cmake -S . -B build" from the directory with the CMakeLists.txt file
+                            -S source directory
+                            -B output build directory. CMake generates a Makefile inside build/ (or other build system files depending on your generator)
+                        then run the generated Makefile w/ cmds:
+                            cd build
+                            make
+                            OR with
+                            cmake --build build
 
-    linux/mac:
+                        cmake is cross platform, while make is only for unix-like systems
 
-        CREATE NEW PROJECT (FOLDER STRUCTURE):
-            cmds:
-                mkdir <project_dir_name>
-                cd <project_dir_name>
-                mkdir include src tests external
-                touch CMakeLists.txt src/filename.c include/filename.h
-                # copy template below into CMakeLists.txt file:
-                    cmake_minimum_required(VERSION 3.20)
+                RUN:
+                    option 1:
+                        run the executable w/ cmd:
+                            Release Mode:
+                                ./executable_filename
+                                example:
+                                    ./a.out
 
-                    project(string_util C)
+            windows:
 
-                    # Use a modern C standard
-                    set(CMAKE_C_STANDARD 99)
-                    set(CMAKE_C_STANDARD_REQUIRED ON)
-                    set(CMAKE_C_EXTENSIONS OFF)
+                WINDOWS SETUP:
 
-                    # Warnings (good defaults)
-                    add_compile_options(-Wall -Wextra -Wpedantic)
+                    winget install Kitware.CMake # install cmake
+                    cmake --version # restart powershell and check version
+                    # NOTE: I was originally using the MSVC compiler, but MSVC doesn't support all of C99's features (some of which i used in my logging library), so im using LLVM (aka clang) instead
+                    # LLVM installed from: https://llvm.org/builds/
+                    # i selected the "add to system path for current user option" in the installer guide
+                    winget install Ninja-build.Ninja # install ninja
+                    ninja --version
 
-                    # ---- Library ----
-                    add_library(string_util
-                        src/string_util.c
-                    )
-
-                    target_include_directories(string_util
-                        PUBLIC
-                            ${CMAKE_CURRENT_SOURCE_DIR}/include
-                    )
-
-                    # ---- Test executable ----
-                    add_executable(string_util_test
-                        tests/full_example.c
-                    )
-
-                    target_link_libraries(string_util_test
-                        PRIVATE string_util
-                    )
-
-                    # ---- Optional: make `make test` work later ----
-                    enable_testing()
-                    add_test(NAME string_util_basic_test COMMAND string_util_test)
-                # ... create .c and .h files ...
-
-        BUILD:
-            option 1: use gcc cmd:
-                cmd: gcc filename.c # produces a.out executable file
-                cmd: gcc filename.c -o b.out # produces b.out executable file
-                cmd: gcc -Wall filename.c # Compile with all warnings to catch potential issues
-                cmd: gcc -Wextra filename.c # enable extra warning messages beyond the standard set from -Wall
-                cmd: gcc -g filename.c # If you compile without -g, gdb can still run the program, but you only see memory addresses, not source code lines, and variable names are not available
-                    then running cmd: gdb ./a.out
-                        you can:
-                            break main         # set a breakpoint at main
-                            run                # start program
-                            print variable     # inspect variables
-                            next / step        # step through code line by line
-                            backtrace          # see function call stack
-
-                derek banas cmd (from project root dir):
-                    gcc -Wall -Wextra -lm src/derek_banas.c -o build/derek_banas
-
-            option 2: use make file:
-                run cmd "make" (from directory w/ a Makefile, usually the project root dir) - this compiles the executable defined in the Makefile (see example Makefile for how). Makefiles are used to only re-build the part of your program that has changed, so it compiles faster.
-                If you want to build the whole executable again from scratch then run cmd "make clean" and then "make" again.
-
-            option 3: use cmake cmd:
-                CMake is a build system generator. Unlike make, it doesn’t build directly; instead, it generates Makefiles (or other build system files like Ninja or Visual Studio project files) based on a CMakeLists.txt configuration file (typically stored in the project root directory)
-
-                run cmd: "cmake -S . -B build" from the directory with the CMakeLists.txt file
-                    -S source directory
-                    -B output build directory. CMake generates a Makefile inside build/ (or other build system files depending on your generator)
-                then run the generated Makefile w/ cmds:
-                    cd build
-                    make
-                    OR with
+                BUILD: # from project root dir with cmakelists.txt
+                    rmdir .\build\
+                    cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang
                     cmake --build build
 
-                cmake is cross platform, while make is only for unix-like systems
+                RUN:
+                    cd .\build\
+                    .\build\logging_util_test.exe
 
-        RUN:
-            option 1:
-                run the executable w/ cmd:
-                    ./executable_filename
-                    example:
-                        ./a.out
+                CREATE NEW PROJECT (FOLDER STRUCTURE):
+                    same as linux/mac
 
-    windows:
+            Android:
+                tbd
 
-        WINDOWS SETUP:
+            macOS:
+                tbd
 
-            winget install Kitware.CMake # install cmake
-            cmake --version # restart powershell and check version
-            # NOTE: I was originally using the MSVC compiler, but MSVC doesn't support all of C99's features (some of which i used in my logging library), so im using LLVM (aka clang) instead
-			# LLVM installed from: https://llvm.org/builds/
-            # i selected the "add to system path for current user option" in the installer guide
-            winget install Ninja-build.Ninja # install ninja
-            ninja --version
-
-        BUILD: # from project root dir with cmakelists.txt
-            rmdir .\build\
-            cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang
-            cmake --build build
-
-        RUN:
-            cd .\build\
-            .\build\logging_util_test.exe
-
-        CREATE NEW PROJECT (FOLDER STRUCTURE):
-            same as linux/mac
-
-    android:
-        tbd
-
-    iOS:
-        tbd
+            iOS:
+                tbd
 
 
-STANDARD C PROJECT DIRECTORY STRUCTURE (built manually w/ mkdir):
+        STANDARD C PROJECT DIRECTORY STRUCTURE (built manually w/ mkdir):
 
-    MyProject/
-    ├── CMakeLists.txt        # Root CMake configuration
-    ├── src/                  # Source files
-    │   ├── main.c
-    │   ├── helper.c
-    │   └── CMakeLists.txt    # Optional: for building src as a separate target
-    ├── include/              # Header files
-    │   └── helper.h
-    ├── build/                # Build directory (created by cmake)
-    ├── tests/                # Unit tests
-    │   ├── test_main.c
-    │   └── CMakeLists.txt
-    ├── docs/                 # Documentation (optional)
-    └── README.md             # Project info
-
-
-SOURCES:
-
-    Derek Banas C Video Tutorial
-        1 https://www.youtube.com/watch?v=nXvy5900m3M
-        2 https://www.youtube.com/watch?v=6uIc4PtB9BM
-        ...
-        15 https://www.youtube.com/watch?v=fqKiL03afUA
+            MyProject/
+            ├── CMakeLists.txt        # Root CMake configuration
+            ├── src/                  # Source files
+            │   ├── main.c
+            │   ├── helper.c
+            │   └── CMakeLists.txt    # Optional: for building src as a separate target
+            ├── include/              # Header files
+            │   └── helper.h
+            ├── build/                # Build directory (created by cmake)
+            ├── tests/                # Unit tests
+            │   ├── test_main.c
+            │   └── CMakeLists.txt
+            ├── docs/                 # Documentation (optional)
+            └── README.md             # Project info
 
 
-TABLE DATA STRUCTURE OPTIONS:
+        SOURCES:
 
-    SQLite (embedded SQL database)
-        - no server required (data is stored in a local .db file, persistent after program exit)
-        - lightweight
-        - crossplatform (works on Windows, Linux, macOS, mobile)
-        - basic SQL features: joins, filtering, sorting, aggregation, etc. but doesn't have the advanced SQL features postgres has
-        - not distributed, can’t scale across multiple machines like postgres
-        - multiple readers, single writer (can be a bottleneck for heavy writes)
+            Derek Banas C Video Tutorial
+                1 https://www.youtube.com/watch?v=nXvy5900m3M
+                2 https://www.youtube.com/watch?v=6uIc4PtB9BM
+                ...
+                15 https://www.youtube.com/watch?v=fqKiL03afUA
 
-    PostgreSQL (client-server SQL database)
-        - full-fledged client-server RDBMS: supports multiple users, transactions, and high concurrency
-        - advanced SQL features: window functions, stored procedures, JSON/JSONB, full-text search
 
-    Raw 3D C arrays (in-memory multidimensional arrays)
-        - N-dimensional
-        - in program memory, so fastest option to read/write
-        - fastest read/writes
+        TABLE DATA STRUCTURE OPTIONS:
 
-    Multi-dimensional C libraries:
-        - N-dimensional
-        - in program memory, so fastest option to read/write
-        - Top 3 most popular C Libraries for N-Dimensional data:
+            SQLite (embedded SQL database)
+                - no server required (data is stored in a local .db file, persistent after program exit)
+                - lightweight
+                - crossplatform (works on Windows, Linux, macOS, mobile)
+                - basic SQL features: joins, filtering, sorting, aggregation, etc. but doesn't have the advanced SQL features postgres has
+                - not distributed, can’t scale across multiple machines like postgres
+                - multiple readers, single writer (can be a bottleneck for heavy writes)
 
-            1. BLAS (via OpenBLAS)
-                It does dense vector & matrix math (dot products, matrix multiply, etc.)
-                Almost all scientific software ultimately relies on BLAS.
-                Its performance is extremely optimized (SIMD, cache-aware, multithreaded)
+            PostgreSQL (client-server SQL database)
+                - full-fledged client-server RDBMS: supports multiple users, transactions, and high concurrency
+                - advanced SQL features: window functions, stored procedures, JSON/JSONB, full-text search
 
-            2. LAPACK
-                It does matrix decompositions, eigenvalues, solving linear systems.
-                Also built on BLAS
+            Raw 3D C arrays (in-memory multidimensional arrays)
+                - N-dimensional
+                - in program memory, so fastest option to read/write
+                - fastest read/writes
 
-            3. GSL (GNU Scientific Library)
-                It does vectors, matrices, N-D arrays, FFTs, random numbers, ODE solvers
-                Scope: Broad scientific toolkit
-                Its slower than BLAS for raw math, but far more general
+            Multi-dimensional C libraries:
+                - N-dimensional
+                - in program memory, so fastest option to read/write
+                - Top 3 most popular C Libraries for N-Dimensional data:
 
-            | Library  | Speed   | Scope                      |
-            | -------- | ------- | -------------------------- |
-            | GSL      | fast    | Broad scientific computing |
-            | LAPACK   | faster  | Advanced linear algebra    |
-            | OpenBLAS | fastest | Linear algebra only        |
+                    1. BLAS (via OpenBLAS)
+                        It does dense vector & matrix math (dot products, matrix multiply, etc.)
+                        Almost all scientific software ultimately relies on BLAS.
+                        Its performance is extremely optimized (SIMD, cache-aware, multithreaded)
 
-    Best Use Cases:
-        Need in-memory speed, fixed-size data, no data persistence?
-            Use raw C arrays
-        Need N-Dimensional data or optimized matrix calculations?
-            Use a Multi-dimensional C library, such as GSL
-        Need data persistence, simple local app, easy SQL?
-            Use SQLite
-                SQLite vs Postgres for a local database
-                https://news.ycombinator.com/item?id=32676455
-        Need data persistence, centralized network multi-user database access with advanced SQL?
-            Use PostgreSQL
+                    2. LAPACK
+                        It does matrix decompositions, eigenvalues, solving linear systems.
+                        Also built on BLAS
 
-    See files table_struct.c and sqlite.c for examples implemented so far.
+                    3. GSL (GNU Scientific Library)
+                        It does vectors, matrices, N-D arrays, FFTs, random numbers, ODE solvers
+                        Scope: Broad scientific toolkit
+                        Its slower than BLAS for raw math, but far more general
 
+                    | Library  | Speed   | Scope                      |
+                    | -------- | ------- | -------------------------- |
+                    | GSL      | fast    | Broad scientific computing |
+                    | LAPACK   | faster  | Advanced linear algebra    |
+                    | OpenBLAS | fastest | Linear algebra only        |
+
+            Best Use Cases:
+                Need in-memory speed, fixed-size data, no data persistence?
+                    Use raw C arrays
+                Need N-Dimensional data or optimized matrix calculations?
+                    Use a Multi-dimensional C library, such as GSL
+                Need data persistence, simple local app, easy SQL?
+                    Use SQLite
+                        SQLite vs Postgres for a local database
+                        https://news.ycombinator.com/item?id=32676455
+                Need data persistence, centralized network multi-user database access with advanced SQL?
+                    Use PostgreSQL
+
+            See files table_struct.c and sqlite.c for examples implemented so far.
+
+
+        BACKLOG:
+
+            explore c instrumenting profilers
+                C instrumenting profilers are performance analysis tools that inject code (hooks or callbacks) directly into a binary or source code, usually at function entry/exit points, to gather highly accurate, detailed metrics. Unlike sampling profilers, they record exact call counts and precise timing for every function call. While providing, they generally incur higher overhead.
+
+            maybe do some c hackerrank
+
+
+    DEBUGGING:
+
+
+        debugging_tutorial_with_gdb_and_asan:
+
+            GDB: GNU Debugger:
+
+                Setting file:
+                    ~/.gdbinit
+
+                    apply updates within (run once, updates persist each time you open gdb):
+                        (gdb) source ~/.gdbinit
+
+                Usage:
+
+                    Enter/Exit GDB:
+
+                        Compile program with debug symbols:
+                            gcc -g program.c -o program
+
+                        Start debugger:
+                            gdb ./program
+
+                        Run program:
+                            run
+                            r
+
+                        Run with arguments:
+                            run arg1 arg2
+
+                        Run with environment variables:
+                            set environment VAR=value
+                            run
+
+                        Run with GDB script:
+                            gdb ./src/syour_program -x scripts/example_gdb_script.gdb
+
+                            example script:
+                                c-common-utils/tutorials/debugging_tutorial_with_gdb_and_asan/scripts/example_gdb_script.gdb
+
+                                NOTE:
+                                    The scripts/ folder is typically a "utility belt" for everything that isn't the core application but makes development possible. If a file is interpreted (Bash, Python, Ruby, Perl) and helps you build, test, or run the code, it belongs in scripts/. If it is compiled (.c, .h), it belongs in src/.
+
+                                    Typical contents include:
+                                        1. Build & Automation
+                                            * setup.sh: Installs system dependencies (like libssl-dev or gdb) so a new developer can get started in one command.
+                                            * build.sh: A wrapper for complex cmake commands (e.g., ./scripts/build.sh --debug --asan).
+                                            * generate_header.py: Python scripts that auto-generate C code, like version strings or lookup tables from a CSV.
+
+                                        2. Testing & Quality
+                                            * run_tests.sh: Runs your test suite and formats the output.
+                                            * check_style.sh: Runs clang-format or cppcheck to ensure everyone's code looks the same.
+                                            * coverage.sh: Generates HTML reports showing which lines of code your tests actually hit.
+
+                                        3. Debugging & Profiling
+                                            * valgrind_check.sh: Runs your app through Valgrind with specific suppression files to ignore known "noise" leaks.
+                                            * gdb_attach.sh: A script to automatically find a running process ID and attach GDB to it.
+                                            * .gdb files: Like the ones we made, often split by purpose (e.g., debug_heap.gdb, pretty_printers.gdb).
+
+                                        4. Deployment & CI/CD
+                                            * package.sh: Compresses the final binaries and assets into a .tar.gz or .deb file for release.
+                                            * ci_prepare.sh: Specific logic for GitHub Actions or GitLab CI to set up the environment.
+
+                        Restart program:
+                            run
+
+                        Quit gdb:
+                            quit
+                            q
+
+
+                    Breakpoints:
+
+                        Set breakpoint at function:
+                            break main
+
+                        Set breakpoint at file line:
+                            break file.c:42
+
+                        Set breakpoint at address:
+                            break *0x400abc
+
+                        List breakpoints:
+                            info breakpoints
+
+                        Delete breakpoint:
+                            delete 1
+
+                        Delete all breakpoints:
+                            delete
+
+
+                    Stepping / Execution Control:
+
+                        Continue execution:
+                            continue
+                            c
+
+                        Execute next line (step over functions):
+                            next
+                            n
+
+                        Step into function:
+                            step
+                            s
+
+                        Finish current function:
+                            finish
+
+                        Run until next line in current frame:
+                            until
+
+
+                    Inspecting Program State:
+
+                        Print variable:
+                            print var
+                            p var
+
+                        Print pointer contents:
+                            print *ptr
+
+                        Print array:
+                            print arr[0]@10
+
+                        Display variable every step:
+                            display var
+
+                        List local variables:
+                            info locals
+
+                        List function arguments:
+                            info args
+
+
+                    Stack Inspection:
+
+                        Show call stack:
+                            backtrace
+                            bt
+
+                        Show stack frame info:
+                            frame
+
+                        Move up stack:
+                            up
+
+                        Move down stack:
+                            down
+
+
+                    Source Code:
+
+                        Show current source:
+                            list
+
+                        Show specific lines:
+                            list 20,40
+
+                        Show function source:
+                            list function_name
+
+
+                    Memory Inspection:
+
+                        Examine memory:
+                            x ADDRESS
+
+                        Examine formats:
+                            x/10x addr    -> 10 hex values
+                            x/10d addr    -> 10 decimal values
+                            x/10c addr    -> 10 chars
+                            x/10s addr    -> string
+                            x/10i addr    -> instructions
+
+
+                    When program crashes:
+
+                        Run program:
+                            run
+
+                        After crash:
+                            backtrace
+                            frame
+                            info locals
+                            print variable
+
+
+                    Useful with AddressSanitizer:
+
+                        Run with sanitizer environment variables:
+                            ASAN_OPTIONS=detect_leaks=0 gdb ./program
+
+                        Then inside gdb:
+                            run
+
+                Sources:
+
+                    cmds:
+                        gdb help
+                        gdb man
+
+                    https://sourceware.org/gdb/
+                        "GDB, the GNU Project debugger, allows you to see what is going on `inside' another program while it executes -- or what another program was doing at the moment it crashed."
+
+                        as of March 8th 2026
+                            GDB supports the following languages (in alphabetical order):
+                                Ada, Assembly, C, C++, D, Fortran, Go, Objective-C, OpenCL, Modula-2, Pascal, Rust
+
+            Address Sanitizer:
+
+                Usage:
+
+                    The typical debugging cycle is:
+                        1. compile with ASan
+                        2. run program normally
+                        3. ASan reports memory bug
+                        4. rerun with GDB to inspect state
+
+                    Address Sanitizer (aka ASan) with GCC:
+
+                        Compile with cmd:
+                            rm -rf build; mkdir build
+                            gcc \
+                                -fsanitize=address,undefined \
+                                -D_FORTIFY_SOURCE=2 \
+                                -g \
+                                -O1 \
+                                -fno-omit-frame-pointer \
+                                -fno-optimize-sibling-calls \
+                                src/c_error_examples.c -o build/c_error_examples
+
+                            | Flag                           | Why                                                                 |
+                            | ------------------------------ | ------------------------------------------------------------------- |
+                            | -fsanitize=address,undefined   | enable AddressSanitizer (ASan) and UndefinedBehaviorSanitizer       |
+                            | -D_FORTIFY_SOURCE=2            | extra compile/runtime bounds checks for libc functions              |
+                            | -g                             | include debug symbols for readable stack traces                     |
+                            | -O1                            | minimal optimization required for FORTIFY and recommended for ASan  |
+                            | -fno-omit-frame-pointer        | preserves frame pointers for accurate stack traces                  |
+                            | -fno-optimize-sibling-calls    | disables tail-call optimization so stack traces remain complete     |
+
+                            one liner:
+                                gcc -fsanitize=address,undefined -D_FORTIFY_SOURCE=2 -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls src/c_error_examples.c -o build/c_error_examples
+
+                        Run It:
+
+                            ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 ./build/c_error_examples
+
+                                ASAN_OPTIONS:
+
+                                    detect_leaks=1
+                                        enable LeakSanitizer (LSan) to check for memory leaks at program exit.
+                                        While often enabled automatically with AddressSanitizer on Linux,
+                                        explicitly setting it ensures leak detection runs.
+
+                                    abort_on_error=1
+                                        immediately abort the program on the first detected error.
+                                        Useful when debugging with gdb because execution stops at
+                                        the exact failing instruction.
+
+                                    strict_string_checks=1
+                                        enable stricter validation of libc string and memory functions
+                                        such as strlen, strcpy, strncpy, memcpy, and memmove.
+                                        Helps detect reads or writes past buffer boundaries.
+
+                                    detect_stack_use_after_return=1
+                                        detect use of stack memory after a function has returned.
+                                        This catches bugs where a pointer to a local variable escapes
+                                        the function that created it.
+
+                                    detect_stack_use_after_scope=1
+                                        detect use of stack variables after they go out of scope.
+                                        Useful for catching cases where pointers reference variables
+                                        from an inner block that has already exited.
+
+                                    symbolize=1
+                                        produce symbolized stack traces with function names,
+                                        file names, and line numbers instead of raw addresses.
+                                        Requires debug symbols (-g) and a symbolizer installed.
+
+                                    log_path=asan.log
+                                        optional: write sanitizer output to files like:
+                                            asan.log.<pid>
+
+                                UBSAN_OPTIONS:
+
+                                    print_stacktrace=1
+                                        print a full stack trace for undefined behavior reports
+                                        detected by UndefinedBehaviorSanitizer (UBSan).
+
+                            You can also export ASAN_OPTIONS and UBSAN_OPTIONS as env vars first if you want.
+
+                            Run it with GDB:
+                                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/c_error_examples
+
+                                Run it with GDB script:
+                                    ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/c_error_examples -x scripts/example_gdb_script.gdb
+
+                                USEFUL TIP:
+                                    ASan calls an internal function when a violation occurs.
+                                    You can set a breakpoint on it:
+                                        (gdb) break __asan_report_error
+
+                                    Then run:
+                                        (gdb) run
+
+                                    Now GDB will stop when ASan detects a bad memory access, before the full report prints.
+                                    This lets you inspect:
+                                        (gdb) bt
+                                        (gdb) info locals
+                                        (gdb) print x
+
+                                NOTE:
+                                    LeakSanitizer (LSan) does not work when the program is being traced
+                                    (e.g., under gdb or strace) because they use ptrace.
+
+                                    On Linux, LSan is automatically enabled when compiling with -fsanitize=address.
+
+                                    If a program compiled with -fsanitize=address exits normally while running
+                                    inside gdb, LSan will attempt to perform leak detection at program exit.
+                                    Because ptrace is active, LSan intentionally aborts and prints something like:
+
+                                        ==35156==LeakSanitizer has encountered a fatal error.
+                                        ==35156==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+                                        ==35156==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+                                        Program received signal SIGABRT, Aborted.
+                                        __pthread_kill_implementation (threadid=<optimized out>, signo=signo@entry=6, no_tid=no_tid@entry=0) at pthread_kill.c:44
+                                        44            return INTERNAL_SYSCALL_ERROR_P (ret) ? INTERNAL_SYSCALL_ERRNO (ret) : 0;
+
+                                    This abort does NOT indicate a bug in the program. It is caused by the
+                                    sanitizer runtime being unable to run leak detection under ptrace.
+
+                                    To test memory leaks, run the program outside gdb.
+                                    To debug with gdb, disable leak detection:
+
+                                        ASAN_OPTIONS=detect_leaks=0 gdb ./program
+
+                                    Or just ignore the abort if the program otherwise completed successfully.
+
+                    Address Sanitizer (aka ASan) with CMake:
+                        # see CMakeLists.txt example (TODO: works on linux, currently untested on windows)
+                        linux:
+                            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+                            cmake --build build
+                        windows:
+                            cmake -S . -B build
+                            cmake --build build --config Debug
+
+                        Run It:
+                            same as GCC
+
+                        Run It with GDB:
+                            same as GCC
+
+                Sources:
+
+                    ChatGPT convo:
+                        ctrl f "please teach e to use addresssanitizer (or asan as its called), first how do i install it on linux"
+                        https://chatgpt.com/c/69adb785-d060-8331-a452-9ff050126332
+
+                    AddressSanitizer Docs:
+                        https://clang.llvm.org/docs/AddressSanitizer.html
+
+            Debugging Tools Options/Research:
+
+                gdb (for gcc)
+                    https://hugsy.github.io/gef/
+                        recommended here: ctrl f "install some good visualizers"
+                            https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
+                    https://www.gdbgui.com/
+                        recommended in same reddit link, ctrl f "if you prefer a gui you can try gdbgui"
+                    ddd
+                        https://www.gnu.org/software/ddd/
+                        bright UI, is there a dark mode?
+                            https://www.gnu.org/software/ddd/manual/html_mono/ddd-themes.html
+                            google AI:
+                                To enable dark mode in the Data Display Debugger (DDD), you need to manually set X resources by adding specific lines to your
+                                ~/.ddd/init file. DDD uses the Motif widget toolkit, which doesn't have a built-in "dark mode" theme, but its colors can be customized via X resources. 
+                                Steps to Configure Dark Mode
+
+                                    Locate or Create the Initialization File: Open (or create) the ~/.ddd/init file in your home directory using a text editor. For example:
+                                    bash
+
+                                nano ~/.ddd/init
+
+                                Add X Resource Settings: Add lines to the ~/.ddd/init file to change the background and foreground colors of various DDD components to dark colors.
+                                Save and Restart DDD: Save the changes and restart DDD for the new settings to apply. 
+
+                                Alternative Method (within DDD)
+                                You can also modify settings through the DDD interface and save them: 
+
+                                    Navigate to Edit ⇒ Preferences.
+                                    Adjust color and font options.
+                                    Go to Edit ⇒ Save Options to write these changes to your ~/.ddd/init file. 
+
+                                Manually editing the ~/.ddd/init file offers more granular control over individual components compared to using the in-application preferences.
+                    other note:
+                        "if you decide to use gdb to make sure to run it with flag -tui to have the source code displayed while debugging"
+                            https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
+
+                lldb (for clang)
+
+                Visual Studio debugger
+                    "It's very intuitive, you don't have to remember any commands, things can be moused over and inspected, adding breakpoints is very simple, etc. "
+                        https://www.reddit.com/r/C_Programming/comments/10aci6l/any_good_and_easytouse_c_debuggers/
+
+                clion
+                    https://www.jetbrains.com/clion/buy/?section=personal&billing=monthly
+
+UTILS:
+
+    USAGE:
+
+        Linux:
+
+            Build:
+
+                Build ALL utils in c-common-utils:
+                    Release Mode:
+                        cmake -S . -B build -DBUILD_ALL_UTILS=ON 
+                    Debug Mode:
+                        cmake -S . -B build -DBUILD_ALL_UTILS=ON  -DCMAKE_BUILD_TYPE=Debug
+
+                    then run:
+                    cmake --build build
+                    
+                    see utils/CmakeLists.txt for more details/options...
+
+            RUN:
+                option 1:
+                    run the executable w/ cmd:
+                        Release Mode:
+                            ./executable_filename
+                            example:
+                                ./a.out
+                        Debug Mode (GDB w/ GDB script + AddressSanitizer):
+                            ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
+
+        Windows:
+            tbd
+
+        Android:
+            tbd
+
+        macOS:
+            tbd
+
+        iOS:
+            tbd
+
+    BACKLOG:
+
+        string_util
+
+            make str_slice wrap for negative indeces like in python (any maybe indeces greater than str.len too)
+
+        logging_util
+
+            update log util to use string_util or bstring
+                https://bstring.sourceforge.net/
+                https://github.com/websnarf/bstrlib
+
+                save a copy that doesn't use bstring
+                    or maybe make them the same functions with a "_raw_char_array" suffix or something
+
+            try to find a c lib that converts unix timestamps to a timezone aware datetime
+                this would allow the user to specify any timezone id to their log
+                https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+            update log util to do asyncronous logging
+                ideally logging can be done in prod (aka on users' devices without noticably slowing down the app)
+                or maybe on a dedicated separate thread? is this cross platform though?
+
+            make these constants Log struct members instead
+                #define LOGGING_ENABLED true // toggle logging entirely
+                #define MAX_INDENTS 10 // max number of indents the user can indent a log message
+                #define MAX_MESSAGE_CHARS 10000 // max number of characters per message, tested w/ value: 500
+                #define MAX_LINE_CHARS 1000 // max number of characters per line (must be less than MAX_MESSAGE_CHARS), tested w/ value: 150
+                // #define MAX_MESSAGE_CHARS 500 // FOR TESTING PURPOSES ONLY
+                // #define MAX_LINE_CHARS 150 // FOR TESTING PURPOSES ONLY
+
+            implement traditional log levels (INFO, ERROR, etc.)
+
+            create a test_memory_usage.c test that flags prepend_memory_usage true and uses a for loop to iteratively print the same dummy message over and over, to make sure the memory usage isn't growing continuously
+                maybe graph it instead of console output?
+                maybe use overwrite_prev_msg flag every 1000 iterations or so so that console output is easier to read 
+
+            test logging_utils on android SDL app once you've learned SDL
+                apparently SDL has its own logging?
+                    i might need to make my _log_print return a string and put it inside it?
+                        or maybe a macro that takes a string and puts it in the SDL logger print call?
+                    or maybe this?
+                        SDL_LogSetOutputFunction(my_logger_callback, NULL);
+
+        create examples for postgres and an n-dimensional GSL table
 
