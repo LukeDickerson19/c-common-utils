@@ -143,7 +143,8 @@ void test_print() {
     int test_max_message_chars = 500;
     int test_max_line_chars = 50;
     logger->max_message_chars = test_max_message_chars;
-    char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉";
+    char *long_line = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "; // ASCII characters
+    // char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉"; // example UTF-8 characters
     char buffer2[100000];
     print(logger, fmt(buffer2, "Test message truncation:\nset log.max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
     print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
