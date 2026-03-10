@@ -6,7 +6,7 @@ void heap_buffer_overflow_example(int example_arg) {
     example_local_fn_var[0] = 777; // buffer overflow
     example_local_fn_var[1] = 888; // buffer overflow
 
-    // example_local_fn_var[1] = example_arg; // buffer overflow
+    example_local_fn_var[1] = example_arg; // buffer overflow
     free(example_local_fn_var);
 }
 

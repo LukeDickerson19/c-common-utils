@@ -8,7 +8,7 @@ b c_error_examples.c:8
 # Automate GDB cmds the line right before the error
 # "commands 2" tells GDB to attach a list of instructions to a specific breakpoint—in this case, breakpoint number 2
 commands 2
-    echo \n--- GDB LOG --- Inspect state before error:\n\n
+    echo \n--- GDB LOG --- Variable state(s) right before error:\n\n
     info args
     info locals
 
