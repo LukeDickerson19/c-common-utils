@@ -35,6 +35,7 @@
 #include <errno.h>
 
 
+#define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
 #define PATH_MAX_CHARS 1024
 char BASE_DIR[PATH_MAX_CHARS];
 
@@ -86,7 +87,7 @@ void test_print() {
     print(logger, "indented\nmulti\nline\nstring", .i=5);
 
     // test formatted string
-    char buffer[MAX_MESSAGE_CHARS];
+    char buffer[logger->max_message_chars];
     print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 
     // test new line start
@@ -136,9 +137,27 @@ void test_print() {
     logger->prepend_memory_usage = false;
 
     // test line and message truncation
-    // make sure MAX_LINE_CHARS and MAX_MESSAGE_CHARS in logging_util.h are small values for testing
-    print(logger, "Test line truncation: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50", .i=1, .ns=true);
-    print(logger, "Test message truncation:\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n", .i=1, .ns=true);
+    print(logger, "truncation tests:", .i=1, .ns=true);
+    int default_max_message_chars = logger->max_message_chars;
+    int default_max_line_chars = logger->max_line_chars;
+    int test_max_message_chars = 500;
+    int test_max_line_chars = 50;
+    logger->max_message_chars = test_max_message_chars;
+    char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉";
+    char buffer2[100000];
+    print(logger, fmt(buffer2, "Test message truncation:\nset log.max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
+    print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    logger->max_line_chars = test_max_line_chars;
+    print(logger, fmt(buffer2, "Test line truncation:\nset log.max_line_chars to %d", logger->max_line_chars), .i=2, .ns=true);
+    print(logger, long_line, .i=3);
+    print(logger, "Test both:", .i=2, .ns=true);
+    print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    logger->max_message_chars = default_max_message_chars;
+    logger->max_line_chars    = default_max_line_chars;
+    print(logger, "truncation tests complete.", .i=1, .ns=true, .d=true);
+    print(logger, fmt(buffer2, "restored log.max_line_chars    to default: %d", logger->max_line_chars),    .i=1);
+    print(logger, fmt(buffer2, "restored log.max_message_chars to default: %d", logger->max_message_chars), .i=1, .ne=true);
+
 }
 
 cJSON *create_example_json(void) {
@@ -343,7 +362,7 @@ void test_print_json() {
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
     print(logger, loaded_string, .i=2);
-    char buffer[MAX_MESSAGE_CHARS];
+    char buffer[logger->max_message_chars];
     if (cJSON_IsString(name))
         print(logger, fmt(buffer, "name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
@@ -434,27 +453,21 @@ void test_overwrite_prev_msg() {
 
 
 int main(void) {
+
+    // Set log file path
     get_full_base_dir();
-    // char *log_filepath;
-    // #ifdef _WIN32
-    //     log_filepath = fmt("%s\\logging_util\\log\\log.txt", BASE_DIR);
-    // #else
-    //     log_filepath = fmt("%s/logging_util/log/log.txt", BASE_DIR);
-    // #endif
-
     char *log_filepath;
-
-    // 2. Pass the buffer into the macro
-    char buffer[MAX_MESSAGE_CHARS];
+    char buffer[PATH_MAX_CHARS];
     #ifdef _WIN32
         log_filepath = fmt(buffer, "%s\\logging_util\\log\\log.txt", BASE_DIR);
     #else
         log_filepath = fmt(buffer, "%s/logging_util/log/log.txt", BASE_DIR);
     #endif
-
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
+    // initialize log struct
     logger = init_log(
+        .enabled = LOGGING_ENABLED,
         .filepath = log_filepath,
         .output_to_console = true,
         .output_to_logfile = true,
@@ -465,11 +478,13 @@ int main(void) {
         return -1;
     }
 
+    // run test functions
     test_print();
 	test_print_json();
 	// test_overwrite_prev_msg();
 
     close_log(logger);
+
     return 0;
 }
 

@@ -21,6 +21,7 @@
 #define THREAD_COUNT 4
 #define ITERATIONS 20
 
+#define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
 Log *logger;
 
 #if PLATFORM_WINDOWS
@@ -28,7 +29,7 @@ Log *logger;
     DWORD WINAPI thread_print_loop(LPVOID arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        char buffer[MAX_MESSAGE_CHARS];
+        char buffer[logger->max_message_chars];
         for (int j = 0; j < ITERATIONS; j++) {
             print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
         }
@@ -60,7 +61,7 @@ Log *logger;
     void *thread_print_loop(void *arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        char buffer[MAX_MESSAGE_CHARS];
+        char buffer[logger->max_message_chars];
         for (int j = 0; j < ITERATIONS; j++) {
             print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
         }
@@ -97,6 +98,7 @@ Log *logger;
 int main(void) {
 
     logger = init_log(
+        .enabled = LOGGING_ENABLED,
         .filepath = "log.txt",
         .output_to_console = true,
         .output_to_logfile = true,

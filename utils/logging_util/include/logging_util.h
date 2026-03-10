@@ -28,12 +28,6 @@ extern "C" {
 #endif
 
 
-#define MAX_MESSAGE_CHARS 10000 // max number of characters per message, tested w/ value: 500
-#define MAX_LINE_CHARS 1000 // max number of characters per line (must be less than MAX_MESSAGE_CHARS), tested w/ value: 150
-// #define MAX_MESSAGE_CHARS 500 // FOR TESTING PURPOSES ONLY
-// #define MAX_LINE_CHARS 150 // FOR TESTING PURPOSES ONLY
-
-
 typedef struct Log {
 
     bool enabled; // toggle logging entirely
@@ -55,6 +49,8 @@ typedef struct Log {
     int start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
     int max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
+    int max_message_chars; // max number of characters per message
+    int max_line_chars; // max number of characters per line
 
     // variables used for overwrite_prev_msg
     char *prev_console_message;
@@ -86,7 +82,9 @@ typedef struct Log {
     .unix_start_time = 0, \
     .start_time_microseconds = 0, \
     .prepend_memory_usage = false, \
-    .max_indents = 10
+    .max_indents = 10, \
+    .max_message_chars = 10000, \
+    .max_line_chars = 1000
 Log *_init_log(Log *opts);
 #define init_log(...) _init_log(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
 

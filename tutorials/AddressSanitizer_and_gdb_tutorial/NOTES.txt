@@ -2,6 +2,159 @@
 
 GDB: GNU Debugger:
 
+    Usage:
+
+        Enter/Exit GDB:
+
+            Compile program with debug symbols:
+                gcc -g program.c -o program
+
+            Start debugger:
+                gdb ./program
+
+            Run program:
+                run
+                r
+
+            Run with arguments:
+                run arg1 arg2
+
+            Run with environment variables:
+                set environment VAR=value
+                run
+
+            Restart program:
+                run
+
+            Quit gdb:
+                quit
+                q
+
+
+        Breakpoints:
+
+            Set breakpoint at function:
+                break main
+
+            Set breakpoint at file line:
+                break file.c:42
+
+            Set breakpoint at address:
+                break *0x400abc
+
+            List breakpoints:
+                info breakpoints
+
+            Delete breakpoint:
+                delete 1
+
+            Delete all breakpoints:
+                delete
+
+
+        Stepping / Execution Control:
+
+            Continue execution:
+                continue
+                c
+
+            Execute next line (step over functions):
+                next
+                n
+
+            Step into function:
+                step
+                s
+
+            Finish current function:
+                finish
+
+            Run until next line in current frame:
+                until
+
+
+        Inspecting Program State:
+
+            Print variable:
+                print var
+                p var
+
+            Print pointer contents:
+                print *ptr
+
+            Print array:
+                print arr[0]@10
+
+            Display variable every step:
+                display var
+
+            List local variables:
+                info locals
+
+            List function arguments:
+                info args
+
+
+        Stack Inspection:
+
+            Show call stack:
+                backtrace
+                bt
+
+            Show stack frame info:
+                frame
+
+            Move up stack:
+                up
+
+            Move down stack:
+                down
+
+
+        Source Code:
+
+            Show current source:
+                list
+
+            Show specific lines:
+                list 20,40
+
+            Show function source:
+                list function_name
+
+
+        Memory Inspection:
+
+            Examine memory:
+                x ADDRESS
+
+            Examine formats:
+                x/10x addr    -> 10 hex values
+                x/10d addr    -> 10 decimal values
+                x/10c addr    -> 10 chars
+                x/10s addr    -> string
+                x/10i addr    -> instructions
+
+
+        When program crashes:
+
+            Run program:
+                run
+
+            After crash:
+                backtrace
+                frame
+                info locals
+                print variable
+
+
+        Useful with AddressSanitizer:
+
+            Run with sanitizer environment variables:
+                ASAN_OPTIONS=detect_leaks=0 gdb ./program
+
+            Then inside gdb:
+                run
 
     Sources:
 
@@ -15,9 +168,6 @@ GDB: GNU Debugger:
             as of March 8th 2026
                 GDB supports the following languages (in alphabetical order):
                     Ada, Assembly, C, C++, D, Fortran, Go, Objective-C, OpenCL, Modula-2, Pascal, Rust
-
-
-
 
 
 Address Sanitizer:
@@ -34,30 +184,71 @@ Address Sanitizer:
 
             Compile with cmd:
                 gcc \
-                    -fsanitize=address \
+                    -fsanitize=address,undefined \
+                    -D_FORTIFY_SOURCE=2 \
                     -g \
-                    -O0 \
+                    -O1 \
                     -fno-omit-frame-pointer \
+                    -fno-optimize-sibling-calls \
                     c_error_examples.c -o c_error_examples
 
-                    | Flag                           | Why                                                               |
-                    | ------------------------------ | ----------------------------------------------------------------- |
-                    | `-fsanitize=address`           | enable ASan                                                       |
-                    | `-g`                           | debug symbols                                                     |
-                    | `-O0`                          | no optimizations for full asan info (O1 is hiding it idk why)     |
-                    | `-fno-omit-frame-pointer`      | better stack traces                                               |
-                    | `-ASAN_OPTIONS=detect_leaks=1` | detect memory leaks (happens by default in Clang, but not GCC)    |
+                | Flag                           | Why                                                                 |
+                | ------------------------------ | ------------------------------------------------------------------- |
+                | -fsanitize=address,undefined   | enable AddressSanitizer (ASan) and UndefinedBehaviorSanitizer       |
+                | -D_FORTIFY_SOURCE=2            | extra compile/runtime bounds checks for libc functions              |
+                | -g                             | include debug symbols for readable stack traces                     |
+                | -O1                            | minimal optimization required for FORTIFY and recommended for ASan  |
+                | -fno-omit-frame-pointer        | preserves frame pointers for accurate stack traces                  |
+                | -fno-optimize-sibling-calls    | disables tail-call optimization so stack traces remain complete     |
 
-                    one liner:
-                        gcc -fsanitize=address -g -O0 -fno-omit-frame-pointer c_error_examples.c -o c_error_examples
+                one liner:
+                    gcc -fsanitize=address,undefined -D_FORTIFY_SOURCE=2 -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls c_error_examples.c -o c_error_examples
 
             Run It:
-                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 ./c_error_examples
-                    Args:
-                        detect_leaks=1      ->   check for memory leaks
-                                                    gcc doesn't detect memory leaks by default, like clang does, so run it with "ASAN_OPTIONS=detect_leaks=1"
-                        abort_on_error=1    ->   stop program immediately on first error (helpful for GDB)
-                        log_path=asan.log   ->   optional, log output to file
+
+                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 ./c_error_examples
+
+                    ASAN_OPTIONS:
+
+                        detect_leaks=1
+                            enable LeakSanitizer (LSan) to check for memory leaks at program exit.
+                            While often enabled automatically with AddressSanitizer on Linux,
+                            explicitly setting it ensures leak detection runs.
+
+                        abort_on_error=1
+                            immediately abort the program on the first detected error.
+                            Useful when debugging with gdb because execution stops at
+                            the exact failing instruction.
+
+                        strict_string_checks=1
+                            enable stricter validation of libc string and memory functions
+                            such as strlen, strcpy, strncpy, memcpy, and memmove.
+                            Helps detect reads or writes past buffer boundaries.
+
+                        detect_stack_use_after_return=1
+                            detect use of stack memory after a function has returned.
+                            This catches bugs where a pointer to a local variable escapes
+                            the function that created it.
+
+                        detect_stack_use_after_scope=1
+                            detect use of stack variables after they go out of scope.
+                            Useful for catching cases where pointers reference variables
+                            from an inner block that has already exited.
+
+                        symbolize=1
+                            produce symbolized stack traces with function names,
+                            file names, and line numbers instead of raw addresses.
+                            Requires debug symbols (-g) and a symbolizer installed.
+
+                        log_path=asan.log
+                            optional: write sanitizer output to files like:
+                                asan.log.<pid>
+
+                    UBSAN_OPTIONS:
+
+                        print_stacktrace=1
+                            print a full stack trace for undefined behavior reports
+                            detected by UndefinedBehaviorSanitizer (UBSan).
 
             Run it with GDB:
 
@@ -77,6 +268,34 @@ Address Sanitizer:
                         (gdb) bt
                         (gdb) info locals
                         (gdb) print x
+
+                NOTE:
+                    LeakSanitizer (LSan) does not work when the program is being traced
+                    (e.g., under gdb or strace) because they use ptrace.
+
+                    On Linux, LSan is automatically enabled when compiling with -fsanitize=address.
+
+                    If a program compiled with -fsanitize=address exits normally while running
+                    inside gdb, LSan will attempt to perform leak detection at program exit.
+                    Because ptrace is active, LSan intentionally aborts and prints something like:
+
+                        ==35156==LeakSanitizer has encountered a fatal error.
+                        ==35156==HINT: For debugging, try setting environment variable LSAN_OPTIONS=verbosity=1:log_threads=1
+                        ==35156==HINT: LeakSanitizer does not work under ptrace (strace, gdb, etc)
+
+                        Program received signal SIGABRT, Aborted.
+                        __pthread_kill_implementation (threadid=<optimized out>, signo=signo@entry=6, no_tid=no_tid@entry=0) at pthread_kill.c:44
+                        44            return INTERNAL_SYSCALL_ERROR_P (ret) ? INTERNAL_SYSCALL_ERRNO (ret) : 0;
+
+                    This abort does NOT indicate a bug in the program. It is caused by the
+                    sanitizer runtime being unable to run leak detection under ptrace.
+
+                    To test memory leaks, run the program outside gdb.
+                    To debug with gdb, disable leak detection:
+
+                        ASAN_OPTIONS=detect_leaks=0 gdb ./program
+
+                    Or just ignore the abort if the program otherwise completed successfully.
 
         Address Sanitizer (aka ASan) with CMake:
             # see CMakeLists.txt example (TODO: works on linux, currently untested on windows)
