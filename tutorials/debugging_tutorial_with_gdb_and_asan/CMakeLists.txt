@@ -3,7 +3,7 @@ project(asan_and_gdb_tutorial C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(c_error_examples c_error_examples.c)
+add_executable(c_error_examples src/c_error_examples.c)
 
 if(MSVC)
     # MSVC Flags: /fsanitize=address enables ASan, /Zi adds debug info

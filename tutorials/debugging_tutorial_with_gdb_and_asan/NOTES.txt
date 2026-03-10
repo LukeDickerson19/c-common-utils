@@ -30,7 +30,7 @@ GDB: GNU Debugger:
                 run
 
             Run with GDB script:
-                gdb ./your_program -x scripts/debug_script.gdb
+                gdb ./src/syour_program -x scripts/example_gdb_script.gdb
 
                 example script:
                     c-common-utils/tutorials/debugging_tutorial_with_gdb_and_asan/scripts/example_gdb_script.gdb
@@ -226,7 +226,7 @@ Address Sanitizer:
                     -O1 \
                     -fno-omit-frame-pointer \
                     -fno-optimize-sibling-calls \
-                    c_error_examples.c -o build/c_error_examples
+                    src/c_error_examples.c -o build/c_error_examples
 
                 | Flag                           | Why                                                                 |
                 | ------------------------------ | ------------------------------------------------------------------- |
@@ -238,7 +238,7 @@ Address Sanitizer:
                 | -fno-optimize-sibling-calls    | disables tail-call optimization so stack traces remain complete     |
 
                 one liner:
-                    gcc -fsanitize=address,undefined -D_FORTIFY_SOURCE=2 -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls c_error_examples.c -o build/c_error_examples
+                    gcc -fsanitize=address,undefined -D_FORTIFY_SOURCE=2 -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls src/c_error_examples.c -o build/c_error_examples
 
             Run It:
 
