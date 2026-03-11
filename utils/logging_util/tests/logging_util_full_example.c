@@ -1,4 +1,14 @@
 #include "logging_util.h"
+#include "time_util.h"
+
+#include <stdint.h> // intptr_t
+
+#define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
+#define PATH_MAX_CHARS 1024
+char BASE_DIR[PATH_MAX_CHARS];
+Log *logger;
+#define THREAD_COUNT 4
+#define ITERATIONS 20
 
 #ifdef _WIN32
     #include <io.h>
@@ -12,17 +22,79 @@
     #define write _write
     #define close _close
 
-    static void sleep(unsigned int seconds) {
-        Sleep(seconds * 1000);
-    }
-
     static int stdout_fd(void) {
         return _fileno(stdout);
     }
     #define STDOUT_FILENO stdout_fd()
 
+    DWORD WINAPI thread_print_loop(LPVOID arg) {
+        int thread_id = (int)(intptr_t)arg;
+        char *msg;
+        char buffer[logger->max_message_chars];
+        for (int j = 0; j < ITERATIONS; j++) {
+            print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
+        }
+        return 0;
+    }
+    int thread_safety_test() {
+        HANDLE threads[THREAD_COUNT];
+        for (int j = 0; j < THREAD_COUNT; j++) {
+            threads[j] = CreateThread(
+                NULL,
+                0,
+                thread_print_loop,
+                (LPVOID)(intptr_t)j,
+                0,
+                NULL
+            );
+            if (!threads[j]) {
+                fprintf(stderr, "CreateThread failed\n");
+                return 1;
+            }
+        }
+        WaitForMultipleObjects(THREAD_COUNT, threads, TRUE, INFINITE);
+        for (int j = 0; j < THREAD_COUNT; j++)
+            CloseHandle(threads[j]);
+        return 0;
+    }
+
 #else
     #include <unistd.h> // used for STDOUT_FILENO and readlink
+
+    #include <pthread.h>
+    void *thread_print_loop(void *arg) {
+        int thread_id = (int)(intptr_t)arg;
+        char *msg;
+        char buffer[logger->max_message_chars];
+        for (int j = 0; j < ITERATIONS; j++) {
+            print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
+        }
+        return NULL;
+    }
+    int thread_safety_test() {
+
+        // create and start test threads (pthread_create both creates and starts)
+        pthread_t threads[THREAD_COUNT];
+        for (int j = 0; j < THREAD_COUNT; j++) {
+            if (pthread_create(&threads[j], NULL, thread_print_loop, (void *)(intptr_t)j) != 0) {
+                perror("pthread_create");
+                return 1;
+            }
+        }
+
+        // block the main thread and join the test threads
+        // back into main thread when they're done
+        for (int j = 0; j < THREAD_COUNT; j++)
+            pthread_join(threads[j], NULL);
+            // pthread_join:
+            // - blocks the calling thread until the thread in its first arg finishes. If the thread has already terminated before you call pthread_join(), then pthread_join() returns immediately
+            // - Once the target thread has finished:
+            //    - Its return value is stored in its 2nd arg *retval. NOTE: if you don't pass NULL this pointer type must match the return type of the thread's function
+            // - The system reclaims the thread’s resources (stack, thread-local storage, etc.)
+            // - The thread ID (pthread_t) becomes invalid / reusable
+        return 0;
+    }
+
 #endif
 
 
@@ -33,14 +105,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
-
-
-#define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
-#define PATH_MAX_CHARS 1024
-char BASE_DIR[PATH_MAX_CHARS];
-
-
-Log *logger;
 
 
 void get_full_base_dir(void) {
@@ -376,56 +440,56 @@ void test_print_json() {
 void test_overwrite_prev_msg() {
 	print(logger, "\ntest_overwrite_prev_msg():");
 
-    int sleep_time = 1; // seconds
+    int sleep_time = 500000; // in microseconds
     int i = 1;
 
     // new text has shorter lines
 	print(logger, "aaaa", .i=i, .overwrite_prev_msg=false);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "bbb", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "cc", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "d", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "", .i=0, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 
     // new text has longer lines
 	print(logger, "a", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "bb", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "ccc", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "dddd", .i=i, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 	print(logger, "", .i=0, .overwrite_prev_msg=true);
-	sleep(sleep_time);
+	sleep_microseconds(sleep_time);
 
     // new text has more lines
     print(logger, "a", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "b\nb", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "c\nc\nc", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "d\nd\nd\nd", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
 
     // new text has less lines
     print(logger, "a\na\na\na", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "b\nb\nb", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "c\nc", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "d", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
 
 	// verify regular log.print() works after overwrite_prev_msg
     print(logger, "a", .i=0);
@@ -437,21 +501,35 @@ void test_overwrite_prev_msg() {
 
     // verify overwrite_prev_msg works after regular log.print()
     print(logger, "test", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "overwrite_prev_msg", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "after", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "regular print()", .i=i, .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
     print(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
-    sleep(sleep_time);
+    sleep_microseconds(sleep_time);
 
-    print(logger, "test regular print() after overwrite_prev_msg", .i=0, .ne=true);
+    print(logger, "test regular print() after overwrite_prev_msg", .i=i, .ne=true);
+
+    char buffer[logger->max_line_chars];
+	print(logger, fmt(buffer, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
+	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
+	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
 
 }
 
-
+void test_thread_safety() {
+    print(logger, "\ntest_thread_safety():");
+    if (thread_safety_test() != 0) {
+        fprintf(stderr, "Thread safety test failed\n");
+    } else {
+        char buffer[logger->max_line_chars];
+        print(logger, fmt(buffer, "test passes if all %d x %d thread/iteration combinations were printed (order does\'t matter)", THREAD_COUNT, ITERATIONS), .ns=true);
+        print(logger, fmt(buffer, "test complete, log file at:\n%s", logger->filepath), .ne=true);
+    }
+}
 
 int main(void) {
 
@@ -482,7 +560,8 @@ int main(void) {
     // run test functions
     test_print();
 	test_print_json();
-	// test_overwrite_prev_msg();
+	test_overwrite_prev_msg();
+    test_thread_safety();
 
     close_log(logger);
 

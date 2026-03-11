@@ -48,4 +48,3 @@ endfunction()
 
 add_logging_util_test(logging_util_full_example logging_util_full_example.c)
 add_logging_util_test(logging_util_readme_example logging_util_readme_example.c)
-add_logging_util_test(logging_util_thread_test test_thread_safety.c)
