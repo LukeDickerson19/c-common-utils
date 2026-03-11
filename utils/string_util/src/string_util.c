@@ -1,10 +1,10 @@
 #include "string_util.h"
 #include <string.h>     // strlen, strcat, memcpy, memmove
-#include <stdbool.h> // for bool
-#include <ctype.h>  // for toupper, tolower
-#include <stdio.h> // for va_list
-#include <stdarg.h> // for [tbd]
-#include <stdint.h> // for SIZE_MAX
+#include <stdbool.h>    // for bool
+#include <ctype.h>      // for toupper, tolower
+#include <stdio.h>      // for va_list
+#include <stdarg.h>     // for [tbd]
+#include <stdint.h>     // for SIZE_MAX
 
 ///////////////////////// String Struct Constructor ///////////////////////
 

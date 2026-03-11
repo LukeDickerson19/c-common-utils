@@ -24,7 +24,7 @@ if(NOT MSVC)
 endif()
 
 
-# ---- cJSON (vendored, only for tests) ----
+# ---- cJSON (vendored, only for logging util tests though) ----
 add_library(cjson STATIC
     external/cjson/cJSON.c
 )

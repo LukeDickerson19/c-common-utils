@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <errno.h>
 #include <wchar.h>
-#include <locale.h>
 #if PLATFORM_WINDOWS
     #include <windows.h>
     #include <psapi.h> // for PROCESS_MEMORY_COUNTERS and GetProcessMemoryInfo
@@ -98,9 +97,6 @@ Log *_init_log(
             ansi_enabled = 1;
         }
     #endif
-
-    // enables UTF-8 handling for multibyte functions
-    setlocale(LC_CTYPE, "");
 
     log->output_to_logfile = (log->filepath != NULL) ? log->output_to_logfile : false;
 

@@ -1,7 +1,10 @@
+# ---- logging_util library ----
+
 add_library(string_util
     src/string_util.c
 )
 
+# Include directories for consumers of logging_util
 target_include_directories(string_util
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
