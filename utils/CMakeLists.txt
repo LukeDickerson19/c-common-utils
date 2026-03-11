@@ -11,30 +11,53 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 # Build ALL using AddressSanitizer:
-#     cmake -S . -B build -DBUILD_ALL_UTILS=ON -DENABLE_ASAN=ON -DCMAKE_BUILD_TYPE=Debug # Configure with ASan and Debug symbols
-#     cmake --build build
-# Run with GDB (logging_util example):
-#     export ASAN_OPTIONS=abort_on_error=1
-#     gdb ./build/logging_util/logging_util_full_example
-#     Inside GDB:
-#         (gdb) run
-#         ... wait for crash ...
-#         (gdb) bt
-option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+# cmake -S . -B build # see below for optional args
+# cmake --build build
+#
+# Args:
+#     Release Mode (ENABLE_ASAN is OFF):
+#         cmake -S . -B build -DBUILD_ALL_UTILS=ON 
+#         cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Release
+#    
+#     Debug Mode (ENABLE_ASAN is ON):
+#         cmake -S . -B build -DBUILD_ALL_UTILS=ON  -DCMAKE_BUILD_TYPE=Debug
+#    
+#     Debug Mode (ENABLE_ASAN is OFF, useful for GDB session without the ASan overhead):
+#         cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=OFF
+
+# Run with GDB + gdb script (logging_util example):
+#     ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
+
+# Set Default Build Type to Release
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose build type" FORCE)
+endif()
+
+# Auto-enable ASan for Debug builds
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT DEFINED ENABLE_ASAN)
+    set(ENABLE_ASAN ON CACHE BOOL "Enable AddressSanitizer")
+else()
+    option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+endif()
+
+# Apply Flags based on the final ENABLE_ASAN state
 if(ENABLE_ASAN)
     if(MSVC)
-        set(ASAN_FLAGS /fsanitize=address /Zi /Od)
-        set(ASAN_LINK_FLAGS /fsanitize=address /INCREMENTAL:NO)
+        add_compile_options(/fsanitize=address /Zi /Od)
+        add_link_options(/fsanitize=address /INCREMENTAL:NO)
     else()
-        # Adding -fno-omit-frame-pointer and -g is vital for GDB traces
-        set(ASAN_FLAGS -fsanitize=address -fno-omit-frame-pointer -g -O0)
-        set(ASAN_LINK_FLAGS -fsanitize=address)
+        # Common ASan flags
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address)
+        
+        # Add Debug-specific performance/symbol flags
+        add_compile_options($<$<CONFIG:Debug>:-g> $<$<CONFIG:Debug>:-O0>)
     endif()
-    
-    # Apply to all libraries/executables defined globally
-    add_compile_options(${ASAN_FLAGS})
-    add_link_options(${ASAN_LINK_FLAGS})
+    message(STATUS "AddressSanitizer: ENABLED")
+else()
+    message(STATUS "AddressSanitizer: DISABLED")
 endif()
+
 
 # Option to build everything at once
 option(BUILD_ALL_UTILS "Build all utility libraries" OFF)

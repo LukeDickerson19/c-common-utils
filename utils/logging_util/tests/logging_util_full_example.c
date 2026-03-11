@@ -141,23 +141,23 @@ void test_print() {
     int default_max_message_chars = logger->max_message_chars;
     int default_max_line_chars = logger->max_line_chars;
     int test_max_message_chars = 500;
-    int test_max_line_chars = 50;
+    int test_max_line_chars = 100;
     logger->max_message_chars = test_max_message_chars;
     char *long_line = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "; // ASCII characters
     // char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉"; // example UTF-8 characters
     char buffer2[100000];
-    print(logger, fmt(buffer2, "Test message truncation:\nset log.max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
+    print(logger, fmt(buffer2, "Test message truncation:\nset logger->max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
     print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
     logger->max_line_chars = test_max_line_chars;
-    print(logger, fmt(buffer2, "Test line truncation:\nset log.max_line_chars to %d", logger->max_line_chars), .i=2, .ns=true);
+    print(logger, fmt(buffer2, "Test line truncation:\nset logger->max_line_chars to %d", logger->max_line_chars), .i=2, .ns=true);
     print(logger, long_line, .i=3);
     print(logger, "Test both:", .i=2, .ns=true);
     print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
     logger->max_message_chars = default_max_message_chars;
     logger->max_line_chars    = default_max_line_chars;
     print(logger, "truncation tests complete.", .i=1, .ns=true, .d=true);
-    print(logger, fmt(buffer2, "restored log.max_line_chars    to default: %d", logger->max_line_chars),    .i=1);
-    print(logger, fmt(buffer2, "restored log.max_message_chars to default: %d", logger->max_message_chars), .i=1, .ne=true);
+    print(logger, fmt(buffer2, "restored logger->max_line_chars    to default: %d", logger->max_line_chars),    .i=1);
+    print(logger, fmt(buffer2, "restored logger->max_message_chars to default: %d", logger->max_message_chars), .i=1, .ne=true);
 
 }
 

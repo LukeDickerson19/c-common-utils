@@ -21,12 +21,12 @@ a
         
     new line end = false
 
--           2026-03-09 20:09:13.863139 MST  -  testing single line prepend_datetime_fmt
- -          2026-03-09 20:09:13.863170 MST  -      testing
- -          2026-03-09 20:09:13.863170 MST  -      multi
- -          2026-03-09 20:09:13.863170 MST  -      line
- -          2026-03-09 20:09:13.863170 MST  -      prepend_datetime_fmt
-  -         2026-03-09 20:09:13.863195 MST  -          testing single line indented prepend_datetime_fmt
+-           2026-03-10 21:23:13.029407 MST  -  testing single line prepend_datetime_fmt
+ -          2026-03-10 21:23:13.029463 MST  -      testing
+ -          2026-03-10 21:23:13.029463 MST  -      multi
+ -          2026-03-10 21:23:13.029463 MST  -      line
+ -          2026-03-10 21:23:13.029463 MST  -      prepend_datetime_fmt
+  -         2026-03-10 21:23:13.029474 MST  -          testing single line indented prepend_datetime_fmt
 
 -               2.2500 MiB used  -  testing single line prepend_memory_usage
  -              2.2500 MiB used  -      testing
@@ -35,42 +35,38 @@ a
  -              2.2500 MiB used  -      prepend_memory_usage
   -             2.2500 MiB used  -          testing single line indented prepend_memory_usage
 
--           2026-03-09 20:09:13.863587 MST  -      2.2500 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage
- -          2026-03-09 20:09:13.863695 MST  -      2.2500 MiB used  -      testing
- -          2026-03-09 20:09:13.863695 MST  -      2.2500 MiB used  -      multi
- -          2026-03-09 20:09:13.863695 MST  -      2.2500 MiB used  -      line
- -          2026-03-09 20:09:13.863695 MST  -      2.2500 MiB used  -      prepend_datetime_fmt
- -          2026-03-09 20:09:13.863695 MST  -      2.2500 MiB used  -      and
- -          2026-03-09 20:09:13.863695 MST  -      2.2500 MiB used  -      prepend_memory_usage
-  -         2026-03-09 20:09:13.863788 MST  -      2.2500 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
+-           2026-03-10 21:23:13.029562 MST  -      2.2500 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage
+ -          2026-03-10 21:23:13.029582 MST  -      2.2500 MiB used  -      testing
+ -          2026-03-10 21:23:13.029582 MST  -      2.2500 MiB used  -      multi
+ -          2026-03-10 21:23:13.029582 MST  -      2.2500 MiB used  -      line
+ -          2026-03-10 21:23:13.029582 MST  -      2.2500 MiB used  -      prepend_datetime_fmt
+ -          2026-03-10 21:23:13.029582 MST  -      2.2500 MiB used  -      and
+ -          2026-03-10 21:23:13.029582 MST  -      2.2500 MiB used  -      prepend_memory_usage
+  -         2026-03-10 21:23:13.029605 MST  -      2.2500 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
     
     truncation tests:
         
         Test message truncation:
-        set log.max_message_chars to 500
+        set logger->max_message_chars to 500
             abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ 
             abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ 
             abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ 
-            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"# ... log message truncated ...
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!" ... log message truncated ...
         
         Test line truncation:
-        set log.max_line_chars to 50
-            abcdefghij ... log line truncated ...
+        set logger->max_line_chars to 100
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456 ... log line truncated ...
         
         Test both:
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefghij ... log line truncated ...
-            abcdefg ... log message truncated ...
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456 ... log line truncated ...
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456 ... log line truncated ...
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456 ... log line truncated ...
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456 ... log line truncated ...
+            abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012 ... log message truncated ...
         
     truncation tests complete.
-    restored log.max_line_chars    to default: 1000
-    restored log.max_message_chars to default: 10000
+    restored logger->max_line_chars    to default: 1000
+    restored logger->max_message_chars to default: 10000
     
 
 test_print_json():

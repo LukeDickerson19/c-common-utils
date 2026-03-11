@@ -311,189 +311,49 @@ static size_t _snprintf_append(
 
 static void _append_inline_truncation_message(
     char *buf,                // buffer to modify
-    size_t *pos,              // current length / position in buffer
+    size_t *buf_len,          // current length / position in buffer
     const char *truncate_msg, // e.g. " ... log message truncated ..."
     const char *end           // e.g. opts->end ("\n" etc), can be NULL
 ) {
     // Overwrite end of buffer with a truncation message
-    if (!buf || !pos || !end || *pos == 0) return;
+    if (!buf || !buf_len || !end || *buf_len == 0) return;
 
     size_t end_len = end ? strlen(end) : 0;
     size_t msg_len = strlen(truncate_msg) + end_len;
 
-    // Make sure we don't go negative
-    size_t write_pos = (*pos > msg_len) ? (*pos - msg_len) : 0;
+    // Calculate write_pos, leaving room for msg_len + null terminator
+    size_t write_pos = (*buf_len > msg_len + 1) ? (*buf_len - (msg_len + 1)) : 0; // +1 for null terminator
 
-    // Write truncation message + end at the computed position
+    // Write the message, with space for the null terminator
     snprintf(buf + write_pos, msg_len + 1, "%s%s", truncate_msg, end);
 
-    // Update current length
-    *pos = write_pos + strlen(truncate_msg) + end_len;
+    // Update current length (excluding null terminator)
+    *buf_len = write_pos + msg_len;
 }
 
-static int _get_formatted_message(
-    Log* log,
-    const char* message,
-    const char* indent,
-    char** formatted_message,
+static int _get_indented_message(
+    const char *message,
+    char *indent,
+    int max_msg_chars, int max_ln_chars,
+    bool prepend_stuff,
+    char *p0, char *p, char *blank_p,
+    char div_mark,
+    char **formatted_message,
     size_t *formatted_message_len,
     PrintOptions *opts
 ) {
 
-    // validate input args
-    if (!message || !formatted_message || !opts) return -1;
-    int i = opts->i;
-    if(i < 0 || i > log->max_indents) return -1;
-
-    // indent buffers
+    // Create indent buffers
     size_t indent_len = strlen(indent);
+    int i = opts->i;
     char *total_indent1 = calloc(indent_len * i + 1, 1);
     char *total_indent2 = calloc(indent_len * (i + 1) + 1, 1);
-    if (!total_indent1 || !total_indent2) {
-        fprintf(stderr, "failed to calloc total_indent1 or total_indent2");
-        goto fail;
-    }
-    for (int j = 0; j < i; j++)
-        memcpy(total_indent1 + j * indent_len, indent, indent_len);
-    for (int j = 0; j < i + 1; j++)
-        memcpy(total_indent2 + j * indent_len, indent, indent_len);
-    const char *total_indent3 = opts->d ? total_indent2 : total_indent1;
-
-    // Prepend info buffers and variables
-    char p_buf1[256] = {0};
-    char *p = p_buf1; // p = prepended info text
-    char p_buf2[256] = {0};
-    char *scratch = p_buf2;
-    size_t p_len = 0;
-    char p0[256] = {0}; // p0 = mock indents: If info is prepended to each line, mock indents are tiny indents before the prepended info. They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
-    size_t p0_len = 0;
-    const char div_mark = '-';
-    const char *mock_indent = " ";
-    size_t mock_indent_len = strlen(mock_indent);
-
-    bool prepend_stuff = \
-        log->prepend_datetime_fmt || \
-        log->prepend_elapsed_time || \
-        log->prepend_memory_usage;
-    if (prepend_stuff) {
-
-        // get current time if needed
-        int64_t unix_seconds;
-        int32_t microseconds;
-        if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
-            if (get_current_unix_time(&unix_seconds, &microseconds) != 0) {
-                fprintf(stderr, "LOG ERROR: failed to get current time\n");
-                goto fail;
-            }
-        }
-
-        // Prepend datetime in specified format
-        if (log->prepend_datetime_fmt) {
-            char datetime_str[128];
-            if (format_datetime_str(
-                unix_seconds,
-                microseconds,
-                log->timezone,
-                log->prepend_datetime_fmt,
-                datetime_str,
-                sizeof(datetime_str)) != 0) {
-
-                fprintf(stderr, "LOG ERROR: failed to format datetime\n");
-                goto fail;
-            }
-            p_len = snprintf(
-                scratch,
-                sizeof(p_buf2),
-                "%s  ", datetime_str);
-            PTR_SWAP(p, scratch);
-        }
-
-        // Prepend elapsed time since log's start time in HH:MM:SS.ffffff format
-        if (log->prepend_elapsed_time) {
-            int32_t elapsed_sec, elapsed_usec;
-            if (get_elapsed_time(
-                log->unix_start_time,
-                log->start_time_microseconds,
-                unix_seconds,
-                microseconds,
-                &elapsed_sec,
-                &elapsed_usec) != 0) {
-
-                fprintf(stderr, "LOG ERROR: failed to get elapsed time\n");
-                goto fail;
-            }
-            char elapsed_time_str[128];
-            if (format_elapsed_time(
-                elapsed_sec,
-                elapsed_usec,
-                elapsed_time_str,
-                sizeof(elapsed_time_str)) != 0) {
-
-                fprintf(stderr, "LOG ERROR: failed to format elapsed time\n");
-                goto fail;
-            }
-            if (log->prepend_datetime_fmt) {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(p_buf2),
-                    "%s%c  %s  ", p, div_mark, elapsed_time_str);
-            } else {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(p_buf2),
-                    "%s%s  ", p, elapsed_time_str);
-            }
-            PTR_SWAP(p, scratch);
-        }
-
-        // Prepend memory usage
-        if (log->prepend_memory_usage) {
-            char mem_usage_str[256];
-            _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
-            if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(p_buf2),
-                    "%s%c  %17s", p, div_mark, mem_usage_str);
-            } else {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(p_buf2),
-                    "%17s", mem_usage_str);
-            }
-            PTR_SWAP(p, scratch);
-        }
-
-        // fill p0 memory with mock indents + div_mark
-        for (int j = 0; j < i; j++)
-            memcpy(p0 + j * mock_indent_len,
-                   mock_indent, mock_indent_len);
-        p0_len = mock_indent_len * i;
-
-        // Right-align prepend info before any info prepended to the log message.
-        // This is so VS Code's code folding feature continues to work with prepended info.
-        p_len = snprintf(
-            scratch,
-            sizeof(p_buf2),
-            "%*s%s%c  ", log->max_indents + 1 - (int)p0_len, "", p, div_mark);
-        PTR_SWAP(p, scratch);
-    }
-
-    // blank_p is the same as p but w/ prepend info removed, only marks remain
-    char *blank_p = NULL;
-    if (prepend_stuff) {
-        size_t blank_cap = p0_len + p_len + 3;
-        blank_p = malloc(blank_cap);
-        if (!blank_p)
-            goto fail;
-        snprintf(
-            blank_p,
-            blank_cap,
-            "%s%c%*c  ", p0, div_mark, (int)p_len - 3, div_mark);
-    }
+    if (!total_indent1 || !total_indent2) goto fail;
+    for (int j = 0; j < i;     j++) memcpy(total_indent1 + j * indent_len, indent, indent_len);
+    for (int j = 0; j < i + 1; j++) memcpy(total_indent2 + j * indent_len, indent, indent_len);
+    const char* total_indent3 = opts->d ? total_indent2 : total_indent1;
 
     // Init output buffer fmt_msg
-    int max_msg_chars = log->max_message_chars;
     char *fmt_msg = malloc(max_msg_chars);
     if (!fmt_msg)
         goto fail;
@@ -509,7 +369,6 @@ static int _get_formatted_message(
     // Format each line in the log message
     const char *line_start = message;
     bool message_truncated = false;
-    int max_ln_chars = log->max_line_chars;
     char *line = malloc(max_ln_chars);
     char *fmt_line = malloc(max_ln_chars);
     do {
@@ -548,7 +407,6 @@ static int _get_formatted_message(
 
         // Append formatted line to fmt_msg
         _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", fmt_line);
-        // assert(fmt_msg_len == strlen(fmt_msg)); // FOR TESTING PURPOSES ONLY
 
         // Move to next line
         line_start = line_end ? line_end + 1 : NULL;
@@ -568,7 +426,6 @@ static int _get_formatted_message(
     // Free heap memory and return success code
     free(total_indent1);
     free(total_indent2);
-    free(blank_p);
     free(line);
     free(fmt_line);
     return 0;
@@ -577,9 +434,190 @@ static int _get_formatted_message(
     fail:
     free(total_indent1);
     free(total_indent2);
+    return -1;
+}
+
+static int _get_formatted_messages(
+    Log* log,
+    const char* message,
+    bool create_console_output, char** console_msg, size_t *console_msg_len,
+    bool create_logfile_output, char** logfile_msg, size_t *logfile_msg_len,
+    PrintOptions *opts
+) {
+
+    // validate input args
+    if (!message || !opts || !log) return -1;
+    int i = opts->i;
+    if (i < 0 || i > log->max_indents) return -1;
+
+    // Prepend info if requested
+    // p = prepended info text
+    // p0 = mock indents: If info is prepended to each line, mock indents are tiny indents before the prepended info. They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
+    char p_buf[512] = {0}, p0_buf[128] = {0};
+    char *p = p_buf, *p0 = p0_buf;
+    size_t p_len = 0, p0_len = 0;
+    const char div_mark = '-';
+    const char *mock_indent = " ";
+    size_t mock_indent_len = strlen(mock_indent);
+    char s_buf[256] = {0};
+    char *scratch = s_buf;
+    bool prepend_stuff = \
+        log->prepend_datetime_fmt || \
+        log->prepend_elapsed_time || \
+        log->prepend_memory_usage;
+    if (prepend_stuff) {
+
+        // get current time if needed
+        int64_t unix_seconds;
+        int32_t microseconds;
+        if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
+            if (get_current_unix_time(&unix_seconds, &microseconds) != 0) {
+                fprintf(stderr, "LOG ERROR: failed to get current time\n");
+                goto fail;
+            }
+        }
+
+        // Prepend datetime in specified format
+        if (log->prepend_datetime_fmt) {
+            char datetime_str[128];
+            if (format_datetime_str(
+                unix_seconds,
+                microseconds,
+                log->timezone,
+                log->prepend_datetime_fmt,
+                datetime_str,
+                sizeof(datetime_str)) != 0) {
+
+                fprintf(stderr, "LOG ERROR: failed to format datetime\n");
+                goto fail;
+            }
+            p_len = snprintf(
+                scratch,
+                sizeof(s_buf),
+                "%s  ", datetime_str);
+            PTR_SWAP(p, scratch);
+        }
+
+        // Prepend elapsed time since log's start time in HH:MM:SS.ffffff format
+        if (log->prepend_elapsed_time) {
+            int32_t elapsed_sec, elapsed_usec;
+            if (get_elapsed_time(
+                log->unix_start_time,
+                log->start_time_microseconds,
+                unix_seconds,
+                microseconds,
+                &elapsed_sec,
+                &elapsed_usec) != 0) {
+
+                fprintf(stderr, "LOG ERROR: failed to get elapsed time\n");
+                goto fail;
+            }
+            char elapsed_time_str[128];
+            if (format_elapsed_time(
+                elapsed_sec,
+                elapsed_usec,
+                elapsed_time_str,
+                sizeof(elapsed_time_str)) != 0) {
+
+                fprintf(stderr, "LOG ERROR: failed to format elapsed time\n");
+                goto fail;
+            }
+            if (log->prepend_datetime_fmt) {
+                p_len = snprintf(
+                    scratch,
+                    sizeof(s_buf),
+                    "%s%c  %s  ", p, div_mark, elapsed_time_str);
+            } else {
+                p_len = snprintf(
+                    scratch,
+                    sizeof(s_buf),
+                    "%s%s  ", p, elapsed_time_str);
+            }
+            PTR_SWAP(p, scratch);
+        }
+
+        // Prepend memory usage
+        if (log->prepend_memory_usage) {
+            char mem_usage_str[256];
+            _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
+            if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
+                p_len = snprintf(
+                    scratch,
+                    sizeof(s_buf),
+                    "%s%c  %17s", p, div_mark, mem_usage_str);
+            } else {
+                p_len = snprintf(
+                    scratch,
+                    sizeof(s_buf),
+                    "%17s", mem_usage_str);
+            }
+            PTR_SWAP(p, scratch);
+        }
+
+        // fill p0 memory with mock indents + div_mark
+        for (int j = 0; j < i; j++)
+            memcpy(p0 + j * mock_indent_len,
+                   mock_indent, mock_indent_len);
+        p0_len = mock_indent_len * i;
+
+        // Right-align prepend info before any info prepended to the log message.
+        // This is so VS Code's code folding feature continues to work with prepended info.
+        p_len = snprintf(
+            scratch,
+            sizeof(s_buf),
+            "%*s%s%c  ", log->max_indents + 1 - (int)p0_len, "", p, div_mark);
+        PTR_SWAP(p, scratch);
+    }
+
+    // blank_p is the same as p but w/ prepend info removed, only marks remain
+    char *blank_p = NULL;
+    if (prepend_stuff) {
+        size_t blank_cap = p0_len + p_len + 3;
+        blank_p = malloc(blank_cap);
+        if (!blank_p)
+            goto fail;
+        snprintf(
+            blank_p,
+            blank_cap,
+            "%s%c%*c  ", p0, div_mark, (int)p_len - 3, div_mark);
+    }
+
+    if (create_console_output)
+        _get_indented_message(
+            message,
+            log->console_indent,
+            log->max_message_chars, log->max_line_chars,
+            prepend_stuff,
+            p0, p, blank_p,
+            div_mark,
+            console_msg,
+            console_msg_len,
+            opts
+        );
+
+    if (create_logfile_output)
+        _get_indented_message(
+            message,
+            log->logfile_indent,
+            log->max_message_chars, log->max_line_chars,
+            prepend_stuff,
+            p0, p, blank_p,
+            div_mark,
+            logfile_msg,
+            logfile_msg_len,
+            opts
+        );
+
+    // Free heap memory and return success code
+    free(blank_p);
+    return 0;
+
+    // Free heap memory and return failure code
+    fail:
     free(blank_p);
     return -1;
 }
+
 
 static int _update_prev_message(
     Log* log,
@@ -613,48 +651,56 @@ static int _update_prev_message(
 }
 
 int _log_print_unlocked(
-    Log* log,       // pointer to log struct to use
-    const char *msg,   // message to print
-    PrintOptions *opts // optional print arguments
+    Log* log,
+    const char *msg,
+    PrintOptions *opts
 ) {
+    if (!opts) opts = &(PrintOptions){DEFAULT_PRINT_OPTIONS};
 
-    // Validate arguments
-    if (!log || !msg) {
-        perror("must pass a Log struct pointer and string message");
-        return -1;
-    }
-    if (opts == NULL) {
-        opts = &(PrintOptions){DEFAULT_PRINT_OPTIONS};
-    }
-
-    // Print to console
+    // Use optional opts->oc/of arg(s) if specified, else default to log struct's setting
     bool output_to_console = (opts->oc == -1) ? log->output_to_console : opts->oc;
-    if (output_to_console || opts->console_str) {
+    bool output_to_logfile = (opts->of == -1) ? log->output_to_logfile : opts->of;
 
-        // Move cursor up and clear previous string if user set overwrite_prev_msg to true
-        if (opts->overwrite_prev_msg && log->prev_console_message != NULL)
-            _console_clear_previous_message(log);
+    // Create formatted console and/or logfile strings if needed (printed or returned)
+    bool create_console_output = output_to_console || opts->console_str != NULL;
+    bool create_logfile_output = output_to_logfile || opts->logfile_str != NULL;
+    char *console_str = NULL; size_t console_str_len = 0;
+    char *logfile_str = NULL; size_t logfile_str_len = 0;
+    if (create_console_output || create_logfile_output) {
+        if (_get_formatted_messages(
+                log, msg,
+                create_console_output, &console_str, &console_str_len,
+                create_logfile_output, &logfile_str, &logfile_str_len,
+                opts
+            ) != 0) {
 
-        // Format string
-        char *console_str = NULL;
-        size_t console_str_len = 0;
-        if (_get_formatted_message(log, msg, log->console_indent, &console_str, &console_str_len, opts) != 0) {
-            fprintf(stderr, "LOG ERROR: failed to get formatted console string\n");
+            fprintf(stderr, "LOG ERROR: failed to format message\n");
             return -1;
         }
+    }
 
-        // Print formatted string to console
-        if (output_to_console)
+    if (console_str != NULL) {
+
+        // Print to console
+        if (output_to_console) {
+
+            // Move cursor up and clear previous string if user set overwrite_prev_msg to true
+            if (opts->overwrite_prev_msg && log->prev_console_message != NULL)
+                _console_clear_previous_message(log);
+
+            // Print formatted string to console
             fwrite(console_str, 1, console_str_len, log->console_stream);
-        // NOTES: using fwrite() instead of write() even though its buffered because it works with FILE* streams,
-        // is fully cross-platform, and we can disable buffering with setvbuf(_IONBF).
-        // fprintf() automatically handles \0-terminated strings, Use fwrite to respect console_str_len if binary content
+            // NOTES: using fwrite() instead of write() even though its buffered because it works with FILE* streams,
+            // is fully cross-platform, and we can disable buffering with setvbuf(_IONBF).
+            // fprintf() automatically handles \0-terminated strings, Use fwrite to respect console_str_len if binary content
 
-        // Update previous message tracking
-        int rc = _update_prev_message(log, console_str, console_str_len);
-        if (rc != 0) {
-            free(console_str);
-            return rc;
+            // Update previous message tracking
+            int rc = _update_prev_message(log, console_str, console_str_len);
+            if (rc != 0) {
+                free(console_str);
+                free(logfile_str);
+                return rc;
+            }
         }
 
         // Return console_str to user if requested
@@ -663,48 +709,40 @@ int _log_print_unlocked(
         } else {
             free(console_str);
         }
+
     }
 
-    // Print to log file
-    bool output_to_logfile = (opts->of == -1) ? log->output_to_logfile : opts->of;
-    if ((output_to_logfile || opts->logfile_str) && log->file_pointer != NULL) {
+    if (logfile_str != NULL) {
 
-        long write_pos; // move file cursor to start of previous message
+        // Print to log file
+        if (output_to_logfile && log->file_pointer != NULL) {
 
-        // Clear previous message in log file if user set overwrite_prev_msg to true
-        if (opts->overwrite_prev_msg && log->prev_logfile_end > log->prev_logfile_start) {
-            write_pos = log->prev_logfile_start;
-            fseek(log->file_pointer, log->prev_logfile_start, SEEK_SET);
-        } else {
-            write_pos = ftell(log->file_pointer);
-            log->prev_logfile_start = write_pos;
-        }
+            // Clear previous message in log file if user set overwrite_prev_msg to true
+            long write_pos;
+            if (opts->overwrite_prev_msg && log->prev_logfile_end > log->prev_logfile_start) {
+                write_pos = log->prev_logfile_start;
+                fseek(log->file_pointer, write_pos, SEEK_SET);
+            } else {
+                write_pos = ftell(log->file_pointer);
+                log->prev_logfile_start = write_pos;
+            }
 
-        // Format message for log file
-        char *logfile_str = NULL;
-        size_t logfile_str_len = 0;
-        if (_get_formatted_message(
-                log, msg, log->logfile_indent,
-                &logfile_str, &logfile_str_len, opts) != 0) {
-            fprintf(stderr, "LOG ERROR: failed to get formatted log file string\n");
-            return -1;
-        }
-
-        // Print formatted message to log file
-        if (output_to_logfile)
+            // Print formatted message to log file
             fwrite(logfile_str, 1, logfile_str_len, log->file_pointer);
 
-        // Update previous message
-        long new_end = write_pos + logfile_str_len;
-        if (opts->overwrite_prev_msg) // Truncate if overwriting shorter content
-            ftruncate(fileno(log->file_pointer), new_end);
-        log->prev_logfile_end = new_end;
+            // Update previous message
+            long new_end = write_pos + logfile_str_len;
+            if (opts->overwrite_prev_msg) // Truncate if overwriting shorter content
+                ftruncate(fileno(log->file_pointer), new_end);
+            log->prev_logfile_end = new_end;
+        }
 
         // Return logfile_str to user if requested it, else free its memory
-        if (opts->logfile_str)
+        if (opts->logfile_str) {
             *opts->logfile_str = logfile_str;
-        else
+        } else {
             free(logfile_str);
+        }
     }
 
     return 0;
