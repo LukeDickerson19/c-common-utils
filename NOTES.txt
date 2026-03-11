@@ -643,7 +643,7 @@ UTILS:
 
                 Build ALL utils in c-common-utils:
                     Release Mode:
-                        cmake -S . -B build -DBUILD_ALL_UTILS=ON 
+                        cmake -S . -B build -DBUILD_ALL_UTILS=ON
                     Debug Mode:
                         cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Debug
 

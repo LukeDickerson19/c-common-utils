@@ -709,7 +709,6 @@ int _log_print_unlocked(
         } else {
             free(console_str);
         }
-
     }
 
     if (logfile_str != NULL) {

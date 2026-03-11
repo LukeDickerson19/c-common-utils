@@ -36,7 +36,7 @@ Log *logger; // global variable so you don't need to pass it to each function us
 int main(void) {
 
     // init any non default log settings (see include/logging_util.h for all settings)
-    logger = INIT_LOG(
+    logger = init_log(
         .filepath = "log.txt",
         .output_to_console = true,
         .output_to_logfile = true,
@@ -44,27 +44,28 @@ int main(void) {
     );
 
     // log messages with different indent levels
-	PRINT(logger, "a", .i=0); // no indent
-	PRINT(logger, "b", .i=1); // 1 indent
-	PRINT(logger, "c", .i=2); // 2 indents
-	PRINT(logger, "indented\nmulti\nline\nstring", .i=3);
-	PRINT(logger, FMT("formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
-	PRINT(logger, "new line before log message", .i=1, .ns=true); // ns = newline start
-	PRINT(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
+	print(logger, "a", .i=0); // no indent
+	print(logger, "b", .i=1); // 1 indent
+	print(logger, "c", .i=2); // 2 indents
+	print(logger, "indented\nmulti\nline\nstring", .i=3);
+	char buffer[logger->max_message_chars];
+	print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+	print(logger, "new line before log message", .i=1, .ns=true); // ns = newline start
+	print(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
 
 	// prepend datetime and memory usage
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
 	logger->timezone = "local"; // valid options: "UTC", "local"
-	PRINT(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
+	print(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
     logger->prepend_datetime_fmt = NULL;
     logger->prepend_memory_usage = true;
-	PRINT(logger, "multiline\nmessage\nwith\nprepend_memory_usage");
+	print(logger, "multiline\nmessage\nwith\nprepend_memory_usage");
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
-	PRINT(logger, "message", .i=0);
-	PRINT(logger, "with", .i=1);
-	PRINT(logger, "both", .i=1);
-	PRINT(logger, "and", .i=2);
-	PRINT(logger, "indents", .i=3);
+	print(logger, "message", .i=0);
+	print(logger, "with", .i=1);
+	print(logger, "both", .i=1);
+	print(logger, "and", .i=2);
+	print(logger, "indents", .i=3);
 
     close_log(logger);
     return 0;
@@ -74,9 +75,9 @@ int main(void) {
 
 #### EXAMPLE OUTPUT
 ```
-[luke@luke build]$ 
-[luke@luke build]$ 
-[luke@luke build]$ ./logging_util_readme_example 
+[luke@luke utils]$ 
+[luke@luke utils]$ 
+[luke@luke utils]$ ./build/logging_util/logging_util_readme_example 
 a
 |   b
 |   |   c
@@ -89,22 +90,21 @@ a
 |   new line before log message
 |   new line after log message
 |   
--            2026-01-15 09:06:10.076000 PST  -  multiline
--            2026-01-15 09:06:10.076000 PST  -  message
--            2026-01-15 09:06:10.076000 PST  -  with
--            2026-01-15 09:06:10.076000 PST  -  prepend_datetime_fmt
--                1.6875 MiB used  -  multiline
--                1.6875 MiB used  -  message
--                1.6875 MiB used  -  with
--                1.6875 MiB used  -  prepend_memory_usage
--            2026-01-15 09:06:10.076254 PST  -      1.7266 MiB used  -  message
- -           2026-01-15 09:06:10.076343 PST  -      1.7266 MiB used  -  |   with
- -           2026-01-15 09:06:10.076422 PST  -      1.7266 MiB used  -  |   both
-  -          2026-01-15 09:06:10.076498 PST  -      1.7266 MiB used  -  |   |   and
-   -         2026-01-15 09:06:10.076577 PST  -      1.7266 MiB used  -  |   |   |   indents
-[luke@luke build]$ 
-[luke@luke build]$ 
-[luke@luke build]$ 
-[luke@luke build]$ 
-
+-           2026-03-10 22:03:54.417708 MST  -  multiline
+-           2026-03-10 22:03:54.417708 MST  -  message
+-           2026-03-10 22:03:54.417708 MST  -  with
+-           2026-03-10 22:03:54.417708 MST  -  prepend_datetime_fmt
+-               2.1953 MiB used  -  multiline
+-               2.1953 MiB used  -  message
+-               2.1953 MiB used  -  with
+-               2.1953 MiB used  -  prepend_memory_usage
+-           2026-03-10 22:03:54.417786 MST  -      2.1953 MiB used  -  message
+ -          2026-03-10 22:03:54.417804 MST  -      2.1953 MiB used  -  |   with
+ -          2026-03-10 22:03:54.417820 MST  -      2.1953 MiB used  -  |   both
+  -         2026-03-10 22:03:54.417835 MST  -      2.1953 MiB used  -  |   |   and
+   -        2026-03-10 22:03:54.417851 MST  -      2.1953 MiB used  -  |   |   |   indents
+[luke@luke utils]$ 
+[luke@luke utils]$ 
+[luke@luke utils]$ 
+[luke@luke utils]$ 
 ```
