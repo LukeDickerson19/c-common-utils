@@ -666,13 +666,12 @@ UTILS:
                 open terminal "x64 native Tools Command Prompt for VS"
                 cd path\to\c-common-utils\utils\
                 rd /s /q build
-                cmake -S . -B build -DBUILD_STRING_UTIL=ON
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON
                 cmake --build build --config Release
             Run:
-                cd build\string_util\Release
                 chcp 65001
-                .\string_util_readme_example.exe
-                .\string_util_full_example.exe
+                .\build\string_util\Release\string_util_readme_example.exe
+                .\build\string_util\Release\string_util_full_example.exe
 
         Android:
             tbd
@@ -760,31 +759,14 @@ LIBRARIES:
                 # install locations: /usr/local/lib, /usr/local/lib/pkgconfig
 
         windows:
-            also installed systemwide with:
-                tar -xzvf .\utf8proc-2.11.3.tar.gz
-                cd .\utf8proc-2.11.3\
-                mkdir build
-                cd build
-                cmake ..
-                cmake --build . --config Release
 
-                # then utf8proc_static.lib is the file you want to link against
-                    output:
-                        PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build> cmake --build . --config Release
-                        MSBuild version 18.0.5+e22287bf1 for .NET Framework
-
-                        1>Checking Build System
-                        Building Custom Rule C:/Users/luciu/Downloads/utf8proc-2.11.3/CMakeLists.txt
-                        utf8proc.c
-                        utf8proc.vcxproj -> C:\Users\luciu\Downloads\utf8proc-2.11.3\build\Release\utf8proc_static.lib
-                        Building Custom Rule C:/Users/luciu/Downloads/utf8proc-2.11.3/CMakeLists.txt
-
-            also installed in c-common-utils\utils\string_util\external\utf8proc\windows\ with:
-                this is the one i use in string_util
+            installed in c-common-utils\utils\string_util\external\utf8proc\windows\ with:
                 run from "x64 Native Tools Command Prompt for VS":
                     tar -xzvf utf8proc-2.11.3.tar.gz
                     cd utf8proc-2.11.3
-                    mkdir build && cd build
+                    rd -Recurse -Force build
+                    mkdir build
+                    cd build
                     cmake ..
                     cmake --build . --config Release
                     cmake --install . --config Release --prefix "C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/windows"
@@ -800,10 +782,8 @@ LIBRARIES:
                             -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/windows/lib/cmake/utf8proc/utf8proc-config-version.cmake
                             PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build>
                             PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build>
-                    rd /s /q C:\path\to\c-common-utils\utils\string_util\external\utf8proc\windows\lib\cmake
-                    rd /s /q C:\path\to\c-common-utils\utils\string_util\external\utf8proc\windows\lib\pkgconfig
-
-
-
+                    rd -Recurse -Force C:\Users\luciu\rooms\c-common-utils\utils\string_util\external\utf8proc\windows\lib\cmake
+                    rd -Recurse -Force C:\Users\luciu\rooms\c-common-utils\utils\string_util\external\utf8proc\windows\lib\pkgconfig
+                    # or delete these folders through VS Code, or the File Explorer
 
 

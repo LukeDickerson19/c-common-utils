@@ -65,10 +65,9 @@ cmake --build build
 cd c-common-utils\utils
 cmake -S . -B build -DBUILD_STRING_UTIL=ON
 cmake --build build --config Release
-cd build\string_util\Release
 chcp 65001
-.\string_util_readme_example.exe
-.\string_util_full_example.exe
+.\build\string_util\Release\string_util_readme_example.exe
+.\build\string_util\Release\string_util_full_example.exe
 ```
 
 #### USAGE
