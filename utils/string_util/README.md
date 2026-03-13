@@ -12,13 +12,11 @@ typedef struct String {
     size_t  bytes;
     size_t  cap;
 } String;
-
-String str(const char *fmt, ...);
 ```
 
 ##### Features:
 > - dynamic strings that double or halve the heap memory allocation (with malloc/free) as the string grows or shrinks
-> - UTF-8 compatible using the [utf8proc](https://juliastrings.github.io/utf8proc/) library dependency (version 2.11.3), "a small, clean C library that provides Unicode normalization, case-folding, and other operations [used for accurate string comparison and searching]". So all text args of the below functions assume UTF-8 input. 
+> - UTF-8 compatible using the [utf8proc](https://juliastrings.github.io/utf8proc/) library dependency "a small, clean C library that provides Unicode normalization, case-folding, and other operations [used for accurate string comparison and searching]". So all text args of the below functions assume UTF-8 input. 
 > - Functions:
 >   - **Memory**:
 >     - str()
@@ -51,32 +49,7 @@ String str(const char *fmt, ...);
 >     - str_split()
 >     - str_slice()
 
-
-#### DEPENDENCIES
-
-utf8proc v2.11.3 is vendored in `string_util/external/utf8proc/`. It must be built and installed once before building string_util.
-
-**Linux:**
-```bash
-tar -xzvf utf8proc-2.11.3.tar.gz
-cd utf8proc-2.11.3 && mkdir build && cd build
-cmake ..
-cmake --build . --config Release
-cmake --install . --config Release --prefix "/path/to/c-common-utils/utils/string_util/external/utf8proc"
-```
-
-**Windows** (run from "x64 Native Tools Command Prompt for VS"):
-```bat
-tar -xzvf utf8proc-2.11.3.tar.gz
-cd utf8proc-2.11.3
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
-cmake --install . --config Release --prefix "C:/path/to/c-common-utils/utils/string_util/external/utf8proc"
-```
-
-
-#### BUILD
+#### BUILD & RUN
 
 **Linux:**
 ```bash
@@ -160,3 +133,6 @@ Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒�
 [luke@luke utils]$ 
 ```
 
+#### DEPENDENCIES
+
+utf8proc v2.11.3 is vendored in `string_util/external/utf8proc/` and included in the repo — no installation required.
