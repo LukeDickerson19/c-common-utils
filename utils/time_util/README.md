@@ -4,31 +4,36 @@
 
 > Time utility written in C.
 
-##### Main struct and string init function:
-```c
-typedef struct {
-    char   *text;
-    size_t  len;
-    size_t  cap;
-} String;
-
-String str(const char *fmt, ...);
-```
-
 ##### Features:
 > - microsecond precision
 > - Functions:
->   - get_current_unix_time
->   - format_datetime_str
->   - get_elapsed_time
->   - format_elapsed_time
+>   - get_current_unix_time()
+>   - format_datetime_str()
+>   - get_elapsed_time()
+>   - format_elapsed_time()
 
-#### BUILD
-```
+#### BUILD & RUN
+
+> - Tested on:
+>   - Linux   (on Manjaro v25.0.10, x86_64 using gcc)
+>   - Windows (on Windows 11, x86_64 using clang/LLVM)
+
+**Linux:**
+```bash
 cd c-common-utils/utils
 cmake -S . -B build -DBUILD_TIME_UTIL=ON # Only build time_util
 cmake --build build
+./build/time_util/time_util_full_example
 ```
+
+**Windows** (run from "x64 Native Tools Command Prompt for VS"):
+```bat
+cd c-common-utils\utils
+cmake -S . -B build -DBUILD_TIME_UTIL=ON
+cmake --build build --config Release
+.\build\time_util\time_util_full_example.exe
+```
+
 
 #### USAGE
 Below is a copy of [tests/time_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/tests/time_util_full_example.c). See [include/time_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util/include/time_util.h) for all function definitions and descriptions.

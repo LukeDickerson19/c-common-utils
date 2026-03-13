@@ -15,6 +15,7 @@ typedef struct String {
 ```
 
 ##### Features:
+
 > - dynamic strings that double or halve the heap memory allocation (with malloc/free) as the string grows or shrinks
 > - UTF-8 compatible using the [utf8proc](https://juliastrings.github.io/utf8proc/) library dependency "a small, clean C library that provides Unicode normalization, case-folding, and other operations [used for accurate string comparison and searching]". So all text args of the below functions assume UTF-8 input. 
 > - Functions:
@@ -51,10 +52,14 @@ typedef struct String {
 
 #### BUILD & RUN
 
+> - Tested on:
+>   - Linux   (on Manjaro v25.0.10, x86_64 using gcc)
+>   - Windows (on Windows 11, x86_64 using clang/LLVM)
+
 **Linux:**
 ```bash
 cd c-common-utils/utils
-cmake -S . -B build -DBUILD_STRING_UTIL=ON
+cmake -S . -B build -DBUILD_STRING_UTIL=ON # Only build string_util
 cmake --build build
 ./build/string_util/string_util_readme_example
 ./build/string_util/string_util_full_example
