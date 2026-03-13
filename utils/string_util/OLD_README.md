@@ -52,51 +52,13 @@ String str(const char *fmt, ...);
 >     - str_slice()
 
 
-#### DEPENDENCIES
-
-utf8proc v2.11.3 is vendored in `string_util/external/utf8proc/`. It must be built and installed once before building string_util.
-
-**Linux:**
-```bash
-tar -xzvf utf8proc-2.11.3.tar.gz
-cd utf8proc-2.11.3 && mkdir build && cd build
-cmake ..
-cmake --build . --config Release
-cmake --install . --config Release --prefix "/path/to/c-common-utils/utils/string_util/external/utf8proc"
-```
-
-**Windows** (run from "x64 Native Tools Command Prompt for VS"):
-```bat
-tar -xzvf utf8proc-2.11.3.tar.gz
-cd utf8proc-2.11.3
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
-cmake --install . --config Release --prefix "C:/path/to/c-common-utils/utils/string_util/external/utf8proc"
-```
-
-
 #### BUILD
-
-**Linux:**
-```bash
+```
 cd c-common-utils/utils
-cmake -S . -B build -DBUILD_STRING_UTIL=ON
+cmake -S . -B build -DBUILD_STRING_UTIL=ON # Only build string_util
 cmake --build build
-./build/string_util/string_util_readme_example
-./build/string_util/string_util_full_example
 ```
 
-**Windows** (run from "x64 Native Tools Command Prompt for VS"):
-```bat
-cd c-common-utils\utils
-cmake -S . -B build -DBUILD_STRING_UTIL=ON
-cmake --build build --config Release
-cd build\string_util\Release
-chcp 65001
-.\string_util_readme_example.exe
-.\string_util_full_example.exe
-```
 
 #### USAGE
 Below is a quick example usage. The [tests/string_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/string_util_full_example.c) file shows how to use all this string_util's features. See [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/include/string_util.h) for all function definitions and descriptions.

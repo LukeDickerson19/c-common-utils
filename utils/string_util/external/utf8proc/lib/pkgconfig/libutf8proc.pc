@@ -1,0 +1,10 @@
+prefix=C:/Program Files (x86)/utf8proc
+exec_prefix=C:/Program Files (x86)/utf8proc/bin
+libdir=C:/Program Files (x86)/utf8proc/lib
+includedir=C:/Program Files (x86)/utf8proc/include
+
+Name: libutf8proc
+Description: UTF8 processing
+Version: 2.11.3
+Libs: -L${libdir} -lutf8proc
+Cflags: -I${includedir} -DUTF8PROC_EXPORTS

@@ -6,7 +6,7 @@ TUTORIALS:
 
         USAGE:
 
-            linux/mac:
+            linux:
 
                 CREATE NEW PROJECT (FOLDER STRUCTURE):
                     cmds:
@@ -98,7 +98,6 @@ TUTORIALS:
             windows:
 
                 WINDOWS SETUP:
-
                     winget install Kitware.CMake # install cmake
                     cmake --version # restart powershell and check version
                     # NOTE: I was originally using the MSVC compiler, but MSVC doesn't support all of C99's features (some of which i used in my logging library), so im using LLVM (aka clang) instead
@@ -117,7 +116,7 @@ TUTORIALS:
                     .\build\logging_util_test.exe
 
                 CREATE NEW PROJECT (FOLDER STRUCTURE):
-                    same as linux/mac
+                    same as linux
 
             Android:
                 tbd
@@ -652,7 +651,7 @@ UTILS:
                     
                     see utils/CmakeLists.txt for more details/options...
 
-            RUN:
+            Run:
                 option 1:
                     run the executable w/ cmd:
                         Release Mode:
@@ -663,7 +662,17 @@ UTILS:
                             ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
 
         Windows:
-            tbd
+            Build:
+                open terminal "x64 native Tools Command Prompt for VS"
+                cd path\to\c-common-utils\utils\
+                rd /s /q build
+                cmake -S . -B build -DBUILD_STRING_UTIL=ON
+                cmake --build build --config Release
+            Run:
+                cd build\string_util\Release
+                chcp 65001
+                .\string_util_readme_example.exe
+                .\string_util_full_example.exe
 
         Android:
             tbd
@@ -725,9 +734,49 @@ UTILS:
 
 LIBRARIES:
 
-    utf8proc installed systemwide with below process (for usage see c-common-utils/utils/string_util)
-        download tar from https://juliastrings.github.io/utf8proc/
-        cd utf8proc-2.11.3
-        make
-        sudo make install
-        # install locations: /usr/local/lib, /usr/local/lib/pkgconfig
+    utf8proc:
+        used in c-common-utils/utils/string_util
+
+        linux:
+            installed systemwide with below process
+                download tar from https://juliastrings.github.io/utf8proc/
+                cd utf8proc-2.11.3
+                make
+                sudo make install
+                # install locations: /usr/local/lib, /usr/local/lib/pkgconfig
+
+        windows:
+            installed systemwide with below process
+                tar -xzvf .\utf8proc-2.11.3.tar.gz
+                cd .\utf8proc-2.11.3\
+                mkdir build
+                cd build
+                cmake ..
+                cmake --build . --config Release
+
+                # then utf8proc_static.lib is the file you want to link against
+                    output:
+                        PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build> cmake --build . --config Release
+                        MSBuild version 18.0.5+e22287bf1 for .NET Framework
+
+                        1>Checking Build System
+                        Building Custom Rule C:/Users/luciu/Downloads/utf8proc-2.11.3/CMakeLists.txt
+                        utf8proc.c
+                        utf8proc.vcxproj -> C:\Users\luciu\Downloads\utf8proc-2.11.3\build\Release\utf8proc_static.lib
+                        Building Custom Rule C:/Users/luciu/Downloads/utf8proc-2.11.3/CMakeLists.txt
+
+            then i installed it in c-common-utils\utils\string_util\external\utf8proc\ as well with:
+                PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build>
+                PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build> cmake --install . --config Release --prefix "C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc"
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/include/utf8proc.h
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/lib/utf8proc_static.lib
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/lib/pkgconfig/libutf8proc.pc
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/lib/cmake/utf8proc/utf8proc-targets.cmake
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/lib/cmake/utf8proc/utf8proc-targets-release.cmake
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/lib/cmake/utf8proc/utf8proc-config.cmake
+                -- Installing: C:/Users/luciu/rooms/c-common-utils/utils/string_util/external/utf8proc/lib/cmake/utf8proc/utf8proc-config-version.cmake
+                PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build>
+                PS C:\Users\luciu\Downloads\utf8proc-2.11.3\build>
+
+                this is the one i use in string_util
+
