@@ -5,34 +5,36 @@ int main(void) {
 
     // init string
     String *s1 = str("Hello");
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
-    // outputs: "text = "Hello", length = 5, memory allocated = 11 bytes"
+    char buffer[1024]; str_info(s1, buffer, sizeof(buffer));
+    printf("%s\n", buffer);
+    // outputs: text="Hello", len=5, bytes=5, cap=11, String struct size=32, total size=43 bytes
 
     // append char array to string
     str_append(s1, ", world");
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
-    // outputs: text = "Hello, world", length = 12, memory allocated = 22 byte
+    buffer[0] = '\0'; str_info(s1, buffer, sizeof(buffer));
+    printf("%s\n", buffer);
+    // outputs: text="Hello, world", len=12, bytes=12, cap=22, String struct size=32, total size=54 bytes
 
     // prepend char array to string
     str_prepend("... ", s1);
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
-    // outputs: text = "... Hello, world", length = 16, memory allocated = 22 bytes
+    buffer[0] = '\0'; str_info(s1, buffer, sizeof(buffer));
+    printf("%s\n", buffer);
+    // outputs: text="... Hello, world", len=16, bytes=16, cap=22, String struct size=32, total size=54 bytes
 
     // free string struct and text
     str_free(&s1);
 
-    // concat multiple strings into one, with options to set which string
-    // to store the output in (defaults to first list item), and whether
-    // to free the others or not (defaults to false)
-    String *a = str("AAA"), *b = str("BBB"), *c = str("CCC"), *d = str("DDD");
+    // concat multiple strings into one, with option to set which string
+    // to store the output in (defaults to first list item)
+    String *a = str("Hello"), *b = str("東京"), *c = str("¡café!naïve"), *d = str("😀🍓🌍❌✅");
     String *parts[] = {a, b, c, d};
     str_concat(parts, .output_index=2);
-    printf("%s\n", c->text); // "AAABBBCCCDDD"
-    String *e = str("EEE");
-    String *f = str("FFF");
-    String *g = str("GGG");
+    printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅"
+    String *e = str("→↙●■▲");
+    String *f = str("∞∑√");
+    String *g = str("★♥🔒🔓");
     str_concat(((String *[]){c, e, f, g}));
-    printf("%s\n", c->text); // "AAABBBCCCDDDEEEFFFGGG"
+    printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓"
 
     // free multiple strings at once
     str_free(&a, &b, &c, &d, &e, &f, &g);

@@ -225,7 +225,6 @@ TUTORIALS:
 
     DEBUGGING:
 
-
         debugging_tutorial_with_gdb_and_asan:
 
             GDB: GNU Debugger:
@@ -633,6 +632,7 @@ TUTORIALS:
                 clion
                     https://www.jetbrains.com/clion/buy/?section=personal&billing=monthly
 
+
 UTILS:
 
     USAGE:
@@ -680,6 +680,8 @@ UTILS:
 
             make str_slice wrap for negative indeces like in python (any maybe indeces greater than str.len too)
 
+            maybe update c string util to use hybrid malloc/free and arena allocator?
+
         logging_util
 
             update log util to use string_util or bstring
@@ -720,3 +722,12 @@ UTILS:
 
         create examples for postgres and an n-dimensional GSL table
 
+
+LIBRARIES:
+
+    utf8proc installed systemwide with below process (for usage see c-common-utils/utils/string_util)
+        download tar from https://juliastrings.github.io/utf8proc/
+        cd utf8proc-2.11.3
+        make
+        sudo make install
+        # install locations: /usr/local/lib, /usr/local/lib/pkgconfig

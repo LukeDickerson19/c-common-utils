@@ -1,29 +1,38 @@
-# ---- logging_util library ----
+cmake_minimum_required(VERSION 3.10)
+project(string_util)
 
+# ---- Find utf8proc using pkg-config ----
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(UTF8PROC REQUIRED libutf8proc)
+
+# ---- string_util library ----
 add_library(string_util
     src/string_util.c
 )
 
-# Include directories for consumers of logging_util
+# Include directories for string_util and its consumers
 target_include_directories(string_util
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${UTF8PROC_INCLUDE_DIRS}  # Add utf8proc include dirs
+)
+
+# Link utf8proc to string_util
+target_link_libraries(string_util
+    PRIVATE ${UTF8PROC_LIBRARIES}
 )
 
 # ---- Tests ----
-
 add_executable(string_util_full_example
     tests/string_util_full_example.c
 )
-
 target_link_libraries(string_util_full_example
-    PRIVATE string_util
+    PRIVATE string_util ${UTF8PROC_LIBRARIES}
 )
 
 add_executable(string_util_readme_example
     tests/string_util_readme_example.c
 )
-
 target_link_libraries(string_util_readme_example
-    PRIVATE string_util
+    PRIVATE string_util ${UTF8PROC_LIBRARIES}
 )

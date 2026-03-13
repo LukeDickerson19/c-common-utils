@@ -1,7 +1,9 @@
 # log-utils
 
-#### DESCRIPTION
+> [!NOTE]
+> This is an older version of the logging_util code before it was made to use string_util and time_util.
 
+#### DESCRIPTION
 > Thread-safe logging util written in C supporting hierarchical indentation for log messages — useful for navigating logs in editors that support code folding.
 > 
 > Features:

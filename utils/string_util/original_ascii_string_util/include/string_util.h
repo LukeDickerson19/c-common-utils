@@ -11,17 +11,16 @@ extern "C" {
 #endif
 
 
-/////////////////////////////// String Struct /////////////////////////////
+/////////////////////// String Struct and Constructor /////////////////////
 
 
 /**
  * A simple dynamic string implementation.
  * 
  * Fields:
- *   - text:  pointer to heap-allocated memory containing the null terminated string
- *   - len:   number of UTF-8 characters (aka "UTF-8 code points", aka "runes"), strlen(s.text) == s.len
- *   - bytes: number of bytes the current text occupies (s.bytes <= s.cap)
- *   - cap:   total bytes of memory capacity allocated (s.cap >= s.bytes + 1 for null terminator)
+ *   - text: pointer to heap-allocated memory containing the string + '\0'
+ *   - len:  number of actual characters (strlen(s.text) == s.len)
+ *   - cap:  total bytes allocated (s.cap >= s.len + 1 always)
  * 
  * Important:
  *   - Never modify .text or .len directly — use the provided functions
@@ -31,12 +30,8 @@ extern "C" {
 typedef struct String {
     char   *text;
     size_t  len;
-    size_t  bytes;
     size_t  cap;
 } String;
-
-
-////////////////////////////// Memory Functions ///////////////////////////
 
 
 /**
@@ -52,11 +47,10 @@ typedef struct String {
  * @param ...   optional arguments for formatting
  * @return      pointer to initialized String struct (returns NULL on failure)
  */
-String *str(
-    const char *fmt,
-    ...
-);
+String *str(const char *fmt, ...);
 
+
+////////////////////////////// Memory Functions ///////////////////////////
 
 /**
  * Frees the memory of one or multiple String structs and their struct members
@@ -72,7 +66,6 @@ void _str_free(String ***list, size_t count);
     _str_free((String**[]){__VA_ARGS__}, \
     sizeof((String**[]){__VA_ARGS__}) / sizeof(String**))
 
-
 /**
  * Creates a deep copy of the given String.
  * Allocates a new heap buffer and copies the contents.
@@ -80,25 +73,8 @@ void _str_free(String ***list, size_t count);
  * @param src  source string to clone (must not be NULL)
  * @return     pointer to a new String with the same contents as src (returns NULL on failure)
  */
-String *str_clone(
-    const String *src
-);
+String *str_clone(const String *src);
 
-
-/**
- * Formats String struct metadata and memory footprint into a buffer.
- *
- * @param label    A descriptive name prefix for identifying the string instance.
- * @param s        Pointer to the String structure to inspect.
- * @param out      The destination buffer to receive the formatted text.
- * @param out_cap  Maximum capacity of the destination buffer.
- * @return         The number of characters written (standard snprintf behavior).
- */
-void str_info(
-    const String *s,
-    char *out,
-    size_t out_cap
-);
 
 ////////////////////////////// Mutation Functions /////////////////////////
 
@@ -111,10 +87,7 @@ void str_info(
  * @param suffix  char array to append (must be null terminated)
  * @return 0 on success, -1 if reallocation failed
  */
-int str_append(
-    String *s,
-    const char *suffix
-);
+int str_append(String *s, const char *suffix);
 
 
 /**
@@ -125,10 +98,7 @@ int str_append(
  * @param s       destination string to prepend to (must be valid)
  * @return 0 on success, -1 on failure
  */
-int str_prepend(
-    const char *prefix,
-    String *s
-);
+int str_prepend(const char *prefix, String *s);
 
 
 /**
@@ -144,7 +114,7 @@ int str_prepend(
  * @return 0 on success, -1 on invalid input (NULL array/pointers, invalid output_index) or reallocation failure
  */
 typedef struct {
-    size_t output_index;
+    int output_index;
     String *sep;
 } ConcatOptions;
 #define DEFAULT_CONCAT_OPTIONS .output_index = 0, .sep = NULL
@@ -166,9 +136,7 @@ int _str_concat(String **s_list, const size_t count, const ConcatOptions *opts);
  * @param s  string to convert (must not be NULL)
  * @return   0 on success, -1 if string is NULL
  */
-int str_to_upper(
-    String *s
-);
+int str_to_upper(String *s);
 
 
 /**
@@ -178,32 +146,26 @@ int str_to_upper(
  * @param s  string to convert (must not be NULL)
  * @return   0 on success, -1 if string is NULL
  */
-int str_to_lower(
-    String *s
-);
+int str_to_lower(String *s);
 
 
 /**
- * Inserts the contents of `sub` into `s` at the given index.
+ * Inserts the contents of `substr` into `dst` at the given index.
  * Automatically resizes `dst` if necessary (doubles capacity repeatedly).
  *
- * @param s           string to insert into (must be valid)
- * @param sub         string to insert (must be valid)
- * @param rune_index  position in `s` where `sub` should be inserted
- *                    (0 ≤ index ≤ s->len; inserting at s->len appends)
+ * @param dst     destination string to insert into (must be valid)
+ * @param substr  string to insert (must be valid)
+ * @param index   position in `dst` where `substr` should be inserted
+ *                (0 ≤ index ≤ dst->len; inserting at dst->len appends)
  * @return 0 on success, -1 on invalid input or reallocation failure
  */
-int str_insert(
-    String *s,
-    const String *sub,
-    size_t rune_index
-);
+int str_insert(String *dst, const String *substr, size_t index);
 
 
 /**
- * Replaces occurrences of `old_sub` in `s` with `new_sub`.
+ * Replaces occurrences of `old_sub` in `dst` with `new_sub`.
  *
- * @param s        string to modify (must not be NULL)
+ * @param dst      string to modify (must not be NULL)
  * @param old_sub  substring to replace (must not be NULL)
  * @param new_sub  substring to insert in place of old_sub (must not be NULL)
  * @param mode     replacement mode:
@@ -211,13 +173,12 @@ int str_insert(
  *                   "last"            - replace last occurrence
  *                   "all"             - replace all occurrences
  * @return 0 on success, -1 on invalid input or memory allocation failure
+ *
+ * Notes:
+ *   - Automatically resizes `dst` if needed.
+ *   - If `old_sub` is empty, function returns -1 (invalid).
  */
-int str_replace(
-    String *s,
-    const String *old_sub,
-    const String *new_sub,
-    const char *mode
-);
+int str_replace(String *dst, const String *old_sub, const String *new_sub, const char *mode);
 
 
 /**
@@ -228,28 +189,23 @@ int str_replace(
  * 
  * @return 0 on success, -1 on failure
  */
-int str_repeat(
-    String *s,
-    const size_t n
-);
+int str_repeat(String *s, const size_t n);
 
 
 /**
- * Removes a portion of the string starting at `i` and spanning `n` UTF-8 runes.
+ * Removes a portion of the string starting at `start` and spanning `len` characters.
  *
- * @param s    string to modify (must not be NULL)
- * @param i    starting rune index to remove (0 ≤ i < s->len)
- * @param n    number of runes to remove
- * @return     0 on success, -1 on invalid input
+ * @param s      string to modify (must not be NULL)
+ * @param start  starting index to remove (0 ≤ start < s->len)
+ * @param len    number of characters to remove
+ * @return       0 on success, -1 on invalid input
  *
  * Notes:
- *   - If i >= s->len, does nothing and returns 0
+ *   - If start >= s->len, does nothing and returns 0
+ *   - Automatically shifts the remainder of the string left
+ *   - Can shrink the allocated capacity if needed
  */
-int str_remove(
-    String *s,
-    size_t start,
-    size_t len
-);
+int str_remove(String *s, size_t start, size_t len);
 
 
 /**
@@ -258,9 +214,7 @@ int str_remove(
  * @param s  string to trim (must not be NULL)
  * @return   0 on success, -1 if string is NULL
  */
-int str_trim(
-    String *s
-);
+int str_trim(String *s);
 
 
 /**
@@ -269,9 +223,7 @@ int str_trim(
  * @param s  string to trim (must not be NULL)
  * @return   0 on success, -1 if string is NULL
  */
-int str_trim_left(
-    String *s
-);
+int str_trim_left(String *s);
 
 
 /**
@@ -280,9 +232,7 @@ int str_trim_left(
  * @param s  string to trim (must not be NULL)
  * @return   0 on success, -1 if string is NULL
  */
-int str_trim_right(
-    String *s
-);
+int str_trim_right(String *s);
 
 
 ////////////////////////////// Query Functions ////////////////////////////
@@ -295,18 +245,13 @@ int str_trim_right(
  * @param b  second string (must not be NULL)
  * @return   true if equal, false otherwise
  */
-bool str_equals(
-    const String *a,
-    const String *b
-);
+bool str_equals(const String *a, const String *b);
 
 
 /**
  * Returns true if the string has zero length.
  */
-bool str_is_empty(
-    const String *s
-);
+bool str_is_empty(const String *s);
 
 
 /**
@@ -314,10 +259,7 @@ bool str_is_empty(
  * @param s      the string to check
  * @param prefix the prefix to test
  */
-bool str_starts_with(
-    const String *s,
-    const String *prefix
-);
+bool str_starts_with(const String *s, const String *prefix);
 
 
 /**
@@ -325,10 +267,7 @@ bool str_starts_with(
  * @param s      the string to check
  * @param suffix the suffix to test
  */
-bool str_ends_with(
-    const String *s,
-    const String *suffix
-);
+bool str_ends_with(const String *s, const String *suffix);
 
 
 /**
@@ -342,10 +281,7 @@ bool str_ends_with(
  *   - More efficient than the naive O(n*m) search for long strings or repeated patterns.
  *   - Allocates a temporary table of size substr->len (freed before returning).
  */
-bool str_contains(
-    const String *s,
-    const String *substr
-);
+bool str_contains(const String *s, const String *substr);
 
 
 /**
@@ -359,10 +295,7 @@ bool str_contains(
  *   - If `substr` is empty, returns 0
  *   - Non-overlapping: "aaa" with "aa" counts as 1
  */
-size_t str_count(
-    const String *s,
-    const String *substr
-);
+size_t str_count(const String *s, const String *substr);
 
 
 /**
@@ -370,15 +303,11 @@ size_t str_count(
  *
  * @param s       string to search in (must not be NULL)
  * @param substr  substring to search for (must not be NULL)
- * @param mode    "first" (default) -> first occurrence
- *                "last"            -> last occurrence
+ * @param mode    "first" (default) → first occurrence
+ *                "last"            → last occurrence
  * @return        index of occurrence, or -1 if not found
  */
-size_t str_index_of(
-    const String *s,
-    const String *substr,
-    const char *mode
-);
+int str_index_of(const String *s, const String *substr, const char *mode);
 
 
 /**
@@ -387,56 +316,44 @@ size_t str_index_of(
  * @param s        string to search in (must not be NULL)
  * @param substr   substring to search for (must not be NULL)
  * @param out_len  pointer to size_t that will receive number of occurrences found
- * @return         dynamically allocated array of size_t indices (must be freed by caller),
+ * @return         dynamically allocated array of int indices (must be freed by caller),
  *                 or NULL if none found or invalid input
  */
-size_t* str_indices_of(
-    const String *s,
-    const String *substr,
-    size_t *out_len
-);
+int* str_indices_of(const String *s, const String *substr, size_t *out_len);
 
 
 ////////////////////////////// Extract Functions //////////////////////////
 
-/**
+ /**
  * Splits a string into substrings using a single character delimiter.
  *
  * @param s         string to split
- * @param delim     delimiter string
+ * @param delim     delimiter character
  * @param out_count pointer to size_t that will receive the number of substrings
  * @return          dynamically allocated array of String pointers (must be freed with a loop + str_free)
  */
-String **str_split(
-    const String *s,
-    const String *delim,
-    size_t *out_count
-);
+String **str_split(const String *s, char delim, size_t *out_count);
 
 
 /**
  * Returns a substring of `s` in the half-open range [start, end).
  *
  * @param s      source string (must not be NULL)
- * @param start  starting UTF-8 rune index (inclusive)
- * @param end    ending UTF-8 rune index (exclusive)
+ * @param start  starting index (inclusive)
+ * @param end    ending index (exclusive)
  * @return       new String containing the requested slice
  *
  * Behavior:
- *   - If start >= end -> returns empty string
- *   - If start >= s->len -> returns empty string
- *   - If end > s->len -> end is clamped to s->len
+ *   - If start >= end → returns empty string
+ *   - If start >= s->len → returns empty string
+ *   - If end > s->len → end is clamped to s->len
  *
  * Notes:
- *   - Returned String is heap-allocated and must be freed with str_free()
+ *   - Returned String is heap-allocated and must be freed with str_free().
  *   - Does not modify the original string.
  *   - Time complexity: O(n) where n = end - start.
  */
-String *str_slice(
-    const String *s,
-    size_t start,
-    size_t end
-);
+String *str_slice(const String *s, size_t start, size_t end);
 
 
 ///////////////////////////////////////////////////////////////////////////

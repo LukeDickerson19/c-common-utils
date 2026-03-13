@@ -21,28 +21,28 @@ a
         
     new line end = false
 
--           2026-03-10 22:28:49.081354 MST  -  testing single line prepend_datetime_fmt
- -          2026-03-10 22:28:49.081400 MST  -      testing
- -          2026-03-10 22:28:49.081400 MST  -      multi
- -          2026-03-10 22:28:49.081400 MST  -      line
- -          2026-03-10 22:28:49.081400 MST  -      prepend_datetime_fmt
-  -         2026-03-10 22:28:49.081409 MST  -          testing single line indented prepend_datetime_fmt
+-           2026-03-12 18:17:49.850637 MST  -  testing single line prepend_datetime_fmt
+ -          2026-03-12 18:17:49.850744 MST  -      testing
+ -          2026-03-12 18:17:49.850744 MST  -      multi
+ -          2026-03-12 18:17:49.850744 MST  -      line
+ -          2026-03-12 18:17:49.850744 MST  -      prepend_datetime_fmt
+  -         2026-03-12 18:17:49.850781 MST  -          testing single line indented prepend_datetime_fmt
 
--               1.8438 MiB used  -  testing single line prepend_memory_usage
- -              1.8438 MiB used  -      testing
- -              1.8438 MiB used  -      multi
- -              1.8438 MiB used  -      line
- -              1.8438 MiB used  -      prepend_memory_usage
-  -             1.8438 MiB used  -          testing single line indented prepend_memory_usage
+-               1.8594 MiB used  -  testing single line prepend_memory_usage
+ -              1.9297 MiB used  -      testing
+ -              1.9297 MiB used  -      multi
+ -              1.9297 MiB used  -      line
+ -              1.9297 MiB used  -      prepend_memory_usage
+  -             1.9297 MiB used  -          testing single line indented prepend_memory_usage
 
--           2026-03-10 22:28:49.081488 MST  -      1.8438 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage
- -          2026-03-10 22:28:49.081517 MST  -      1.8438 MiB used  -      testing
- -          2026-03-10 22:28:49.081517 MST  -      1.8438 MiB used  -      multi
- -          2026-03-10 22:28:49.081517 MST  -      1.8438 MiB used  -      line
- -          2026-03-10 22:28:49.081517 MST  -      1.8438 MiB used  -      prepend_datetime_fmt
- -          2026-03-10 22:28:49.081517 MST  -      1.8438 MiB used  -      and
- -          2026-03-10 22:28:49.081517 MST  -      1.8438 MiB used  -      prepend_memory_usage
-  -         2026-03-10 22:28:49.081537 MST  -      1.8438 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
+-           2026-03-12 18:17:49.851000 MST  -      1.9297 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage
+ -          2026-03-12 18:17:49.851056 MST  -      1.9297 MiB used  -      testing
+ -          2026-03-12 18:17:49.851056 MST  -      1.9297 MiB used  -      multi
+ -          2026-03-12 18:17:49.851056 MST  -      1.9297 MiB used  -      line
+ -          2026-03-12 18:17:49.851056 MST  -      1.9297 MiB used  -      prepend_datetime_fmt
+ -          2026-03-12 18:17:49.851056 MST  -      1.9297 MiB used  -      and
+ -          2026-03-12 18:17:49.851056 MST  -      1.9297 MiB used  -      prepend_memory_usage
+  -         2026-03-12 18:17:49.851117 MST  -      1.9297 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
     
     truncation tests:
         
@@ -115,39 +115,6 @@ test_thread_safety():
     thread 0 iteration 2
     thread 0 iteration 3
     thread 0 iteration 4
-    thread 0 iteration 5
-    thread 0 iteration 6
-    thread 0 iteration 7
-    thread 0 iteration 8
-    thread 0 iteration 9
-    thread 0 iteration 10
-    thread 0 iteration 11
-    thread 0 iteration 12
-    thread 0 iteration 13
-    thread 0 iteration 14
-    thread 0 iteration 15
-    thread 0 iteration 16
-    thread 0 iteration 17
-    thread 0 iteration 18
-    thread 0 iteration 19
-    thread 1 iteration 0
-    thread 1 iteration 1
-    thread 1 iteration 2
-    thread 1 iteration 3
-    thread 1 iteration 4
-    thread 1 iteration 5
-    thread 1 iteration 6
-    thread 1 iteration 7
-    thread 1 iteration 8
-    thread 1 iteration 9
-    thread 1 iteration 10
-    thread 1 iteration 11
-    thread 1 iteration 12
-    thread 1 iteration 13
-    thread 1 iteration 14
-    thread 1 iteration 15
-    thread 1 iteration 16
-    thread 1 iteration 17
     thread 3 iteration 0
     thread 3 iteration 1
     thread 3 iteration 2
@@ -166,8 +133,6 @@ test_thread_safety():
     thread 3 iteration 15
     thread 3 iteration 16
     thread 3 iteration 17
-    thread 3 iteration 18
-    thread 3 iteration 19
     thread 2 iteration 0
     thread 2 iteration 1
     thread 2 iteration 2
@@ -177,6 +142,21 @@ test_thread_safety():
     thread 2 iteration 6
     thread 2 iteration 7
     thread 2 iteration 8
+    thread 0 iteration 5
+    thread 0 iteration 6
+    thread 0 iteration 7
+    thread 0 iteration 8
+    thread 0 iteration 9
+    thread 0 iteration 10
+    thread 0 iteration 11
+    thread 0 iteration 12
+    thread 0 iteration 13
+    thread 0 iteration 14
+    thread 0 iteration 15
+    thread 0 iteration 16
+    thread 0 iteration 17
+    thread 0 iteration 18
+    thread 0 iteration 19
     thread 2 iteration 9
     thread 2 iteration 10
     thread 2 iteration 11
@@ -188,6 +168,26 @@ test_thread_safety():
     thread 2 iteration 17
     thread 2 iteration 18
     thread 2 iteration 19
+    thread 3 iteration 18
+    thread 3 iteration 19
+    thread 1 iteration 0
+    thread 1 iteration 1
+    thread 1 iteration 2
+    thread 1 iteration 3
+    thread 1 iteration 4
+    thread 1 iteration 5
+    thread 1 iteration 6
+    thread 1 iteration 7
+    thread 1 iteration 8
+    thread 1 iteration 9
+    thread 1 iteration 10
+    thread 1 iteration 11
+    thread 1 iteration 12
+    thread 1 iteration 13
+    thread 1 iteration 14
+    thread 1 iteration 15
+    thread 1 iteration 16
+    thread 1 iteration 17
     thread 1 iteration 18
     thread 1 iteration 19
 

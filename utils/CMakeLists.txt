@@ -16,7 +16,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 #
 # Args:
 #     Release Mode (ENABLE_ASAN is OFF):
-#         cmake -S . -B build -DBUILD_ALL_UTILS=ON 
+#         cmake -S . -B build -DBUILD_ALL_UTILS=ON
 #         cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Release
 #    
 #     Debug Mode (ENABLE_ASAN is ON):

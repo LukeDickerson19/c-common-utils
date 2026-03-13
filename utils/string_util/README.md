@@ -2,13 +2,14 @@
 
 #### DESCRIPTION
 
-> Dynamic string utility written in C.
+> UTF-8 compatible dynamic string utility written in C.
 
-##### Main string struct and constructor function:
+##### Main string struct:
 ```c
-typedef struct {
+typedef struct String {
     char   *text;
     size_t  len;
+    size_t  bytes;
     size_t  cap;
 } String;
 
@@ -17,35 +18,38 @@ String str(const char *fmt, ...);
 
 ##### Features:
 > - dynamic strings that double or halve the heap memory allocation (with malloc/free) as the string grows or shrinks
+> - UTF-8 compatible using the [utf8proc](https://juliastrings.github.io/utf8proc/) library dependency (version 2.11.3), "a small, clean C library that provides Unicode normalization, case-folding, and other operations [used for accurate string comparison and searching]". So all text args of the below functions assume UTF-8 input. 
 > - Functions:
 >   - **Memory**:
->     - str_free
->     - str_clone
+>     - str()
+>     - str_free()
+>     - str_clone()
+>     - str_info()
 >   - **Mutation**:
->     - str_append
->     - str_prepend
->     - str_concat
->     - str_to_upper
->     - str_to_lower
->     - str_insert
->     - str_replace
->     - str_repeat
->     - str_remove
->     - str_trim
->     - str_trim_left
->     - str_trim_right
+>     - str_append()
+>     - str_prepend()
+>     - str_concat()
+>     - str_to_upper()
+>     - str_to_lower()
+>     - str_insert()
+>     - str_replace()
+>     - str_repeat()
+>     - str_remove()
+>     - str_trim()
+>     - str_trim_left()
+>     - str_trim_right()
 >   - **Query**:
->     - str_equals
->     - str_is_empty
->     - str_starts_with
->     - str_ends_with
->     - str_contains
->     - str_count
->     - str_index_of
->     - str_indices_of
+>     - str_equals()
+>     - str_is_empty()
+>     - str_starts_with()
+>     - str_ends_with()
+>     - str_contains()
+>     - str_count()
+>     - str_index_of()
+>     - str_indices_of()
 >   - **Extract**:
->     - str_split
->     - str_slice
+>     - str_split()
+>     - str_slice()
 
 
 #### BUILD
@@ -66,34 +70,36 @@ int main(void) {
 
     // init string
     String *s1 = str("Hello");
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
-    // outputs: "text = "Hello", length = 5, memory allocated = 11 bytes"
+    char buffer[1024]; str_info(s1, buffer, sizeof(buffer));
+    printf("%s\n", buffer);
+    // outputs: text="Hello", len=5, bytes=5, cap=11, String struct size=32, total size=43 bytes
 
     // append char array to string
     str_append(s1, ", world");
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
-    // outputs: text = "Hello, world", length = 12, memory allocated = 22 byte
+    buffer[0] = '\0'; str_info(s1, buffer, sizeof(buffer));
+    printf("%s\n", buffer);
+    // outputs: text="Hello, world", len=12, bytes=12, cap=22, String struct size=32, total size=54 bytes
 
     // prepend char array to string
     str_prepend("... ", s1);
-    printf("text = \"%s\", length = %d, memory allocated = %d bytes\n", s1->text, s1->len, s1->cap);
-    // outputs: text = "... Hello, world", length = 16, memory allocated = 22 bytes
+    buffer[0] = '\0'; str_info(s1, buffer, sizeof(buffer));
+    printf("%s\n", buffer);
+    // outputs: text="... Hello, world", len=16, bytes=16, cap=22, String struct size=32, total size=54 bytes
 
     // free string struct and text
     str_free(&s1);
 
-    // concat multiple strings into one, with options to set which string
-    // to store the output in (defaults to first list item), and whether
-    // to free the others or not (defaults to false)
-    String *a = str("AAA"), *b = str("BBB"), *c = str("CCC"), *d = str("DDD");
+    // concat multiple strings into one, with option to set which string
+    // to store the output in (defaults to first list item)
+    String *a = str("Hello"), *b = str("東京"), *c = str("¡café!naïve"), *d = str("😀🍓🌍❌✅");
     String *parts[] = {a, b, c, d};
     str_concat(parts, .output_index=2);
-    printf("%s\n", c->text); // "AAABBBCCCDDD"
-    String *e = str("EEE");
-    String *f = str("FFF");
-    String *g = str("GGG");
+    printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅"
+    String *e = str("→↙●■▲");
+    String *f = str("∞∑√");
+    String *g = str("★♥🔒🔓");
     str_concat(((String *[]){c, e, f, g}));
-    printf("%s\n", c->text); // "AAABBBCCCDDDEEEFFFGGG"
+    printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓"
 
     // free multiple strings at once
     str_free(&a, &b, &c, &d, &e, &f, &g);
@@ -107,11 +113,11 @@ int main(void) {
 [luke@luke utils]$ 
 [luke@luke utils]$ 
 [luke@luke utils]$ ./build/string_util/string_util_readme_example 
-text = "Hello", length = 5, memory allocated = 11 bytes
-text = "Hello, world", length = 12, memory allocated = 22 bytes
-text = "... Hello, world", length = 16, memory allocated = 22 bytes
-AAABBBCCCDDD
-AAABBBCCCDDDEEEFFFGGG
+text="Hello", len=5, bytes=5, cap=11, String struct size=32, total size=43 bytes
+text="Hello, world", len=12, bytes=12, cap=22, String struct size=32, total size=54 bytes
+text="... Hello, world", len=16, bytes=16, cap=22, String struct size=32, total size=54 bytes
+Hello東京¡café!naïve😀🍓🌍❌✅
+Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓
 [luke@luke utils]$ 
 [luke@luke utils]$ 
 ```
