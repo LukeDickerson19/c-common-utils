@@ -408,17 +408,24 @@ void test_print_json() {
     // json file read/write example
     print(logger, "\nExample 2:", .i=1);
     char *filename = "json_example.json";
+    char *filepath;
+    char buffer[PATH_MAX_CHARS];
+    #ifdef _WIN32
+        filepath = fmt(buffer, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
+    #else
+        filepath = fmt(buffer, "%s/logging_util/test_output/%s", BASE_DIR, filename);
+    #endif
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
     cJSON_AddNumberToObject(root, "age", 30);
     cJSON *langs = cJSON_AddArrayToObject(root, "languages");
     cJSON_AddItemToArray(langs, cJSON_CreateString("C"));
     cJSON_AddItemToArray(langs, cJSON_CreateString("Python"));
-    if (write_json_file(root, filename) != 0) {
+    if (write_json_file(root, filepath) != 0) {
         print(logger, "Failed to write JSON\n");
     }
     cJSON_Delete(root);
-    cJSON *loaded = read_json_file(filename);
+    cJSON *loaded = read_json_file(filepath);
     if (!loaded) {
         print(logger, "Failed to read JSON\n");
         return;
@@ -427,11 +434,11 @@ void test_print_json() {
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
     print(logger, loaded_string, .i=2);
-    char buffer[logger->max_message_chars];
+    char buffer2[logger->max_message_chars];
     if (cJSON_IsString(name))
-        print(logger, fmt(buffer, "name = %s", name->valuestring), .i=2);
+        print(logger, fmt(buffer2, "name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
-        print(logger, fmt(buffer, "age = %d", age->valueint), .i=2);
+        print(logger, fmt(buffer2, "age = %d", age->valueint), .i=2);
         cJSON_Delete(loaded);
     free(loaded_string);
 
