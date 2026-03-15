@@ -1,0 +1,25 @@
+a
+    b
+        c
+            indented
+            multi
+            line
+            string
+    formatted string: 7 f hellooo
+    
+    new line before log message
+    new line after log message
+    
+-           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  multiline
+-           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  message
+-           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  with
+-           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  prepend_datetime_fmt
+-               3.1758 MiB used  -  multiline
+-               3.1758 MiB used  -  message
+-               3.1758 MiB used  -  with
+-               3.1758 MiB used  -  prepend_memory_usage
+-           2026-03-15 00:56:01.493907 US Mountain Standard Time  -      3.2188 MiB used  -  message
+ -          2026-03-15 00:56:01.494188 US Mountain Standard Time  -      3.2188 MiB used  -      with
+ -          2026-03-15 00:56:01.494257 US Mountain Standard Time  -      3.2188 MiB used  -      both
+  -         2026-03-15 00:56:01.494331 US Mountain Standard Time  -      3.2188 MiB used  -          and
+   -        2026-03-15 00:56:01.494447 US Mountain Standard Time  -      3.2188 MiB used  -              indents

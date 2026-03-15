@@ -672,6 +672,9 @@ UTILS:
                 chcp 65001
                 .\build\string_util\Release\string_util_readme_example.exe
                 .\build\string_util\Release\string_util_full_example.exe
+                .\build\logging_util\Release\logging_util_readme_example.exe
+                .\build\logging_util\Release\logging_util_full_example.exe
+                .\build\time_util\Release\time_util_full_example.exe
 
         Android:
             tbd

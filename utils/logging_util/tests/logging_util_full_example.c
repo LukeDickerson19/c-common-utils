@@ -30,7 +30,7 @@ Log *logger;
     DWORD WINAPI thread_print_loop(LPVOID arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        char buffer[logger->max_message_chars];
+        char buffer[256];
         for (int j = 0; j < ITERATIONS; j++) {
             print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
         }
@@ -151,7 +151,7 @@ void test_print() {
     print(logger, "indented\nmulti\nline\nstring", .i=5);
 
     // test formatted string
-    char buffer[logger->max_message_chars];
+    char buffer[256];
     print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 
     // test new line start
@@ -434,7 +434,7 @@ void test_print_json() {
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
     print(logger, loaded_string, .i=2);
-    char buffer2[logger->max_message_chars];
+    char buffer2[128];
     if (cJSON_IsString(name))
         print(logger, fmt(buffer2, "name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
@@ -520,7 +520,7 @@ void test_overwrite_prev_msg() {
 
     print(logger, "test regular print() after overwrite_prev_msg", .i=i, .ne=true);
 
-    char buffer[logger->max_line_chars];
+    char buffer[256];
 	print(logger, fmt(buffer, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
 	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
 	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
@@ -532,7 +532,7 @@ void test_thread_safety() {
     if (thread_safety_test() != 0) {
         fprintf(stderr, "Thread safety test failed\n");
     } else {
-        char buffer[logger->max_line_chars];
+        char buffer[256];
         print(logger, fmt(buffer, "test passes if all %d x %d thread/iteration combinations were printed (order does\'t matter)", THREAD_COUNT, ITERATIONS), .ns=true);
         print(logger, fmt(buffer, "test complete, log file at:\n%s", logger->filepath), .ne=true);
     }
