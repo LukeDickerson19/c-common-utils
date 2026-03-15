@@ -1,0 +1,25 @@
+a
+    b
+        c
+            indented
+            multi
+            line
+            string
+    formatted string: 7 f hellooo
+    
+    new line before log message
+    new line after log message
+    
+-           2026-03-14 18:30:04.175008 MST  -  multiline
+-           2026-03-14 18:30:04.175008 MST  -  message
+-           2026-03-14 18:30:04.175008 MST  -  with
+-           2026-03-14 18:30:04.175008 MST  -  prepend_datetime_fmt
+-               1.7930 MiB used  -  multiline
+-               1.7930 MiB used  -  message
+-               1.7930 MiB used  -  with
+-               1.7930 MiB used  -  prepend_memory_usage
+-           2026-03-14 18:30:04.175234 MST  -      1.8555 MiB used  -  message
+ -          2026-03-14 18:30:04.175290 MST  -      1.8555 MiB used  -      with
+ -          2026-03-14 18:30:04.175344 MST  -      1.8555 MiB used  -      both
+  -         2026-03-14 18:30:04.175391 MST  -      1.8555 MiB used  -          and
+   -        2026-03-14 18:30:04.175440 MST  -      1.8555 MiB used  -              indents

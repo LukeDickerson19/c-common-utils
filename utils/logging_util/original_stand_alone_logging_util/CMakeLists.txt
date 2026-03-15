@@ -53,16 +53,17 @@ target_link_libraries(logging_util
 )
 
 # ---- test executables ----
-add_executable(logging_util_test tests/main.c)
-add_executable(readme_example tests/readme_example.c)
-add_executable(test_thread_safety tests/test_thread_safety.c)
+add_executable(logging_util_full_example tests/logging_util_full_example.c)
+add_executable(logging_util_readme_example tests/logging_util_readme_example.c)
 
-target_link_libraries(logging_util_test PRIVATE logging_util cjson)
-target_link_libraries(readme_example PRIVATE logging_util cjson)
-target_link_libraries(test_thread_safety PRIVATE logging_util)
+target_link_libraries(logging_util_full_example PRIVATE logging_util cjson)
+target_link_libraries(logging_util_readme_example PRIVATE logging_util cjson)
 
 if(NOT MSVC)
-    target_compile_definitions(logging_util_test
+    target_compile_definitions(logging_util_full_example
+        PRIVATE _POSIX_C_SOURCE=200809L
+    )
+    target_compile_definitions(logging_util_readme_example
         PRIVATE _POSIX_C_SOURCE=200809L
     )
 endif()
