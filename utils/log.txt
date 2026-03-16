@@ -10,16 +10,16 @@ a
     new line before log message
     new line after log message
     
--           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  multiline
--           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  message
--           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  with
--           2026-03-15 00:56:01.493637 US Mountain Standard Time  -  prepend_datetime_fmt
--               3.1758 MiB used  -  multiline
--               3.1758 MiB used  -  message
--               3.1758 MiB used  -  with
--               3.1758 MiB used  -  prepend_memory_usage
--           2026-03-15 00:56:01.493907 US Mountain Standard Time  -      3.2188 MiB used  -  message
- -          2026-03-15 00:56:01.494188 US Mountain Standard Time  -      3.2188 MiB used  -      with
- -          2026-03-15 00:56:01.494257 US Mountain Standard Time  -      3.2188 MiB used  -      both
-  -         2026-03-15 00:56:01.494331 US Mountain Standard Time  -      3.2188 MiB used  -          and
-   -        2026-03-15 00:56:01.494447 US Mountain Standard Time  -      3.2188 MiB used  -              indents
+-          2026-03-15 19:36:24.711740 MST  -  multiline
+-          2026-03-15 19:36:24.711740 MST  -  message
+-          2026-03-15 19:36:24.711740 MST  -  with
+-          2026-03-15 19:36:24.711740 MST  -  prepend_datetime_fmt
+-              1.7891 MiB used  -  multiline
+-              1.7891 MiB used  -  message
+-              1.7891 MiB used  -  with
+-              1.7891 MiB used  -  prepend_memory_usage
+-          2026-03-15 19:36:24.711989 MST  -      1.7891 MiB used  -  message
+ -         2026-03-15 19:36:24.712079 MST  -      1.7891 MiB used  -      with
+ -         2026-03-15 19:36:24.712134 MST  -      1.7891 MiB used  -      both
+  -        2026-03-15 19:36:24.712183 MST  -      1.7891 MiB used  -          and
+   -       2026-03-15 19:36:24.712244 MST  -      1.7891 MiB used  -              indents

@@ -399,6 +399,7 @@ size_t* str_indices_of(
 
 ////////////////////////////// Extract Functions //////////////////////////
 
+
 /**
  * Splits a string into substrings using a single character delimiter.
  *
@@ -437,6 +438,34 @@ String *str_slice(
     size_t start,
     size_t end
 );
+
+
+///////////////////////////// Char Array Formatting ///////////////////////
+
+
+/**
+ * fmt() is a convienience macro used to format char arrays. It requires passing a pre-created buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
+ * Example usage:
+ *     char *buf1[128];
+ *     char *buf2[buf_size]; // Example buffer sized at runtime. C99 allows pre-defined stack buffers to have runtime determined sizes because you can use Variable Length Arrays (VLAs). function's arg
+ *     printf("%s %s\n", fmt(buf1, "A"), fmt(buf2, "B"));
+ * 
+ * @param rb       pointer to an initialized RollingBuffer
+ * @param ...      printf-style format string followed by any values to substitute
+ * @return         pointer to the formatted string (lives in rolling buffer)
+ */
+#define fmt(buf, ...) ( \
+    snprintf(buf, sizeof(buf), __VA_ARGS__), \
+    buf \
+)
+/* NOTE:
+    int snprintf(char *str, size_t size, const char *format, ...);
+        Args:
+            str     Pointer to the destination buffer.
+            size    Maximum number of bytes to write to the buffer including the null terminator.
+            format  Format string (same syntax as printf).
+            ...     Values to substitute into the format string.
+*/
 
 
 ///////////////////////////////////////////////////////////////////////////

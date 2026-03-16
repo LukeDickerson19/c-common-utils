@@ -51,12 +51,12 @@ typedef struct Log {
     char *prepend_datetime_fmt; // format specifying datetime to prepend to each line printed
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
     bool prepend_elapsed_time; // flag to prepend the time elapsed since the the Log's unix_start_time
-    int unix_start_time; // unix start time used for prepending elapsed time, defaults to time when init_log() is called
-    int start_time_microseconds; // microsecond component of unix start time
+    int64_t unix_start_time; // unix start time used for prepending elapsed time, defaults to time when init_log() is called
+    int32_t start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
-    int max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
-    int max_message_chars; // max number of characters per message
-    int max_line_chars; // max number of characters per line
+    size_t max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
+    size_t max_message_chars; // max number of characters per message
+    size_t max_line_chars; // max number of characters per line, NOTE: if max_line_chars is too large it can cause a stack overflow error, recommend at max 4096.
 
     // variables used for overwrite_prev_msg
     char *prev_console_message;
@@ -89,8 +89,8 @@ typedef struct Log {
     .start_time_microseconds = 0, \
     .prepend_memory_usage = false, \
     .max_indents = 10, \
-    .max_message_chars = 10000, \
-    .max_line_chars = 1000
+    .max_message_chars = 8192, \
+    .max_line_chars = 1024
 Log *_init_log(Log *opts);
 #define init_log(...) _init_log(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
 
@@ -98,6 +98,12 @@ Log *_init_log(Log *opts);
 void close_log(
     Log *log
 );
+
+
+#define LINE_TRUNCATION_MSG " ... log line truncated ...\n"
+#define MESSAGE_TRUNCATION_MSG " ... log message truncated ...\n"
+#define LINE_TRUNCATION_MSG_LEN sizeof(LINE_TRUNCATION_MSG) - 1
+#define MESSAGE_TRUNCATION_MSG_LEN sizeof(MESSAGE_TRUNCATION_MSG) - 1
 
 
 typedef struct PrintOptions {
@@ -136,18 +142,29 @@ int _log_print(
 // NOTE: __VA_ARGS__ override default print options because when they're later in the struct initialization
 // The prepended "##" characters is a GNU extension that removes the comma if __VA_ARGS__ is empty. This is widely supported but not part of the C standard.
 
-// macro used to format log messages
-// NOTE: _buf is a stack-allocated array, so each thread calling the macro
-// gets its own independent buffer on its own stack
-#define fmt(dst, ...) ( \
-    snprintf(dst, sizeof(dst), __VA_ARGS__), \
-    dst \
+/**
+ * fmt() is a convienience macro used to format char arrays. It requires passing a pre-created buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
+ * Example usage:
+ *     char *buf1[128];
+ *     char *buf2[buf_size]; // Example buffer sized at runtime. C99 allows pre-defined stack buffers to have runtime determined sizes because you can use Variable Length Arrays (VLAs). function's arg
+ *     printf("%s %s\n", fmt(buf1, "A"), fmt(buf2, "B"));
+ * 
+ * @param rb       pointer to an initialized RollingBuffer
+ * @param ...      printf-style format string followed by any values to substitute
+ * @return         pointer to the formatted string (lives in rolling buffer)
+ */
+#define fmt(buf, ...) ( \
+    snprintf(buf, sizeof(buf), __VA_ARGS__), \
+    buf \
 )
-// #define fmt(...) ({ \
-//     char _buf[MAX_MESSAGE_CHARS]; \
-//     snprintf(_buf, MAX_MESSAGE_CHARS, __VA_ARGS__); \
-//     _buf; \
-// })
+/* NOTE:
+    int snprintf(char *str, size_t size, const char *format, ...);
+        Args:
+            str     Pointer to the destination buffer.
+            size    Maximum number of bytes to write to the buffer including the null terminator.
+            format  Format string (same syntax as printf).
+            ...     Values to substitute into the format string.
+*/
 
 
 
@@ -217,6 +234,20 @@ int format_elapsed_time(
 void sleep_microseconds(
     int64_t microseconds
 );
+
+
+/**
+ * Sets the Log's start time
+ * - log: pointer to Log struct
+ * - new_unix_start_time / new_start_time_microseconds: optional pointers to override start time
+ *   If NULL, use get_current_unix_time() to set current time
+ */
+void set_start_time(
+    Log *log,
+    const int64_t *new_unix_start_time,
+    const int32_t *new_start_time_microseconds
+);
+
 
 ////////////////////////////////////////////////
 

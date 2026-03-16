@@ -1,5 +1,5 @@
 #include "logging_util.h"
-#include "time_util.h"
+#include "string_util.h"
 
 #include <stdint.h> // intptr_t
 
@@ -126,8 +126,8 @@ void get_full_base_dir(void) {
     if (!p) return;
     *p = '\0';
 
-    // remove 2 parent directories
-    int num_lvls = 2; // number of directory levels to go up
+    // remove 1 parent directory
+    int num_lvls = 1; // number of directory levels to go up
     for (int i = 0; i < num_lvls; i++) {
         // remove last directory from path
         p = strrchr(exe_path, sep);
@@ -151,8 +151,8 @@ void test_print() {
     print(logger, "indented\nmulti\nline\nstring", .i=5);
 
     // test formatted string
-    char buffer[256];
-    print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+    char buf[256];
+    print(logger, fmt(buf, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 
     // test new line start
     print(logger, "new line start = true, draw line = false", .i=1, .ns=true);
@@ -166,38 +166,75 @@ void test_print() {
 
     // test return values
     char *console_str = NULL, *logfile_str = NULL;
-    print(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
+    print(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false, .ns=true, .ne=true);
     fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
     fwrite(logfile_str, 1, strlen(logfile_str), stdout);
     free(console_str);
     free(logfile_str);
-    print(logger, "test multiline\nprint return\nvalue", .i=3, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false);
+    print(logger, "test multiline\nprint return\nvalue", .i=3, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false, .ns=true, .ne=true);
     fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
     fwrite(logfile_str, 1, strlen(logfile_str), stdout);
     free(console_str);
     free(logfile_str);
 
-    // test prepend datetime
+    // test prepend only datetime
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
     logger->timezone = "local"; // valid options: "UTC", "local"
-    print(logger, "testing single line prepend_datetime_fmt", .ns=true);
-    print(logger, "testing\nmulti\nline\nprepend_datetime_fmt", .i=1);
+    logger->prepend_elapsed_time = false;
+    logger->prepend_memory_usage = false;
+    print(logger, "testing single line prepend_datetime_fmt w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend_datetime_fmt", .i=1);
     print(logger, "testing single line indented prepend_datetime_fmt", .i=2);
 
-    // test prepend memory usage
+    // test prepend only elapsed time
     logger->prepend_datetime_fmt = NULL;
+    logger->prepend_elapsed_time = true;
+    logger->prepend_memory_usage = false;
+    print(logger, "testing single line prepend_elapsed_time w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend_elapsed_time", .i=1);
+    print(logger, "testing single line indented prepend_elapsed_time", .i=2);
+
+    // test prepend only memory usage
+    logger->prepend_datetime_fmt = NULL;
+    logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
-    print(logger, "testing single line prepend_memory_usage", .ns=true);
-    print(logger, "testing\nmulti\nline\nprepend_memory_usage", .i=1);
+    print(logger, "testing single line prepend_memory_usage w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend_memory_usage", .i=1);
     print(logger, "testing single line indented prepend_memory_usage", .i=2);
 
-    // test both prepend datetime and memory usage
+    // test both prepend datetime and prepend elapsed time
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_elapsed_time = true;
+    logger->prepend_memory_usage = false;
+    print(logger, "testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_elapsed_time", .i=1);
+    print(logger, "testing single line indented prepend_datetime_fmt and prepend_elapsed_time", .i=2);
+
+    // test both prepend datetime and prepend memory usage
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
-    print(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage", .ns=true);
-    print(logger, "testing\nmulti\nline\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
+    print(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
     print(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
+
+    // test both prepend elapsed time and prepend memory usage
     logger->prepend_datetime_fmt = NULL;
+    logger->prepend_elapsed_time = true;
+    logger->prepend_memory_usage = true;
+    print(logger, "testing single line prepend_elapsed_time and prepend_memory_usage w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend_elapsed_time\nand\nprepend_memory_usage", .i=1);
+    print(logger, "testing single line indented prepend_elapsed_time and prepend_memory_usage", .i=2);
+
+    // test all 3 prependable information
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    logger->prepend_elapsed_time = true;
+    logger->prepend_memory_usage = true;
+    print(logger, "testing single line prepend all 3 w/out indent", .ns=true);
+    print(logger, "testing\nmulti\nline\n\nprepend\nall\n3", .i=1);
+    print(logger, "testing single line indented prepend all 3", .i=2);
+    logger->prepend_datetime_fmt = NULL;
+    logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
 
     // test line and message truncation
@@ -205,23 +242,31 @@ void test_print() {
     int default_max_message_chars = logger->max_message_chars;
     int default_max_line_chars = logger->max_line_chars;
     int test_max_message_chars = 500;
-    int test_max_line_chars = 100;
-    logger->max_message_chars = test_max_message_chars;
+    int test_max_line_chars = 50;
     char *long_line = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "; // ASCII characters
     // char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉"; // example UTF-8 characters
-    char buffer2[100000];
-    print(logger, fmt(buffer2, "Test message truncation:\nset logger->max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
-    print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    char buf2[100000];
+
+    // test message truncation
+    logger->max_message_chars = test_max_message_chars;
+    print(logger, fmt(buf2, "Test message truncation: set logger->max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
+    print(logger, fmt(buf2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+
+    // test line truncation
     logger->max_line_chars = test_max_line_chars;
-    print(logger, fmt(buffer2, "Test line truncation:\nset logger->max_line_chars to %d", logger->max_line_chars), .i=2, .ns=true);
+    print(logger, fmt(buf2, "Test line truncation: set logger->max_line_chars to %d", logger->max_line_chars), .i=2, .ns=true);
     print(logger, long_line, .i=3);
+
+    // test both
     print(logger, "Test both:", .i=2, .ns=true);
-    print(logger, fmt(buffer2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    print(logger, fmt(buf2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+
+    // test complete, restore default settings
     logger->max_message_chars = default_max_message_chars;
     logger->max_line_chars    = default_max_line_chars;
     print(logger, "truncation tests complete.", .i=1, .ns=true, .d=true);
-    print(logger, fmt(buffer2, "restored logger->max_line_chars    to default: %d", logger->max_line_chars),    .i=1);
-    print(logger, fmt(buffer2, "restored logger->max_message_chars to default: %d", logger->max_message_chars), .i=1, .ne=true);
+    print(logger, fmt(buf2, "restored logger->max_line_chars    to default: %d", logger->max_line_chars),    .i=1);
+    print(logger, fmt(buf2, "restored logger->max_message_chars to default: %d", logger->max_message_chars), .i=1, .ne=true);
 
 }
 
@@ -411,9 +456,9 @@ void test_print_json() {
     char *filepath;
     char buffer[PATH_MAX_CHARS];
     #ifdef _WIN32
-        filepath = fmt(buffer, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
+        filepath = fmt(buffer, "%s\\test_output\\%s", BASE_DIR, filename);
     #else
-        filepath = fmt(buffer, "%s/logging_util/test_output/%s", BASE_DIR, filename);
+        filepath = fmt(buffer, "%s/test_output/%s", BASE_DIR, filename);
     #endif
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
@@ -545,9 +590,9 @@ int main(void) {
     char *log_filepath;
     char buffer[PATH_MAX_CHARS];
     #ifdef _WIN32
-        log_filepath = fmt(buffer, "%s\\logging_util\\log\\log.txt", BASE_DIR);
+        log_filepath = fmt(buffer, "%s\\log\\log.txt", BASE_DIR);
     #else
-        log_filepath = fmt(buffer, "%s/logging_util/log/log.txt", BASE_DIR);
+        log_filepath = fmt(buffer, "%s/log/log.txt", BASE_DIR);
     #endif
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 

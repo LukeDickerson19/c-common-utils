@@ -17,12 +17,12 @@ int main(void) {
 	print(logger, "b", .i=1); // 1 indent
 	print(logger, "c", .i=2); // 2 indents
 	print(logger, "indented\nmulti\nline\nstring", .i=3);
-	char buffer[128];
-	print(logger, fmt(buffer, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+	char buf[128];
+	print(logger, fmt(buf, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
 	print(logger, "new line before log message", .i=1, .ns=true); // ns = newline start
 	print(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
 
-	// prepend datetime and memory usage
+	// prepend info to each line, such as datetime and memory usage
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
 	logger->timezone = "local"; // valid options: "UTC", "local"
 	print(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");

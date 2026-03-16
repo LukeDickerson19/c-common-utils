@@ -9,22 +9,42 @@
 int all_passed_tests = 0;
 int all_failed_tests = 0;
 
-#define ASSERT_STR_EQ(label, actual, expected, details, verbose)              \
-    do {                                                                      \
-        bool test_passed = strcmp((actual)->text, (expected)) == 0;           \
-        if (test_passed) {                                                    \
-            printf("    ✅ PASS: %s\n", (label));                             \
-            passed++;                                                         \
-        } else {                                                              \
-            printf("    ❌ FAIL: %s (%s:%d)\n", (label), __FILE__, __LINE__); \
-            failed++;                                                         \
-        }                                                                     \
-        if (!test_passed || verbose) {                                        \
-            printf("        expected: \"%s\"\n", (expected));                 \
-            printf("        actual:   \"%s\"\n", (actual)->text);             \
-            printf("        details:\n%s\n", (details));                      \
-        }                                                                     \
+#define ASSERT_TEXT_EQ(label, actual, expected, details, verbose)             \
+    do {                                                                       \
+        bool test_passed = strcmp((actual), (expected)) == 0;                  \
+        if (test_passed) {                                                     \
+            printf("    ✅ PASS: %s\n", (label));                              \
+            passed++;                                                          \
+        } else {                                                               \
+            printf("    ❌ FAIL: %s (%s:%d)\n", (label), __FILE__, __LINE__);  \
+            failed++;                                                          \
+        }                                                                      \
+        if (!test_passed || verbose) {                                         \
+            printf("        expected: \"%s\"\n", (expected));                  \
+            printf("        actual:   \"%s\"\n", (actual));                    \
+            printf("        details:\n%s\n", (details));                       \
+        }                                                                      \
     } while (0)
+
+#define ASSERT_STR_EQ(label, actual, expected, details, verbose) \
+    ASSERT_TEXT_EQ(label, (actual)->text, (expected), details, verbose)
+
+// #define ASSERT_STR_EQ(label, actual, expected, details, verbose)              \
+//     do {                                                                      \
+//         bool test_passed = strcmp((actual)->text, (expected)) == 0;           \
+//         if (test_passed) {                                                    \
+//             printf("    ✅ PASS: %s\n", (label));                             \
+//             passed++;                                                         \
+//         } else {                                                              \
+//             printf("    ❌ FAIL: %s (%s:%d)\n", (label), __FILE__, __LINE__); \
+//             failed++;                                                         \
+//         }                                                                     \
+//         if (!test_passed || verbose) {                                        \
+//             printf("        expected: \"%s\"\n", (expected));                 \
+//             printf("        actual:   \"%s\"\n", (actual)->text);             \
+//             printf("        details:\n%s\n", (details));                      \
+//         }                                                                     \
+//     } while (0)
 
 #define ASSERT_BOOL_TRUE(label, test_passed, details, verbose)                \
     do {                                                                      \
@@ -1528,6 +1548,54 @@ void test_str_slice(bool verbose) {
     all_failed_tests += failed;
 }
 
+void test_fmt(bool verbose) {
+    printf("\n=== test: fmt() ===\n");
+    int passed = 0, failed = 0;
+
+    char test_details[1024] = "";
+
+    // reusable buffers
+    char buf1[128];
+    char buf2[128];
+    char buf3[128];
+    char buf4[128];
+
+    // Basic formatting
+    append_formatted_text("basic formatting\n\n", test_details, sizeof(test_details));
+    char *r1 = fmt(buf1, "hello %s", "world");
+    ASSERT_TEXT_EQ("Test 1: basic format", r1, "hello world", test_details, verbose);
+    char *r2 = fmt(buf2, "%d + %d = %d", 2, 3, 5);
+    ASSERT_TEXT_EQ("Test 2: integer format", r2, "2 + 3 = 5", test_details, verbose);
+
+    // Multiple fmt() calls in one line
+    test_details[0] = '\0';
+    append_formatted_text("multiple fmt() calls in one line\n\n", test_details, sizeof(test_details));
+    char *multi_a = fmt(buf1, "A=%d", 10);
+    char *multi_b = fmt(buf2, "B=%d", 20);
+    ASSERT_TEXT_EQ("Test 3: multi-call A", multi_a, "A=10", test_details, verbose);
+    ASSERT_TEXT_EQ("Test 4: multi-call B", multi_b, "B=20", test_details, verbose);
+
+    // Nested fmt() calls (two-step)
+    test_details[0] = '\0';
+    append_formatted_text("nested fmt() calls\n\n", test_details, sizeof(test_details));
+    char *nested_inner = fmt(buf3, "value=%d", 42);
+    char *nested_outer = fmt(buf1, "wrapped(%s)", nested_inner);
+    ASSERT_TEXT_EQ("Test 5: nested inner", nested_inner, "value=42", test_details, verbose);
+    ASSERT_TEXT_EQ("Test 6: nested outer", nested_outer, "wrapped(value=42)", test_details, verbose);
+
+    // Nested fmt() inline expression
+    test_details[0] = '\0';
+    append_formatted_text("inline nested fmt() expression\n\n", test_details, sizeof(test_details));
+    char *nested_inline = fmt(buf1, "outer(%s)", fmt(buf2, "inner-%d", 7));
+    ASSERT_TEXT_EQ("Test 7: inline nested", nested_inline, "outer(inner-7)", test_details, verbose);
+
+    printf("\n    %s test: fmt() %d passed, %d failed\n",
+        failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:",
+        passed, failed);
+    all_passed_tests += passed;
+    all_failed_tests += failed;
+}
+
 int main(void) {
     printf("====== string_util tests: ======\n");
 
@@ -1552,6 +1620,7 @@ int main(void) {
     test_index_functions(verbose);
     test_split(verbose);
     test_str_slice(verbose);
+    test_fmt(verbose);
 
     printf("\n====== All tests complete ======\n");
     printf("    %s %d passed, %d failed\n\n",

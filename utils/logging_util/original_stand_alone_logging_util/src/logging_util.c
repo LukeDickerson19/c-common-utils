@@ -46,10 +46,6 @@
 
 
 
-// macro used to swap pointers to avoid extra character copies and speed up performance
-#define PTR_SWAP(a, b) do { char *tmp = (a); (a) = (b); (b) = tmp; } while (0)
-
-
 /////////////////////// time functions /////////////////////
 
 #include <time.h>          // time_t, struct tm, time(), localtime_r(), gmtime_r(), strftime(), gettimeofday()
@@ -71,6 +67,7 @@
     #include <sys/time.h>   // struct timeval, gettimeofday()
     #include <unistd.h>     // usleep()
 #endif
+
 
 int get_current_unix_time(
     int64_t *unix_seconds,
@@ -248,6 +245,30 @@ static char* _fix_utc_format(
 }
 
 
+void set_start_time(
+    Log *log,
+    const int64_t *new_unix_start_time,
+    const int32_t *new_start_time_microseconds
+) {
+    if (!log) return;
+
+    if (new_unix_start_time && new_start_time_microseconds) {
+        log->unix_start_time = *new_unix_start_time;
+        log->start_time_microseconds = *new_start_time_microseconds;
+    } else {
+        int64_t sec;
+        int32_t usec;
+        if (get_current_unix_time(&sec, &usec) == 0) {
+            log->unix_start_time = (int)sec;
+            log->start_time_microseconds = usec;
+        } else {
+            log->unix_start_time = 0;
+            log->start_time_microseconds = 0;
+        }
+    }
+}
+
+
 //////////////////////// logging functions /////////////////
 
 Log *_init_log(
@@ -304,10 +325,8 @@ Log *_init_log(
     // TODO: assert valid prepend_datetime_fmt
     // TODO: assert valid timezone
 
-    // TODO:
-    // .prepend_elapsed_time = false, \
-    // .unix_start_time = 0, \
-    // .start_time_microseconds = 0, \
+    // initialize log start time to current time
+    set_start_time(log, NULL, NULL);
 
     // init overwrite_prev_msg variables
     log->prev_console_message = NULL;
@@ -481,139 +500,148 @@ static size_t _snprintf_append(
     va_end(args);
 
     if (n < 0) return *pos; // snprintf error, leave pos unchanged
-    if ((size_t)n >= dest_cap - *pos) n = dest_cap - *pos; // clamp if truncated
-    *pos += (size_t)n;
-    return *pos;
+    size_t written = (size_t)n;
+    if (written >= dest_cap - *pos) {
+        written = dest_cap - *pos - 1;  // leave room for null
+    }
+    *pos += written;
+
+    // null-terminate updated string
+    if (*pos < dest_cap)
+        dest[*pos] = '\0';
+    else
+        dest[dest_cap-1] = '\0';
+    return written;
 }
 
 
 static void _append_inline_truncation_message(
-    char *buf,                // buffer to modify
-    size_t *buf_len,          // current length / position in buffer
-    const char *truncate_msg, // e.g. " ... log message truncated ..."
-    const char *end           // e.g. opts->end ("\n" etc), can be NULL
+    char *buf,
+    size_t buf_cap,
+    size_t *buf_len,
+    const char *truncate_msg
 ) {
-    // Overwrite end of buffer with a truncation message
-    if (!buf || !buf_len || !end || *buf_len == 0) return;
+    if (!buf || !buf_len || !truncate_msg) return;
 
-    size_t end_len = end ? strlen(end) : 0;
-    size_t msg_len = strlen(truncate_msg) + end_len;
+    size_t msg_len = strlen(truncate_msg);
 
-    // Calculate write_pos, leaving room for msg_len + null terminator
-    size_t write_pos = (*buf_len > msg_len + 1) ? (*buf_len - (msg_len + 1)) : 0; // +1 for null terminator
+    size_t remaining = (buf_cap > *buf_len) ? buf_cap - *buf_len : 0;
+    if (remaining == 0) return;
 
-    // Write the message, with space for the null terminator
-    snprintf(buf + write_pos, msg_len + 1, "%s%s", truncate_msg, end);
+    size_t write_len = msg_len;
+    if (write_len >= remaining)
+        write_len = remaining - 1;  // leave room for null
 
-    // Update current length (excluding null terminator)
-    *buf_len = write_pos + msg_len;
+    memcpy(buf + *buf_len, truncate_msg, write_len);
+    *buf_len += write_len;
+
+    buf[*buf_len] = '\0';
 }
 
 
 static int _get_indented_message(
     const char *message,
-    char *indent,
-    int max_msg_chars, int max_ln_chars,
-    bool prepend_stuff,
-    char *p0, char *p, char *blank_p,
-    char div_mark,
-    char **formatted_message,
-    size_t *formatted_message_len,
+    const char *indent,
+    size_t max_msg_chars, size_t max_ln_chars,
+    char *p_buf,
+    char **formatted_message, size_t *formatted_message_len,
     PrintOptions *opts
 ) {
 
-    // Create indent buffers
-    size_t indent_len = strlen(indent);
-    int i = opts->i;
-    char *total_indent1 = calloc(indent_len * i + 1, 1);
-    char *total_indent2 = calloc(indent_len * (i + 1) + 1, 1);
-    if (!total_indent1 || !total_indent2) goto fail;
-    for (int j = 0; j < i;     j++) memcpy(total_indent1 + j * indent_len, indent, indent_len);
-    for (int j = 0; j < i + 1; j++) memcpy(total_indent2 + j * indent_len, indent, indent_len);
-    const char* total_indent3 = opts->d ? total_indent2 : total_indent1;
-
     // Init output buffer fmt_msg
-    char *fmt_msg = malloc(max_msg_chars);
-    if (!fmt_msg)
-        goto fail;
+    size_t msg_buf_len = max_msg_chars + MESSAGE_TRUNCATION_MSG_LEN + 1;
+    char *fmt_msg = malloc(msg_buf_len);
+    if (!fmt_msg) return -1;
     size_t fmt_msg_len = 0;
 
+    // Create indent buffers
+    size_t indent_len = strlen(indent);
+    size_t i = opts->i;
+    size_t len1 = indent_len * i;
+    size_t len2 = indent_len * (i + 1);
+    char total_indent1[len1 + 1];
+    char total_indent2[len2 + 1];
+    for (size_t j = 0; j < i; j++)
+        memcpy(total_indent1 + j * indent_len, indent, indent_len);
+    for (size_t j = 0; j < i + 1; j++)
+        memcpy(total_indent2 + j * indent_len, indent, indent_len);
+    total_indent1[len1] = '\0';
+    total_indent2[len2] = '\0';
+    const char* total_indent3 = opts->d ? total_indent2 : total_indent1;
+
     // Add starting newline if requested
-    if (opts->ns) {
-        if (prepend_stuff)
-            _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", p0);
-        _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s\n", total_indent3);
-    }
+    if (opts->ns)
+        _snprintf_append(
+            fmt_msg, msg_buf_len, &fmt_msg_len,
+            "%s%s\n", p_buf, total_indent3);
 
     // Format each line in the log message
     const char *line_start = message;
     bool message_truncated = false;
-    char *line = malloc(max_ln_chars);
-    char *fmt_line = malloc(max_ln_chars);
     do {
         const char *line_end = strchr(line_start, '\n'); // strchr() returns pointer to next occurrence of '\n'
         size_t line_len = line_end ? (size_t)(line_end - line_start) : strlen(line_start);
-        if (line_len >= max_ln_chars) line_len = max_ln_chars - 1;
-        memcpy(line, line_start, line_len);
-        line[line_len] = '\0';
-        fmt_line[0] = '\0';
-        size_t fmt_line_len = 0;
-        if (prepend_stuff) {
-            if (line_len == 0)
-                _snprintf_append(fmt_line, max_ln_chars, &fmt_line_len, "%s", blank_p);
-            else
-                _snprintf_append(fmt_line, max_ln_chars, &fmt_line_len, "%s%c%s", p0, div_mark, p);
-        }
+
+        // Append prepended info, indents, and line,
+        // and truncate line if its too long.
         const char *line_indent = line_len == 0 ? total_indent3 : total_indent1;
-
-        // append line
-        _snprintf_append(fmt_line, max_ln_chars, &fmt_line_len, "%s%s%s", line_indent, line, opts->end);
-
-        // truncate fmt_line if it exceeds max_ln_chars
-        if (fmt_line_len >= max_ln_chars)
+        if (line_len >= max_ln_chars) {
+            _snprintf_append(
+                fmt_msg, msg_buf_len, &fmt_msg_len,
+                "%s%s%.*s",
+                p_buf,
+                line_indent,
+                (int)max_ln_chars,
+                line_start
+            );
             _append_inline_truncation_message(
-                fmt_line, &fmt_line_len,
-                " ... log line truncated ...", opts->end);
+                fmt_msg,
+                msg_buf_len,
+                &fmt_msg_len,
+                LINE_TRUNCATION_MSG
+            );
 
-        // truncate fmt_msg if it exceeds max_msg_chars
-        if (fmt_msg_len + fmt_line_len >= max_msg_chars) {
+        } else {
+            _snprintf_append(
+                fmt_msg, msg_buf_len, &fmt_msg_len,
+                "%s%s%.*s%s",
+                p_buf,
+                line_indent,
+                (int)line_len,
+                line_start,
+                opts->end
+            );
+        }
+
+        // truncate fmt_msg and break if fmt_line exceeds max_msg_chars
+        if (fmt_msg_len >= max_msg_chars) {
+            fmt_msg_len = max_msg_chars;
             _append_inline_truncation_message(
-                fmt_msg, &fmt_msg_len,
-                " ... log message truncated ...", opts->end);
+                fmt_msg,
+                msg_buf_len,
+                &fmt_msg_len,
+                MESSAGE_TRUNCATION_MSG
+            );
             message_truncated = true;
             break;
         }
-
-        // Append formatted line to fmt_msg
-        _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", fmt_line);
 
         // Move to next line
         line_start = line_end ? line_end + 1 : NULL;
     } while (line_start != NULL);
 
     // Add ending newline if requested
-    if (opts->ne && !message_truncated) {
-        if (prepend_stuff)
-            _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s", blank_p);
-        _snprintf_append(fmt_msg, max_msg_chars, &fmt_msg_len, "%s\n", total_indent3);
-    }
+    if (opts->ne && !message_truncated)
+        _snprintf_append(
+            fmt_msg, msg_buf_len, &fmt_msg_len,
+            "%s%s\n", p_buf, total_indent3);
 
     // Copy final result to formatted_message
     *formatted_message = fmt_msg;
     *formatted_message_len = fmt_msg_len;
 
-    // Free heap memory and return success code
-    free(total_indent1);
-    free(total_indent2);
-    free(line);
-    free(fmt_line);
+    // Return success code
     return 0;
-
-    // Free heap memory and return failure code
-    fail:
-    free(total_indent1);
-    free(total_indent2);
-    return -1;
 }
 
 
@@ -631,21 +659,23 @@ static int _get_formatted_messages(
     if (i < 0 || i > log->max_indents) return -1;
 
     // Prepend info if requested
-    // p = prepended info text
-    // p0 = mock indents: If info is prepended to each line, mock indents are tiny indents before the prepended info. They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
-    char p_buf[512] = {0}, p0_buf[128] = {0};
-    char *p = p_buf, *p0 = p0_buf;
-    size_t p_len = 0, p0_len = 0;
+    char p_buf[log->max_line_chars];
+    p_buf[0] = '\0'; // Initialize to empty string for case when prepend_stuff is false
+    size_t p_len = 0;
     const char div_mark = '-';
-    const char *mock_indent = " ";
-    size_t mock_indent_len = strlen(mock_indent);
-    char s_buf[256] = {0};
-    char *scratch = s_buf;
     bool prepend_stuff = \
         log->prepend_datetime_fmt || \
         log->prepend_elapsed_time || \
         log->prepend_memory_usage;
     if (prepend_stuff) {
+
+        // append mock indents, then div_mark, then pad the end so the whole thing is log->max_indents long
+        // If info is prepended to each line, mock indents are tiny one space indents before the prepended info.
+        // They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
+        _snprintf_append(
+            p_buf, sizeof(p_buf), &p_len,
+            "%*s%c%*s", i, "", div_mark, log->max_indents - i, ""
+        );
 
         // get current time if needed
         int64_t unix_seconds;
@@ -671,11 +701,10 @@ static int _get_formatted_messages(
                 fprintf(stderr, "LOG ERROR: failed to format datetime\n");
                 goto fail;
             }
-            p_len = snprintf(
-                scratch,
-                sizeof(s_buf),
-                "%s  ", datetime_str);
-            PTR_SWAP(p, scratch);
+            _snprintf_append(
+                p_buf, sizeof(p_buf), &p_len,
+                "%s  ", datetime_str
+            );
         }
 
         // Prepend elapsed time since log's start time in HH:MM:SS.ffffff format
@@ -703,17 +732,15 @@ static int _get_formatted_messages(
                 goto fail;
             }
             if (log->prepend_datetime_fmt) {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(s_buf),
-                    "%s%c  %s  ", p, div_mark, elapsed_time_str);
-            } else {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(s_buf),
-                    "%s%s  ", p, elapsed_time_str);
+                _snprintf_append(
+                    p_buf, sizeof(p_buf), &p_len,
+                    "%c  ", div_mark
+                );
             }
-            PTR_SWAP(p, scratch);
+            _snprintf_append(
+                p_buf, sizeof(p_buf), &p_len,
+                "%s  ", elapsed_time_str
+            );
         }
 
         // Prepend memory usage
@@ -721,45 +748,22 @@ static int _get_formatted_messages(
             char mem_usage_str[256];
             _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
             if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(s_buf),
-                    "%s%c  %17s", p, div_mark, mem_usage_str);
-            } else {
-                p_len = snprintf(
-                    scratch,
-                    sizeof(s_buf),
-                    "%17s", mem_usage_str);
+                _snprintf_append(
+                    p_buf, sizeof(p_buf), &p_len,
+                    "%c  ", div_mark
+                );
             }
-            PTR_SWAP(p, scratch);
+            _snprintf_append(
+                p_buf, sizeof(p_buf), &p_len,
+                "%17s", mem_usage_str
+            );
         }
 
-        // fill p0 memory with mock indents + div_mark
-        for (int j = 0; j < i; j++)
-            memcpy(p0 + j * mock_indent_len,
-                   mock_indent, mock_indent_len);
-        p0_len = mock_indent_len * i;
-
-        // Right-align prepend info before any info prepended to the log message.
-        // This is so VS Code's code folding feature continues to work with prepended info.
-        p_len = snprintf(
-            scratch,
-            sizeof(s_buf),
-            "%*s%s%c  ", log->max_indents + 1 - (int)p0_len, "", p, div_mark);
-        PTR_SWAP(p, scratch);
-    }
-
-    // blank_p is the same as p but w/ prepend info removed, only marks remain
-    char *blank_p = NULL;
-    if (prepend_stuff) {
-        size_t blank_cap = p0_len + p_len + 3;
-        blank_p = malloc(blank_cap);
-        if (!blank_p)
-            goto fail;
-        snprintf(
-            blank_p,
-            blank_cap,
-            "%s%c%*c  ", p0, div_mark, (int)p_len - 3, div_mark);
+        // append a final div mark plus some spacing
+        _snprintf_append(
+            p_buf, sizeof(p_buf), &p_len,
+            "%c  ", div_mark
+        );
     }
 
     if (create_console_output)
@@ -767,11 +771,8 @@ static int _get_formatted_messages(
             message,
             log->console_indent,
             log->max_message_chars, log->max_line_chars,
-            prepend_stuff,
-            p0, p, blank_p,
-            div_mark,
-            console_msg,
-            console_msg_len,
+            p_buf,
+            console_msg, console_msg_len,
             opts
         );
 
@@ -780,21 +781,14 @@ static int _get_formatted_messages(
             message,
             log->logfile_indent,
             log->max_message_chars, log->max_line_chars,
-            prepend_stuff,
-            p0, p, blank_p,
-            div_mark,
-            logfile_msg,
-            logfile_msg_len,
+            p_buf,
+            logfile_msg, logfile_msg_len,
             opts
         );
 
-    // Free heap memory and return success code
-    free(blank_p);
     return 0;
 
-    // Free heap memory and return failure code
     fail:
-    free(blank_p);
     return -1;
 }
 
