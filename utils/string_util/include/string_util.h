@@ -5,57 +5,96 @@
 #include <stddef.h> // for size_t
 #include <stdlib.h> // for malloc, free, realloc
 #include <stdbool.h> // for bool type
+#include <stddef.h> // for ptrdiff_t
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/////////////////////////////// String Struct /////////////////////////////
-
+///////////////////////////// Structs and Enums //////////////////////////
 
 /**
- * A simple dynamic string implementation.
+ * The grow_capacity() and shrink_capacity() string util internal static functions implement whichever MemoryAllocationProcedure enum val a user chooses for a String struct. Default option is DEFAULT_MEM_PROC (see below)..
+ * Options:
+ *   - MEM_LINEAR:
+ *         grow or shrink to always use the minimum amount of memory required
+ *         to store the current string's text
+ *   - MEM_TRAILING:
+ *         grow to match text expansion, but do not shrink
+ *   - MEM_DOUBLE:
+ *         allocate double the initial string size, and double/halve the memory
+ *         allocation each time the text outgrows the cap or shrinks to less than half the memory allocated
+ *   - MEM_FIXED: fix the memory allocated to the string, if a string modifying function causes the text to outgrow the fixed memory it that function will fail and return an error code
+ */
+typedef enum {
+    MEM_LINEAR,
+    MEM_TRAILING,
+    MEM_DOUBLE,
+    MEM_FIXED
+} MemoryAllocationProcedure;
+#define DEFAULT_MEM_PROC MEM_LINEAR
+
+/**
+ * UTF-8 compatible dynamic string struct
  * 
- * Fields:
- *   - text:  pointer to heap-allocated memory containing the null terminated string
- *   - len:   number of UTF-8 characters (aka "UTF-8 code points", aka "runes"), strlen(s.text) == s.len
- *   - bytes: number of bytes the current text occupies (s.bytes <= s.cap)
- *   - cap:   total bytes of memory capacity allocated (s.cap >= s.bytes + 1 for null terminator)
+ * Struct Members:
+ *   - text:                 pointer to heap-allocated memory containing the null terminated string
+ *   - len:                  number of UTF-8 characters (aka "UTF-8 code points", aka "runes")
+ *   - bytes:                number of bytes the current text occupies (s.bytes <= s.cap)
+ *   - cap:                  total bytes of memory capacity allocated for this string to grow and shrink (s.cap >= s.bytes + 1 for null terminator, so s->cap = opts->cap + 1)
+ *   - allocation_procedure: the specified procedure for how memory is allocated for when the dynamic text size grows and shrinks. See StringOptions for default value and valid options
  * 
  * Important:
- *   - Never modify .text or .len directly — use the provided functions
- *   - Always initialize with str() or zero-init + manual allocation
- *   - Clean up with free_string() to avoid memory leaks
+ *   - Don't modify struct members directly, use the provided functions
+ *   - Clean up with free_string() to avoid memory leak
  */
 typedef struct String {
     char   *text;
     size_t  len;
     size_t  bytes;
     size_t  cap;
+    MemoryAllocationProcedure allocation_procedure;
 } String;
-
 
 ////////////////////////////// Memory Functions ///////////////////////////
 
 
+// 
 /**
- * Creates a new String by copying a formatted char array.
- * Works like printf: you can provide a format string and optional arguments.
- * Allocates memory with an initial capacity of roughly 2 * length + 1.
+ * Optional Args for String struct
+ *   - allocation_procedure:
+ *         allocation_procedure specifies how to allocate memory for this String. It defaults
+ *         to MemoryAllocationProcedure.MEM_LINEAR enum which grows and shrinks the string's
+ *         memory allocation with the text size as the string is updated
+ *   - cap:
+ *         cap is the memory capacity in bytes to allocate to this string. byte_cap
+ *         defaults to (size_t)-1. Only one cap, byte_cap or rune_cap, can be specified
+ *         at a time
+ */
+typedef struct StringOptions {
+    MemoryAllocationProcedure allocation_procedure;
+    size_t cap;
+} StringOptions;
+#define DEFAULT_STRING_OPTIONS \
+    .allocation_procedure = DEFAULT_MEM_PROC, \
+    .cap = (size_t)-1
+
+/**
+ * Creates a new String for `text`.
  *
  * Examples:
  *   String *s1 = str("Hello, world!");
- *   String *s2 = str("Name: %s, Age: %d", name, age);
+ *   String *s2 = str(fmt(buf, "Name: %s, Age: %d", name, age));
  *
- * @param fmt   format string (must not be NULL)
- * @param ...   optional arguments for formatting
+ * @param text   format string (must not be NULL)
+ * @param opts   optional arguments
  * @return      pointer to initialized String struct (returns NULL on failure)
  */
-String *str(
-    const char *fmt,
-    ...
-);
+String *_str(const char *text, const StringOptions *opts);
+// Macro to simulate optional args
+#define str(text, ...) \
+    _str((text), &(StringOptions){ DEFAULT_STRING_OPTIONS, ##__VA_ARGS__ })
 
 
 /**
@@ -444,15 +483,15 @@ String *str_slice(
 
 
 /**
- * fmt() is a convienience macro used to format char arrays. It requires passing a pre-created buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
+ * fmt() is a convenience macro used to format char arrays. It requires passing a pre-created buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
  * Example usage:
  *     char *buf1[128];
  *     char *buf2[buf_size]; // Example buffer sized at runtime. C99 allows pre-defined stack buffers to have runtime determined sizes because you can use Variable Length Arrays (VLAs). function's arg
  *     printf("%s %s\n", fmt(buf1, "A"), fmt(buf2, "B"));
  * 
- * @param rb       pointer to an initialized RollingBuffer
+ * @param buf      pointer to a char array
  * @param ...      printf-style format string followed by any values to substitute
- * @return         pointer to the formatted string (lives in rolling buffer)
+ * @return         pointer to the formatted string, buf
  */
 #define fmt(buf, ...) ( \
     snprintf(buf, sizeof(buf), __VA_ARGS__), \
@@ -466,6 +505,25 @@ String *str_slice(
             format  Format string (same syntax as printf).
             ...     Values to substitute into the format string.
 */
+
+
+/**
+ * fmt_append() appends the src string (plus formatting) to dst buffer, and updates the *pos pointer to the new end of the char array, and the null terminator.
+ * 
+ * @param dst      pointer to the destination buffer
+ * @param dst_cap  size of the destination buffer
+ * @param pos      position in dst to append to or overwrite
+ * @param src      source text to write into dst
+ * @param ...      printf-style string formattingx values to substitute into src
+ * @return         number of bytes written
+ */
+size_t fmt_append(
+    char *dst,
+    size_t dst_cap,
+    size_t *pos,
+    const char *src,
+    ...
+);
 
 
 ///////////////////////////////////////////////////////////////////////////

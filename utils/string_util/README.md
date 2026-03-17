@@ -49,6 +49,9 @@ typedef struct String {
 >   - **Extract**:
 >     - str_split()
 >     - str_slice()
+>   - **Char Array Formatting**:
+>     - fmt()
+>     - fmt_append()
 
 #### BUILD & RUN
 

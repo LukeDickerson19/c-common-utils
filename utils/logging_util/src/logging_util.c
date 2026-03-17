@@ -320,37 +320,6 @@ static int _get_process_memory_usage(
 }
 
 
-static size_t _snprintf_append(
-    char *dest,
-    size_t dest_cap,
-    size_t *pos,
-    const char *format,
-    ...
-) {
-    // Append src string (formatted) to dest buffer with length tracking
-    if (!dest || !pos || *pos >= dest_cap) return *pos;
-
-    va_list args;
-    va_start(args, format);
-    int n = vsnprintf(dest + *pos, dest_cap - *pos, format, args);
-    va_end(args);
-
-    if (n < 0) return *pos; // snprintf error, leave pos unchanged
-    size_t written = (size_t)n;
-    if (written >= dest_cap - *pos) {
-        written = dest_cap - *pos - 1;  // leave room for null
-    }
-    *pos += written;
-
-    // null-terminate updated string
-    if (*pos < dest_cap)
-        dest[*pos] = '\0';
-    else
-        dest[dest_cap-1] = '\0';
-    return written;
-}
-
-
 static void _append_inline_truncation_message(
     char *buf,
     size_t buf_cap,
@@ -407,7 +376,7 @@ static int _get_indented_message(
 
     // Add starting newline if requested
     if (opts->ns)
-        _snprintf_append(
+        fmt_append(
             fmt_msg, msg_buf_len, &fmt_msg_len,
             "%s%s\n", p_buf, total_indent3);
 
@@ -422,7 +391,7 @@ static int _get_indented_message(
         // and truncate line if its too long.
         const char *line_indent = line_len == 0 ? total_indent3 : total_indent1;
         if (line_len >= max_ln_chars) {
-            _snprintf_append(
+            fmt_append(
                 fmt_msg, msg_buf_len, &fmt_msg_len,
                 "%s%s%.*s",
                 p_buf,
@@ -438,7 +407,7 @@ static int _get_indented_message(
             );
 
         } else {
-            _snprintf_append(
+            fmt_append(
                 fmt_msg, msg_buf_len, &fmt_msg_len,
                 "%s%s%.*s%s",
                 p_buf,
@@ -468,7 +437,7 @@ static int _get_indented_message(
 
     // Add ending newline if requested
     if (opts->ne && !message_truncated)
-        _snprintf_append(
+        fmt_append(
             fmt_msg, msg_buf_len, &fmt_msg_len,
             "%s%s\n", p_buf, total_indent3);
 
@@ -496,19 +465,17 @@ static int _get_formatted_messages(
 
     // Prepend info if requested
     char p_buf[log->max_line_chars];
-    p_buf[0] = '\0'; // Initialize to empty string for case when prepend_stuff is false
-    size_t p_len = 0;
-    const char div_mark = '-';
-    bool prepend_stuff = \
-        log->prepend_datetime_fmt || \
+    p_buf[0] = '\0'; // Initialize to empty string for when not prepending anything
+    if (log->prepend_datetime_fmt || \
         log->prepend_elapsed_time || \
-        log->prepend_memory_usage;
-    if (prepend_stuff) {
+        log->prepend_memory_usage) {
 
         // append mock indents, then div_mark, then pad the end so the whole thing is log->max_indents long
         // If info is prepended to each line, mock indents are tiny one space indents before the prepended info.
         // They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
-        _snprintf_append(
+        const char div_mark = '-';
+        size_t p_len = 0;
+        fmt_append(
             p_buf, sizeof(p_buf), &p_len,
             "%*s%c%*s", i, "", div_mark, log->max_indents - i, ""
         );
@@ -537,7 +504,7 @@ static int _get_formatted_messages(
                 fprintf(stderr, "LOG ERROR: failed to format datetime\n");
                 goto fail;
             }
-            _snprintf_append(
+            fmt_append(
                 p_buf, sizeof(p_buf), &p_len,
                 "%s  ", datetime_str
             );
@@ -568,12 +535,12 @@ static int _get_formatted_messages(
                 goto fail;
             }
             if (log->prepend_datetime_fmt) {
-                _snprintf_append(
+                fmt_append(
                     p_buf, sizeof(p_buf), &p_len,
                     "%c  ", div_mark
                 );
             }
-            _snprintf_append(
+            fmt_append(
                 p_buf, sizeof(p_buf), &p_len,
                 "%s  ", elapsed_time_str
             );
@@ -584,19 +551,19 @@ static int _get_formatted_messages(
             char mem_usage_str[256];
             _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
             if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
-                _snprintf_append(
+                fmt_append(
                     p_buf, sizeof(p_buf), &p_len,
                     "%c  ", div_mark
                 );
             }
-            _snprintf_append(
+            fmt_append(
                 p_buf, sizeof(p_buf), &p_len,
                 "%17s", mem_usage_str
             );
         }
 
         // append a final div mark plus some spacing
-        _snprintf_append(
+        fmt_append(
             p_buf, sizeof(p_buf), &p_len,
             "%c  ", div_mark
         );

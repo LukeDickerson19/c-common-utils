@@ -115,17 +115,16 @@ void test_str_init(bool verbose) {
     // Formatted strings
     test_details[0] = '\0';
     append_formatted_text("initialize formatted strings\n\n", test_details, sizeof(test_details));
-    const char *name = "Alice";
-    int age = 30;
-    String *f1 = str("Name: %s", name);
-    String *f2 = str("Name: %s, Age: %d", name, age);
-    String *f3 = str("Numbers: %d, %d, %d", 1, 2, 3);
+    char buf1[128], buf2[128], buf3[128];
+    String *f1 = str(fmt(buf1, "Hi my name is %s.", "Luke"));
+    String *f2 = str(fmt(buf1, "nested fmt() calls %s", fmt(buf2, "require separate %s", "buffers")));
+    String *f3 = str(fmt(buf1, "so do %s %s", fmt(buf2, "%s", "neighboring"), fmt(buf3, "%s", "fmt() calls")));
     append_string_details("f1", f1, test_details, sizeof(test_details));
     append_string_details("f2", f2, test_details, sizeof(test_details));
     append_string_details("f3", f3, test_details, sizeof(test_details));
-    ASSERT_STR_EQ("Test 4: formatted string, name only", f1, "Name: Alice", test_details, verbose);
-    ASSERT_STR_EQ("Test 5: formatted string, name and age", f2, "Name: Alice, Age: 30", test_details, verbose);
-    ASSERT_STR_EQ("Test 6: formatted string, numbers", f3, "Numbers: 1, 2, 3", test_details, verbose);
+    ASSERT_STR_EQ("Test 4: formatted string, simple", f1, "Hi my name is Luke.", test_details, verbose);
+    ASSERT_STR_EQ("Test 5: formatted string, nested", f2, "nested fmt() calls require separate buffers", test_details, verbose);
+    ASSERT_STR_EQ("Test 6: formatted string, neighboring child fmt() calls", f3, "so do neighboring fmt() calls", test_details, verbose);
     str_free(&f1, &f2, &f3);
 
     printf("\n    %s test: str_init() %d passed, %d failed\n",
@@ -1596,6 +1595,103 @@ void test_fmt(bool verbose) {
     all_failed_tests += failed;
 }
 
+void test_memory_allocation_procedures(bool verbose) {
+    printf("\n=== test: str() memory allocation procedures ===\n");
+    int passed = 0, failed = 0;
+
+    char test_details[1024] = "";
+
+    // Test MEM_LINEAR
+    append_formatted_text("Test MEM_LINEAR: grow and shrink to fit exactly\n\n", test_details, sizeof(test_details));
+    String *linear = str("hello", .allocation_procedure = MEM_LINEAR);
+    append_string_details("linear", linear, test_details, sizeof(test_details));
+
+    // Append to trigger growth
+    str_append(linear, " world!");
+    append_string_details("linear after append", linear, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 1: MEM_LINEAR append", linear, "hello world!", test_details, verbose);
+
+    // Remove to trigger shrink
+    str_remove(linear, 5, 6); // Remove " world"
+    append_string_details("linear after remove", linear, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 2: MEM_LINEAR remove", linear, "hello!", test_details, verbose);
+
+    str_free(&linear);
+
+    // Test MEM_TRAILING
+    append_formatted_text("Test MEM_TRAILING: grow but never shrink\n\n", test_details, sizeof(test_details));
+    String *trailing = str("hello", .allocation_procedure = MEM_TRAILING);
+    append_string_details("trailing", trailing, test_details, sizeof(test_details));
+
+    // Append to trigger growth
+    str_append(trailing, " world!");
+    append_string_details("trailing after append", trailing, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 3: MEM_TRAILING append", trailing, "hello world!", test_details, verbose);
+
+    // Remove should not trigger shrink
+    size_t cap_before_remove = trailing->cap;
+    str_remove(trailing, 5, 6); // Remove " world"
+    append_string_details("trailing after remove", trailing, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 4: MEM_TRAILING remove", trailing, "hello!", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 5: MEM_TRAILING capacity unchanged after remove",
+                     trailing->cap == cap_before_remove, test_details, verbose);
+
+    str_free(&trailing);
+
+    // Test MEM_DOUBLE
+    append_formatted_text("Test MEM_DOUBLE: double capacity on growth, halve on shrink\n\n", test_details, sizeof(test_details));
+    String *double_str = str("hello", .allocation_procedure = MEM_DOUBLE);
+    append_string_details("double_str", double_str, test_details, sizeof(test_details));
+
+    // Append to trigger growth
+    size_t cap_before_append = double_str->cap;
+    str_append(double_str, " world!");
+    append_string_details("double_str after append", double_str, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 6: MEM_DOUBLE append", double_str, "hello world!", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 7: MEM_DOUBLE capacity doubled after append",
+                     double_str->cap >= cap_before_append * 2, test_details, verbose);
+
+    // Remove to trigger shrink
+    cap_before_remove = double_str->cap;
+    str_remove(double_str, 5, 6); // Remove " world"
+    append_string_details("double_str after remove", double_str, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 8: MEM_DOUBLE remove", double_str, "hello!", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 9: MEM_DOUBLE capacity halved after remove",
+                     double_str->cap <= cap_before_remove / 2, test_details, verbose);
+
+    str_free(&double_str);
+
+    // Test MEM_FIXED with cap (for 10 runes)
+    append_formatted_text("Test MEM_FIXED with cap (for 10 runes)\n\n", test_details, sizeof(test_details));
+    String *fixed_cap = str("hello", .allocation_procedure = MEM_FIXED, .cap = 10 * 4);  // 40 bytes for 10 runes
+    append_string_details("fixed_cap", fixed_cap, test_details, sizeof(test_details));
+
+    // Append within capacity (1 rune: space)
+    str_append(fixed_cap, " ");
+    append_string_details("fixed_cap after append (space)", fixed_cap, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 10: MEM_FIXED append within capacity", fixed_cap, "hello ", test_details, verbose);
+
+    // Try to append beyond capacity (emoji is 1 rune, but total would be 7 runes + 2 = 9 <= 10)
+    str_append(fixed_cap, "🌍");  // This should succeed (9 runes total)
+    append_string_details("fixed_cap after append (emoji)", fixed_cap, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 11: MEM_FIXED append within rune limit", fixed_cap, "hello 🌍", test_details, verbose);
+
+    str_free(&fixed_cap);
+
+    // Test MEM_FIXED with insufficient initial capacity
+    append_formatted_text("Test MEM_FIXED with insufficient initial capacity\n\n", test_details, sizeof(test_details));
+    String *fixed_small = str("this is a long string", .allocation_procedure = MEM_FIXED, .cap = 10);
+    ASSERT_BOOL_TRUE("Test 12: MEM_FIXED with insufficient capacity returns NULL",
+                     fixed_small == NULL, test_details, verbose);
+
+    printf("\n    %s test: Memory Allocation Procedures %d passed, %d failed\n",
+        failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:", passed, failed);
+    all_passed_tests += passed;
+    all_failed_tests += failed;
+}
+
+
+
 int main(void) {
     printf("====== string_util tests: ======\n");
 
@@ -1621,6 +1717,7 @@ int main(void) {
     test_split(verbose);
     test_str_slice(verbose);
     test_fmt(verbose);
+    test_memory_allocation_procedures(verbose);
 
     printf("\n====== All tests complete ======\n");
     printf("    %s %d passed, %d failed\n\n",
@@ -1628,4 +1725,6 @@ int main(void) {
         all_passed_tests, all_failed_tests);
     return 0;
 }
+
+
 

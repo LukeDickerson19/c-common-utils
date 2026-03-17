@@ -149,9 +149,9 @@ int _log_print(
  *     char *buf2[buf_size]; // Example buffer sized at runtime. C99 allows pre-defined stack buffers to have runtime determined sizes because you can use Variable Length Arrays (VLAs). function's arg
  *     printf("%s %s\n", fmt(buf1, "A"), fmt(buf2, "B"));
  * 
- * @param rb       pointer to an initialized RollingBuffer
+ * @param buf      pointer to a char array
  * @param ...      printf-style format string followed by any values to substitute
- * @return         pointer to the formatted string (lives in rolling buffer)
+ * @return         pointer to the formatted string, buf
  */
 #define fmt(buf, ...) ( \
     snprintf(buf, sizeof(buf), __VA_ARGS__), \
@@ -166,6 +166,24 @@ int _log_print(
             ...     Values to substitute into the format string.
 */
 
+
+/**
+ * fmt_append() appends the src string (plus formatting) to dst buffer, and updates the *pos pointer to the new end of the char array, and the null terminator.
+ * 
+ * @param dst      pointer to the destination buffer
+ * @param dst_cap  size of the destination buffer
+ * @param pos      position in dst to append to or overwrite
+ * @param src      source text to write into dst
+ * @param ...      printf-style string formattingx values to substitute into src
+ * @return         number of bytes written
+ */
+size_t fmt_append(
+    char *dst,
+    size_t dst_cap,
+    size_t *pos,
+    const char *src,
+    ...
+);
 
 
 ///////////////// time functions ///////////////

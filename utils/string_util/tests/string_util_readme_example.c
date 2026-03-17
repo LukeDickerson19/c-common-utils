@@ -36,8 +36,13 @@ int main(void) {
     str_concat(((String *[]){c, e, f, g}));
     printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓"
 
+    // init formatted string
+    char buf[64];
+    String *h = str(fmt(buf, "formatted😀🍓🌍%s", "string√★♥🔒🔓"));
+    printf("%s\n", h->text); // "formatted😀🍓🌍string√★♥🔒🔓"
+
     // free multiple strings at once
-    str_free(&a, &b, &c, &d, &e, &f, &g);
+    str_free(&a, &b, &c, &d, &e, &f, &g, &h);
 
     return 0;
 }

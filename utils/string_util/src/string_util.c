@@ -181,107 +181,156 @@ static inline bool is_whitespace_rune(
 ////////////////////////////// Memory Functions ///////////////////////////
 
 
-String *str(
-    const char *fmt,
-    ...
+String *_str(
+    const char *text,
+    const StringOptions *opts
 ) {
-    if (!fmt) fmt = "";
 
-    va_list args;
-    va_start(args, fmt);
-
-    // First, determine the required length
-    va_list args_copy;
-    va_copy(args_copy, args);
-    int needed = vsnprintf(NULL, 0, fmt, args_copy);
-    va_end(args_copy);
-    if (needed < 0) {
-        va_end(args);
-        return NULL; // formatting error
-    }
-
-    size_t bytes = (size_t)needed;
-    if (bytes > (SIZE_MAX - 1) / 2)
-        return NULL;
-    size_t cap = 2 * bytes + 1; // double for growth + null terminator
-    char *content = malloc(cap);
-    if (!content) {
-        va_end(args);
-        return NULL; // allocation failure
-    }
-
-    // format string into content
-    vsnprintf(content, cap, fmt, args);
-    va_end(args);
+    if (!text) text = ""; // default NULL text to empty text
+    if (!opts) opts = &(StringOptions){ DEFAULT_STRING_OPTIONS }; // in case user calls _str() without str() macro
 
     // Normalize the string to NFC form (validating UTF-8 characters in the process):
-    char *normalized = normalize_utf8_str(content);
-    free(content);
-    if (!normalized) {
-        return NULL;
+    // In some languages (ex: French) there are multiple ways to combine UTF-8 characters to get the same resulting text. UTF-8 Normalization standardizes all such examples to the same combination so text search and comparison works properly.
+    char *normalized = normalize_utf8_str(text);
+    if (!normalized) return NULL;
+
+    // Get the byte and rune lengths of the normalized string
+    size_t bytes = strlen(normalized);
+    size_t len = count_utf8_runes(normalized);
+
+    // Initialize the memory capacity
+    size_t cap;
+    if (opts->cap != (size_t)-1) {
+        if (opts->cap < bytes) {
+            fprintf(stderr, "STRING ERROR: requested cap of %zu is less than the bytes the text uses: %zu\n", opts->cap, bytes);
+            goto fail;
+        } else {
+            cap = opts->cap + 1; // +1 for null terminator
+        }
+    } else {
+        // else no cap was specified,
+        // so just set the memory cap based on the bytes of the text
+        if (opts->allocation_procedure == MEM_DOUBLE) {
+            cap = 2 * bytes + 1; // double for MEM_DOUBLE
+        } else {
+            cap = bytes + 1; // minimum required for all other allocation procedures
+        }
     }
 
-    // Update bytes and cap to the length of the normalized string
-    bytes = strlen(normalized);
-    cap = 2 * bytes + 1;
-    char *text = realloc(normalized, cap);
-    if (!text) {
-        free(normalized);
-        return NULL;
+    // Update text size to memory cap
+    char *tmp = realloc(normalized, cap);
+    if (!tmp) {
+        fprintf(stderr, "STRING ERROR: Failed to realloc(normalized, cap)\n");
+        goto fail;
     }
+    normalized = tmp;
 
     // Allocate string struct
     String *s = malloc(sizeof(String));
     if (!s) {
-        free(text);
-        return NULL;
+        fprintf(stderr, "STRING ERROR: Failed to malloc(sizeof(String))\n");
+        goto fail;
     }
 
-    // Assign the normalized string and
-    // count the utf-8 runes (aka code points) in the string
-    s->text = text;
+    // Assign the normalized string and count the utf-8 runes
+    s->text = normalized;
     s->bytes = bytes;
     s->cap = cap;
-    s->len = count_utf8_runes(text);
+    s->len = len;
+    s->allocation_procedure = opts->allocation_procedure;
 
     return s;
+    fail:
+        free(normalized);
+        return NULL;
+
 }
 
 
-static int grow_capacity(
+static int resize_capacity(
     String *s,
-    size_t min_bytes
+    size_t new_cap
 ) {
-    if (!s) return -1;
-    if (min_bytes < s->cap) return 0;
-
-    size_t new_cap = s->cap;
-    if (new_cap == 0) new_cap = 1;
-    while (new_cap <= min_bytes) new_cap *= 2;
-
+    // Resize the text memory allocation to the new_cap
     char *new_text = realloc(s->text, new_cap);
     if (!new_text) return -1;
     s->text = new_text;
     s->cap  = new_cap;
     return 0;
+}
+
+
+static int grow_capacity(
+    String *s,
+    size_t new_bytes
+) {
+    switch (s->allocation_procedure) {
+        case MEM_LINEAR: // grow same as MEM_TRAILING
+        case MEM_TRAILING:
+    
+            // Allocate only exactly what is needed (plus null terminator)
+            if (new_bytes == SIZE_MAX) return -1;
+            return resize_capacity(s, new_bytes + 1);
+
+        case MEM_DOUBLE:
+
+            // Double capacity until it fits
+            size_t new_cap = s->cap;
+            if (new_cap == 0) new_cap = 1;
+            while (new_cap <= new_bytes) {
+                if (new_cap > SIZE_MAX / 2) { // size_t overflow check
+                    new_cap = SIZE_MAX;
+                    break;
+                }
+                new_cap *= 2;
+            }
+            return resize_capacity(s, new_cap);
+
+        case MEM_FIXED:
+            // Print error and return -1 if out of fixed bounds
+            if (s->cap <= new_bytes) {
+                fprintf(stderr, "STRING ERROR: new text of %zu bytes exceeds FIXED cap of %zu bytes\n", new_bytes, s->cap);
+                return -1;
+            }
+            // else do nothing
+            return 0;
+
+        default:
+            fprintf(stderr, "STRING ERROR: invalid memory allocation procedure in grow_capacity()\n");
+            return -1;
+    }
 }
 
 
 static int shrink_capacity(
     String *s
 ) {
-    if (!s) return -1;
-    size_t min_cap = s->bytes + 1;
-    if (s->bytes >= s->cap / 4) return 0;
-    size_t new_cap = s->cap;
-    while (new_cap / 2 >= min_cap && s->bytes < new_cap / 4)
-        new_cap /= 2;
-    if (new_cap == s->cap) return 0;
-    char *new_text = realloc(s->text, new_cap);
-    if (!new_text) return -1;
-    s->text = new_text;
-    s->cap  = new_cap;
-    return 0;
+    switch (s->allocation_procedure) {
+        case MEM_LINEAR:
+
+            // Allocate exactly what is needed (plus null terminator)
+            if (s->bytes == SIZE_MAX) return -1;
+            return resize_capacity(s, s->bytes + 1);
+
+        case MEM_TRAILING: // same as MEM_FIXED
+        case MEM_FIXED:
+    
+            // don't shrink, do nothing
+            return 0;
+
+        case MEM_DOUBLE:
+
+            // Halve capacity just before its smaller than bytes
+            size_t new_cap = s->cap;
+            while (new_cap / 2 > s->bytes)
+                new_cap /= 2;
+            if (new_cap == s->cap) return 0;
+            return resize_capacity(s, new_cap);
+
+        default:
+            fprintf(stderr, "STRING ERROR: invalid memory allocation procedure in grow_capacity()\n");
+            return -1;
+    }
 }
 
 
@@ -1171,6 +1220,40 @@ String *str_slice(
 }
 
 
-///////////////////////////////////////////////////////////////////////////
+////////////////////////////// Char Array Formatting //////////////////////
 
+
+size_t fmt_append(
+    char *dst,
+    size_t dst_cap,
+    size_t *pos,
+    const char *src,
+    ...
+) {
+    /* Append src string (plus formatting) to dst buffer with length tracking */
+
+    if (!dst || !pos || *pos >= dst_cap) return *pos;
+
+    va_list args;
+    va_start(args, src);
+    int n = vsnprintf(dst + *pos, dst_cap - *pos, src, args);
+    va_end(args);
+
+    if (n < 0) return *pos; // snprintf error, leave pos unchanged
+    size_t written = (size_t)n;
+    if (written >= dst_cap - *pos) {
+        written = dst_cap - *pos - 1;  // leave room for null
+    }
+    *pos += written;
+
+    // null-terminate updated string
+    if (*pos < dst_cap)
+        dst[*pos] = '\0';
+    else
+        dst[dst_cap-1] = '\0';
+    return written;
+}
+
+
+///////////////////////////////////////////////////////////////////////////
 
