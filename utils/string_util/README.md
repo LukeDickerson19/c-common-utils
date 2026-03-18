@@ -37,6 +37,8 @@ typedef struct String {
 >     - str_trim()
 >     - str_trim_left()
 >     - str_trim_right()
+>     - str_clear()
+>     - str_overwrite()
 >   - **Query**:
 >     - str_equals()
 >     - str_is_empty()
@@ -119,8 +121,13 @@ int main(void) {
     str_concat(((String *[]){c, e, f, g}));
     printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓"
 
+    // init formatted string
+    char buf[64];
+    String *h = str(fmt(buf, "formatted😀🍓🌍%s", "string√★♥🔒🔓"));
+    printf("%s\n", h->text); // "formatted😀🍓🌍string√★♥🔒🔓"
+
     // free multiple strings at once
-    str_free(&a, &b, &c, &d, &e, &f, &g);
+    str_free(&a, &b, &c, &d, &e, &f, &g, &h);
 
     return 0;
 }
@@ -129,13 +136,14 @@ int main(void) {
 #### EXAMPLE OUTPUT
 ```
 [luke@luke utils]$ 
-[luke@luke utils]$ 
 [luke@luke utils]$ ./build/string_util/string_util_readme_example 
-text="Hello", len=5, bytes=5, cap=11, String struct size=32, total size=43 bytes
-text="Hello, world", len=12, bytes=12, cap=22, String struct size=32, total size=54 bytes
-text="... Hello, world", len=16, bytes=16, cap=22, String struct size=32, total size=54 bytes
+text="Hello", len=5, bytes=5, cap=6, String struct size=40, total size=46 bytes
+text="Hello, world", len=12, bytes=12, cap=14, String struct size=40, total size=54 bytes
+text="... Hello, world", len=16, bytes=16, cap=18, String struct size=40, total size=58 bytes
 Hello東京¡café!naïve😀🍓🌍❌✅
 Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓
+formatted😀🍓🌍string√★♥🔒🔓
+[luke@luke utils]$ 
 [luke@luke utils]$ 
 [luke@luke utils]$ 
 ```

@@ -917,6 +917,181 @@ void test_str_trim(bool verbose) {
     all_failed_tests += failed;
 }
 
+void test_str_clear(bool verbose) {
+    printf("\n=== test: str_clear() ===\n");
+    int passed = 0, failed = 0;
+
+    char test_details[1024] = "";
+
+    // Test MEM_LINEAR
+    append_formatted_text("Test MEM_LINEAR: clear and shrink to minimum\n\n", test_details, sizeof(test_details));
+    String *linear = str("hello world!", .allocation_procedure = MEM_LINEAR);
+    append_string_details("linear", linear, test_details, sizeof(test_details));
+
+    // Clear the string
+    int clear_result = str_clear(linear);
+    append_string_details("linear after clear", linear, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 1: MEM_LINEAR clear", linear, "", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 2: MEM_LINEAR clear returns 0", clear_result == 0, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 3: MEM_LINEAR capacity shrunk to minimum",
+                     linear->cap == 1, test_details, verbose);
+
+    str_free(&linear);
+
+    // Test MEM_TRAILING
+    append_formatted_text("Test MEM_TRAILING: clear but keep capacity\n\n", test_details, sizeof(test_details));
+    String *trailing = str("hello world!", .allocation_procedure = MEM_TRAILING);
+    size_t cap_before_clear = trailing->cap;
+    append_string_details("trailing", trailing, test_details, sizeof(test_details));
+
+    // Clear the string
+    clear_result = str_clear(trailing);
+    append_string_details("trailing after clear", trailing, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 4: MEM_TRAILING clear", trailing, "", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 5: MEM_TRAILING clear returns 0", clear_result == 0, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 6: MEM_TRAILING capacity unchanged after clear",
+                     trailing->cap == cap_before_clear, test_details, verbose);
+
+    str_free(&trailing);
+
+    // Test MEM_DOUBLE
+    append_formatted_text("Test MEM_DOUBLE: clear and shrink capacity\n\n", test_details, sizeof(test_details));
+    String *double_str = str("hello world!", .allocation_procedure = MEM_DOUBLE);
+    cap_before_clear = double_str->cap;
+    append_string_details("double_str", double_str, test_details, sizeof(test_details));
+
+    // Clear the string
+    clear_result = str_clear(double_str);
+    append_string_details("double_str after clear", double_str, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 7: MEM_DOUBLE clear", double_str, "", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 8: MEM_DOUBLE clear returns 0", clear_result == 0, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 9: MEM_DOUBLE capacity halved after clear",
+                     double_str->cap <= cap_before_clear / 2, test_details, verbose);
+
+    str_free(&double_str);
+
+    // Test MEM_FIXED
+    append_formatted_text("Test MEM_FIXED: clear but keep fixed capacity\n\n", test_details, sizeof(test_details));
+    String *fixed = str("hello world!", .allocation_procedure = MEM_FIXED, .cap = 100);
+    cap_before_clear = fixed->cap;
+    append_string_details("fixed", fixed, test_details, sizeof(test_details));
+
+    // Clear the string
+    clear_result = str_clear(fixed);
+    append_string_details("fixed after clear", fixed, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 10: MEM_FIXED clear", fixed, "", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 11: MEM_FIXED clear returns 0", clear_result == 0, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 12: MEM_FIXED capacity unchanged after clear",
+                     fixed->cap == cap_before_clear, test_details, verbose);
+
+    str_free(&fixed);
+
+    // Test NULL input
+    append_formatted_text("Test NULL input\n\n", test_details, sizeof(test_details));
+    clear_result = str_clear(NULL);
+    ASSERT_BOOL_TRUE("Test 13: str_clear(NULL) returns -1", clear_result == -1, test_details, verbose);
+
+    printf("\n    %s test: str_clear() %d passed, %d failed\n",
+        failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:", passed, failed);
+    all_passed_tests += passed;
+    all_failed_tests += failed;
+}
+
+void test_str_overwrite(bool verbose) {
+    printf("\n=== test: str_overwrite() ===\n");
+    int passed = 0, failed = 0;
+
+    char test_details[1024] = "";
+
+    // Test MEM_LINEAR
+    append_formatted_text("Test MEM_LINEAR: overwrite with ASCII text\n\n", test_details, sizeof(test_details));
+    String *linear = str("hello", .allocation_procedure = MEM_LINEAR);
+    append_string_details("linear", linear, test_details, sizeof(test_details));
+
+    // Overwrite with longer text
+    int result = str_overwrite(linear, "goodbye world!");
+    append_string_details("linear after overwrite", linear, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 1: MEM_LINEAR overwrite with longer text", linear, "goodbye world!", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 2: MEM_LINEAR overwrite returns 0", result == 0, test_details, verbose);
+
+    str_free(&linear);
+
+    // Test MEM_TRAILING
+    append_formatted_text("Test MEM_TRAILING: overwrite with UTF-8 text\n\n", test_details, sizeof(test_details));
+    String *trailing = str("hello", .allocation_procedure = MEM_TRAILING);
+    size_t cap_before_overwrite = trailing->cap;
+    append_string_details("trailing", trailing, test_details, sizeof(test_details));
+
+    // Overwrite with UTF-8 text
+    result = str_overwrite(trailing, "東京 🌍 世界");
+    append_string_details("trailing after UTF-8 overwrite", trailing, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 3: MEM_TRAILING overwrite with UTF-8", trailing, "東京 🌍 世界", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 4: MEM_TRAILING overwrite returns 0", result == 0, test_details, verbose);
+
+    str_free(&trailing);
+
+    // Test MEM_DOUBLE
+    append_formatted_text("Test MEM_DOUBLE: overwrite with shorter text\n\n", test_details, sizeof(test_details));
+    String *double_str = str("this is a long string", .allocation_procedure = MEM_DOUBLE);
+    cap_before_overwrite = double_str->cap;
+    append_string_details("double_str", double_str, test_details, sizeof(test_details));
+
+    // Overwrite with shorter text
+    result = str_overwrite(double_str, "short");
+    append_string_details("double_str after shorter overwrite", double_str, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 5: MEM_DOUBLE overwrite with shorter text", double_str, "short", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 6: MEM_DOUBLE overwrite returns 0", result == 0, test_details, verbose);
+
+    str_free(&double_str);
+
+    // Test MEM_FIXED
+    append_formatted_text("Test MEM_FIXED: overwrite within capacity\n\n", test_details, sizeof(test_details));
+    String *fixed = str("hello", .allocation_procedure = MEM_FIXED, .cap = 100);
+    cap_before_overwrite = fixed->cap;
+    append_string_details("fixed", fixed, test_details, sizeof(test_details));
+
+    // Overwrite with text within capacity
+    result = str_overwrite(fixed, "goodbye world!");
+    append_string_details("fixed after overwrite", fixed, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 7: MEM_FIXED overwrite within capacity", fixed, "goodbye world!", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 8: MEM_FIXED overwrite returns 0", result == 0, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 9: MEM_FIXED capacity unchanged after overwrite",
+                     fixed->cap == cap_before_overwrite, test_details, verbose);
+
+    str_free(&fixed);
+
+    // Test overwrite with empty string
+    append_formatted_text("Test overwrite with empty string\n\n", test_details, sizeof(test_details));
+    String *empty_test = str("hello world");
+    append_string_details("empty_test", empty_test, test_details, sizeof(test_details));
+
+    result = str_overwrite(empty_test, "");
+    append_string_details("empty_test after empty overwrite", empty_test, test_details, sizeof(test_details));
+    ASSERT_STR_EQ("Test 10: overwrite with empty string", empty_test, "", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 11: empty overwrite returns 0", result == 0, test_details, verbose);
+
+    str_free(&empty_test);
+
+    // Test NULL input
+    append_formatted_text("Test NULL input\n\n", test_details, sizeof(test_details));
+    result = str_overwrite(NULL, "test");
+    ASSERT_BOOL_TRUE("Test 12: str_overwrite(NULL, ...) returns -1", result == -1, test_details, verbose);
+
+    // Test NULL text input
+    append_formatted_text("Test NULL text input\n\n", test_details, sizeof(test_details));
+    String *null_text_test = str("test");
+    result = str_overwrite(null_text_test, NULL);
+    append_string_details("null_text_test", null_text_test, test_details, sizeof(test_details));
+    ASSERT_BOOL_TRUE("Test 13: str_overwrite(..., NULL) returns -1", result == -1, test_details, verbose);
+
+    str_free(&null_text_test);
+
+    printf("\n    %s test: str_overwrite() %d passed, %d failed\n",
+        failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:", passed, failed);
+    all_passed_tests += passed;
+    all_failed_tests += failed;
+}
+
 void test_str_equals(bool verbose) {
     printf("\n=== test: str_equals() ===\n");
     int passed = 0, failed = 0;
@@ -1602,7 +1777,6 @@ void test_memory_allocation_procedures(bool verbose) {
     char test_details[1024] = "";
 
     // Test MEM_LINEAR
-    append_formatted_text("Test MEM_LINEAR: grow and shrink to fit exactly\n\n", test_details, sizeof(test_details));
     String *linear = str("hello", .allocation_procedure = MEM_LINEAR);
     append_string_details("linear", linear, test_details, sizeof(test_details));
 
@@ -1708,6 +1882,8 @@ int main(void) {
     test_str_repeat(verbose);
     test_str_remove(verbose);
     test_str_trim(verbose);
+    test_str_clear(verbose);
+    test_str_overwrite(verbose);
     test_str_equals(verbose);
     test_is_empty(verbose);
     test_starts_and_ends_with(verbose);

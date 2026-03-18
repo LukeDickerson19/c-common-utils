@@ -324,6 +324,31 @@ int str_trim_right(
 );
 
 
+/**
+ * Clears all text from the string and shrinks its memory allocation if applicable to the strings memory allocation procedure.
+ *
+ * @param s  string to clear (must not be NULL)
+ * @return   0 on success, -1 if string is NULL
+ */
+int str_clear(
+    String *s
+);
+
+
+/**
+ * Completely overwrites a string with new text, updating its length, byte count,
+ * and memory allocation as needed.
+ *
+ * @param s        string to overwrite (must not be NULL)
+ * @param new_text new text to assign (must not be NULL)
+ * @return         0 on success, -1 on failure
+ */
+int str_overwrite(
+    String *s,
+    const char *new_text
+);
+
+
 ////////////////////////////// Query Functions ////////////////////////////
 
 

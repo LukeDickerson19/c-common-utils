@@ -27,6 +27,7 @@ static char *normalize_utf8_str(
 
     utf8proc_uint8_t *nfc = utf8proc_NFC((const utf8proc_uint8_t *)input);
     if (!nfc) return NULL;
+    // NOTE: utf8proc_NFC returns a null-terminated string
 
     // Allocate memory for the normalized string
     size_t nfc_len = strlen((char *)nfc);
@@ -191,6 +192,7 @@ String *_str(
 
     // Normalize the string to NFC form (validating UTF-8 characters in the process):
     // In some languages (ex: French) there are multiple ways to combine UTF-8 characters to get the same resulting text. UTF-8 Normalization standardizes all such examples to the same combination so text search and comparison works properly.
+    // NOTE: the text normalize_utf8_str() returns is null terminated
     char *normalized = normalize_utf8_str(text);
     if (!normalized) return NULL;
 
@@ -436,7 +438,7 @@ int str_append(
     s->bytes += suffix_bytes;
     s->text[s->bytes] = '\0';
 
-    // Add suffix rune count to s->len
+    // Update rune count
     s->len += count_utf8_runes(suffix);
 
     return 0;
@@ -465,9 +467,9 @@ int str_prepend(
 
     // Copy prefix to the beginning
     memcpy(s->text, prefix, prefix_bytes);
-    s->bytes += prefix_bytes;
 
-    // Add suffix rune count to s->len
+    // Update total byte usage and rune count
+    s->bytes += prefix_bytes;
     s->len += count_utf8_runes(prefix);
 
     return 0;
@@ -702,7 +704,8 @@ int str_replace(
         // if old_sub->bytes > new_sub->bytes, the subtraction would wrap
         // around to a huge positive number instead of going negative.
         if (new_bytes + 1 > s->cap) {
-            if (grow_capacity(s, new_bytes + 1) != 0) return -1;
+            if (grow_capacity(s, new_bytes + 1) != 0)
+                return -1;
         }
 
         // Rebuild string with replacements
@@ -730,7 +733,10 @@ int str_replace(
             (ssize_t)count * ((ssize_t)new_sub->len - (ssize_t)old_sub->len));
         // NOTE: Same underflow risk for rune counts — cast to ssize_t
         // so the subtraction can go negative before being scaled by count.
-        shrink_capacity(s);
+        
+        // Shrink memory capacity if needed
+        if (shrink_capacity(s) != 0)
+            return -1;
         return 0;
 
     } else if (strcmp(mode, "first") == 0) {
@@ -762,7 +768,8 @@ int str_replace(
     size_t new_bytes = (size_t)((ssize_t)s->bytes + 
         (ssize_t)new_sub->bytes - (ssize_t)old_sub->bytes);
     if (new_bytes + 1 > s->cap) {
-        if (grow_capacity(s, new_bytes + 1) != 0) return -1;
+        if (grow_capacity(s, new_bytes + 1) != 0)
+            return -1;
     }
 
     // Shift remainder to make space / remove old_sub
@@ -781,8 +788,9 @@ int str_replace(
     // if old_sub->len > new_sub->len, the subtraction would wrap
     // around to a huge positive number instead of going negative.
 
-    // Update memory capacity if needed
-    shrink_capacity(s);
+    // Shrink memory capacity if needed
+    if (shrink_capacity(s) != 0)
+        return -1;
     return 0;
 }
 
@@ -848,9 +856,9 @@ int str_remove(
     s->bytes -= byte_len;
     s->len   -= len;
 
-    if (s->cap > 2 * s->bytes + 1)
-        shrink_capacity(s);
-
+    // Shrink memory capacity if needed
+    if (shrink_capacity(s) != 0)
+        return -1;
     return 0;
 }
 
@@ -928,6 +936,66 @@ int str_trim_right(
     s->len   = last_non_ws_rune;
     return 0;
 }
+
+
+int str_clear(
+    String *s
+) {
+    if (s == NULL || s->text == NULL)
+        return -1;
+
+    // Set text to empty string
+    s->text[0] = '\0';
+    s->len = 0;
+    s->bytes = 0;
+
+    // Shrink memory capacity
+    if (shrink_capacity(s) != 0)
+        return -1;
+    return 0;
+}
+
+
+int str_overwrite(
+    String *s,
+    const char *new_text
+) {
+    if (s == NULL || s->text == NULL || new_text == NULL)
+        return -1;
+
+    // Normalize the new text to NFC form
+    // NOTE: the text normalize_utf8_str() returns is null terminated
+    char *normalized = normalize_utf8_str(new_text);
+    if (!normalized) return -1;
+
+    // Get the byte and rune lengths of the normalized string
+    size_t new_bytes = strlen(normalized);
+    size_t new_len = count_utf8_runes(normalized);
+
+    // Resize if needed
+    size_t needed = new_bytes + 1;
+    if (needed > s->cap) {
+        if (grow_capacity(s, needed) != 0) {
+            free(normalized);
+            return -1;
+        }
+    }
+
+    // Copy the new text
+    memcpy(s->text, normalized, new_bytes + 1);
+    free(normalized);
+
+    // Update string metadata
+    s->bytes = new_bytes;
+    s->len = new_len;
+
+    // Shrink if appropriate
+    if (shrink_capacity(s) != 0)
+        return -1;
+
+    return 0;
+}
+
 
 ////////////////////////////// Query Functions ////////////////////////////
 

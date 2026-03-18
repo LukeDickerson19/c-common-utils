@@ -693,6 +693,10 @@ UTILS:
 
             maybe update c string util to use hybrid malloc/free and arena allocator?
 
+            maybe update str_starts_with() and str_ends_with() suffix and prefix args to be char * instead of String *. if you do this don't forget to normalize the text first for UTF-8 compatibility
+
+            i think i might be adding +1 to memory capacity to make room for the null teminator multiple times throughout the code redundantly, and consuming more memory than neccessary.
+
         logging_util
 
             update log util to use string_util or bstring
