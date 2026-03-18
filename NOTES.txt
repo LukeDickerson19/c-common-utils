@@ -659,7 +659,10 @@ UTILS:
                             example:
                                 ./build/logging_util/logging_util_full_example
                         Debug Mode (GDB w/ GDB script + AddressSanitizer), logging_util example:
-                            ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
+                            logging_util:
+                                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
+                            string_util:
+                                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/string_util/string_util_full_example -x string_util/scripts/debugging_scratchpad.gdb
 
         Windows:
             Build:
