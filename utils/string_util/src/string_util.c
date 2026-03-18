@@ -1300,14 +1300,19 @@ size_t fmt_append(
 ) {
     /* Append src string (plus formatting) to dst buffer with length tracking */
 
-    if (!dst || !pos || *pos >= dst_cap) return *pos;
+    if (!dst || !pos || *pos >= dst_cap) return (size_t)-1;
 
     va_list args;
     va_start(args, src);
     int n = vsnprintf(dst + *pos, dst_cap - *pos, src, args);
+    // NOTE: vsnprintf() returns:
+    // On success:
+    // Returns the number of characters that would have been written (excluding the null terminator). If the output was truncated due to insufficient space, it still returns the number of characters that would have been written if there had been enough space. It tells you how much space you would have needed for the full formatted string.
+    // On failure:
+    // Returns a negative value if an encoding error occurs.
     va_end(args);
 
-    if (n < 0) return *pos; // snprintf error, leave pos unchanged
+    if (n < 0) return (size_t)-1; // snprintf error, leave pos unchanged
     size_t written = (size_t)n;
     if (written >= dst_cap - *pos) {
         written = dst_cap - *pos - 1;  // leave room for null
@@ -1315,11 +1320,8 @@ size_t fmt_append(
     *pos += written;
 
     // null-terminate updated string
-    if (*pos < dst_cap)
-        dst[*pos] = '\0';
-    else
-        dst[dst_cap-1] = '\0';
-    return written;
+    dst[*pos] = '\0';
+    return (size_t)n; // return would-be length, caller can detect truncation
 }
 
 

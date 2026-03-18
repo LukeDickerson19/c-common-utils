@@ -533,14 +533,14 @@ String *str_slice(
 
 
 /**
- * fmt_append() appends the src string (plus formatting) to dst buffer, and updates the *pos pointer to the new end of the char array, and the null terminator.
+ * fmt_append() appends the src char array (plus formatting) to dst buffer, updates the *pos pointer to the new end (null terminator position) of the char array, and returns the number of bytes that would have been written on success (from snprintf() function).
  * 
  * @param dst      pointer to the destination buffer
  * @param dst_cap  size of the destination buffer
- * @param pos      position in dst to append to or overwrite
+ * @param pos      position in dst to append to
  * @param src      source text to write into dst
- * @param ...      printf-style string formattingx values to substitute into src
- * @return         number of bytes written
+ * @param ...      printf-style string formatting values to substitute into src
+ * @return         number of bytes written, or (size_t)-1 on failure
  */
 size_t fmt_append(
     char *dst,

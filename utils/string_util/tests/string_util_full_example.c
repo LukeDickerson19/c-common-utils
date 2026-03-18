@@ -1770,6 +1770,110 @@ void test_fmt(bool verbose) {
     all_failed_tests += failed;
 }
 
+void test_fmt_append(bool verbose) {
+    printf("\n=== test: fmt_append() ===\n");
+    int passed = 0, failed = 0;
+
+    char test_details[1024] = "";
+
+    // Test basic append
+    append_formatted_text("Test basic append\n\n", test_details, sizeof(test_details));
+    char buf1[128];
+    size_t pos = 0;
+    size_t r1 = fmt_append(buf1, sizeof(buf1), &pos, "Hello, ");
+    size_t r2 = fmt_append(buf1, sizeof(buf1), &pos, "%s!", "world");
+    ASSERT_BOOL_TRUE("Test 1: first append returns correct length",
+                     r1 == 7, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 2: second append returns correct length",
+                     r2 == 6, test_details, verbose);
+    ASSERT_TEXT_EQ("Test 3: basic append produces correct string",
+                   buf1, "Hello, world!", test_details, verbose);
+
+    // Test multiple format specifiers
+    append_formatted_text("Test multiple format specifiers\n\n", test_details, sizeof(test_details));
+    char buf2[128];
+    pos = 0;
+    fmt_append(buf2, sizeof(buf2), &pos, "Values: ");
+    fmt_append(buf2, sizeof(buf2), &pos, "%d, %f, %c", 42, 3.14, 'x');
+    ASSERT_TEXT_EQ("Test 4: multiple format specifiers",
+                   buf2, "Values: 42, 3.140000, x", test_details, verbose);
+
+    // Test buffer overflow handling
+    append_formatted_text("Test buffer overflow handling\n\n", test_details, sizeof(test_details));
+    char small_buf[8];
+    pos = 0;
+    size_t first_written  = fmt_append(small_buf, sizeof(small_buf), &pos, "123");
+    size_t second_written = fmt_append(small_buf, sizeof(small_buf), &pos, "456789");
+    ASSERT_BOOL_TRUE("Test 5: first append fits in small buffer",
+                     first_written == 3, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 6: second append returns would-be length on truncation",
+                     second_written == 6, test_details, verbose);
+    ASSERT_TEXT_EQ("Test 7: buffer overflow handled correctly",
+                   small_buf, "1234567", test_details, verbose);
+
+    // Test position tracking
+    append_formatted_text("Test position tracking\n\n", test_details, sizeof(test_details));
+    char buf3[128];
+    pos = 5;
+    memcpy(buf3, "12345", 5);
+    size_t r3 = fmt_append(buf3, sizeof(buf3), &pos, "6789");
+    ASSERT_BOOL_TRUE("Test 8: position tracking works",
+                     pos == 9, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 9: append returns correct length",
+                     r3 == 4, test_details, verbose);
+    ASSERT_TEXT_EQ("Test 10: appended at correct position",
+                   buf3, "123456789", test_details, verbose);
+
+    // Test NULL destination buffer
+    append_formatted_text("Test NULL destination buffer\n\n", test_details, sizeof(test_details));
+    pos = 0;
+    size_t r4 = fmt_append(NULL, sizeof(buf1), &pos, "test");
+    ASSERT_BOOL_TRUE("Test 11: NULL buffer returns (size_t)-1",
+                     r4 == (size_t)-1, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 12: position unchanged with NULL buffer",
+                     pos == 0, test_details, verbose);
+
+    // Test NULL position pointer
+    append_formatted_text("Test NULL position pointer\n\n", test_details, sizeof(test_details));
+    char buf4[128];
+    size_t r5 = fmt_append(buf4, sizeof(buf4), NULL, "test");
+    ASSERT_BOOL_TRUE("Test 13: NULL position pointer returns (size_t)-1",
+                     r5 == (size_t)-1, test_details, verbose);
+
+    // Test position at buffer limit
+    append_formatted_text("Test position at buffer limit\n\n", test_details, sizeof(test_details));
+    char buf5[128];
+    pos = sizeof(buf5);  // Position at capacity triggers guard
+    size_t r6 = fmt_append(buf5, sizeof(buf5), &pos, "x");
+    ASSERT_BOOL_TRUE("Test 14: position at limit returns (size_t)-1",
+                     r6 == (size_t)-1, test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 15: position unchanged at limit",
+                     pos == sizeof(buf5), test_details, verbose);
+
+    // Test format string with %%
+    append_formatted_text("Test format string with %%\n\n", test_details, sizeof(test_details));
+    char buf6[128];
+    pos = 0;
+    fmt_append(buf6, sizeof(buf6), &pos, "50%% off");
+    ASSERT_TEXT_EQ("Test 16: percent sign handled correctly",
+                   buf6, "50% off", test_details, verbose);
+
+    // Test UTF-8 formatting
+    append_formatted_text("Test UTF-8 formatting\n\n", test_details, sizeof(test_details));
+    char buf7[128];
+    pos = 0;
+    size_t r7 = fmt_append(buf7, sizeof(buf7), &pos, "東京: %d, 🌍: %s", 2020, "world");
+    ASSERT_TEXT_EQ("Test 17: UTF-8 formatting works",
+                   buf7, "東京: 2020, 🌍: world", test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 18: UTF-8 returns byte length not char count",
+                     r7 == strlen("東京: 2020, 🌍: world"), test_details, verbose);
+
+    printf("\n    %s test: fmt_append() %d passed, %d failed\n",
+        failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:", passed, failed);
+    all_passed_tests += passed;
+    all_failed_tests += failed;
+}
+
 void test_memory_allocation_procedures(bool verbose) {
     printf("\n=== test: str() memory allocation procedures ===\n");
     int passed = 0, failed = 0;
@@ -1893,6 +1997,7 @@ int main(void) {
     test_split(verbose);
     test_str_slice(verbose);
     test_fmt(verbose);
+    test_fmt_append(verbose);
     test_memory_allocation_procedures(verbose);
 
     printf("\n====== All tests complete ======\n");
