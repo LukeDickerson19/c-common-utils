@@ -1,5 +1,4 @@
 #include "logging_util.h"
-#include "string_util.h"
 
 #include <stdint.h> // intptr_t
 
@@ -570,8 +569,8 @@ void test_overwrite_prev_msg() {
 
     char buffer[256];
 	print(logger, fmt(buffer, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
-	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent->text), .i=i+1);
-	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent->text), .i=i+1, .ne=true);
+	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
+	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
 
 }
 
@@ -590,12 +589,11 @@ int main(void) {
 
     // Set log file path
     get_full_base_dir();
-    char *log_filepath;
-    char buffer[PATH_MAX_CHARS];
+    char log_filepath[PATH_MAX_CHARS];
     #ifdef _WIN32
-        log_filepath = fmt(buffer, "%s\\logging_util\\log\\log.txt", BASE_DIR);
+        fmt(log_filepath, "%s\\logging_util\\log\\log.txt", BASE_DIR);
     #else
-        log_filepath = fmt(buffer, "%s/logging_util/log/log.txt", BASE_DIR);
+        fmt(log_filepath, "%s/logging_util/log/log.txt", BASE_DIR);
     #endif
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 

@@ -44,11 +44,11 @@ typedef struct Log {
     bool clear_old_log; // flag to clear the log file or not
     char *filepath; // path to the log file
     FILE *file_pointer; // FILE* pointer to the log file
-    String *logfile_indent; // what an indent looks like in the log file
+    char *logfile_indent; // what an indent looks like in the log file
 
     bool output_to_console; // flag to print to the console or not
     FILE *console_stream; // FILE* stream to print console output to (e.g., stdout, stderr)
-    String *console_indent; // what an indent looks like in the console
+    char *console_indent; // what an indent looks like in the console
 
     char *prepend_datetime_fmt; // format specifying datetime to prepend to each line printed
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
@@ -61,10 +61,11 @@ typedef struct Log {
     size_t max_line_len; // max number of runes (aka UTF-8 code points) per line, NOTE: if max_line_len is too large it can cause a stack overflow error, recommend at max 4096.
 
     // latest and 2nd latest console message printed
-    String *console_msg, *prev_console_msg;
+    String *console_msg;
 
     // latest logfile message printed, and its 
-    String *logfile_msg; off_t logfile_msg_start, logfile_msg_end;
+    String *logfile_msg;
+    off_t logfile_msg_start, logfile_msg_end;
 
     // thread safety mutex
     #if PLATFORM_WINDOWS
@@ -81,10 +82,10 @@ typedef struct Log {
     .clear_old_log = false, \
     .filepath = NULL, \
     .file_pointer = NULL, \
-    .logfile_indent = str("    ", .allocation_procedure=MEM_LINEAR), \
+    .logfile_indent = "    ", \
     .output_to_console = true, \
     .console_stream = stdout, \
-    .console_indent = str("|   ", .allocation_procedure=MEM_LINEAR), \
+    .console_indent = "|   ", \
     .prepend_datetime_fmt = NULL, \
     .timezone = "UTC", \
     .prepend_elapsed_time = false, \

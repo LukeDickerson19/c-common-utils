@@ -48,10 +48,6 @@
 
 
 
-// macro used to swap pointers to avoid extra character copies and speed up performance
-#define PTR_SWAP(a, b) do { char *tmp = (a); (a) = (b); (b) = tmp; } while (0)
-
-
 /////////////////////// time functions /////////////////////
 
 
@@ -169,11 +165,10 @@ Log *_log_init(
     // init overwrite_prev_msg variables
     // these variables are reused each log message to avoid frequent
     // allocations and deallocations on the heap
-    log->console_msg        = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
-    log->prev_console_msg   = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
-    log->logfile_msg        = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
-    log->logfile_msg_start  = 0;
-    log->logfile_msg_end    = 0;
+    log->console_msg            = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
+    log->logfile_msg            = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
+    log->logfile_msg_start      = 0;
+    log->logfile_msg_end        = 0;
 
     // init mutex
     #if PLATFORM_WINDOWS
@@ -197,10 +192,7 @@ void log_close(
 
     // str_free skips over any NULL String pointers
     str_free(
-        &(log->logfile_indent),
-        &(log->console_indent),
         &(log->console_msg),
-        &(log->prev_console_msg),
         &(log->logfile_msg)
     );
 
@@ -217,21 +209,23 @@ void log_close(
 }
 
 
-static int _count_lines(
-    const char* str
+static size_t _count_lines(
+    const char *text
 ) {
-    int count = 0;
-    for (const char* p = str; *p; p++) {
-        if (*p == '\n') count++;
+    size_t count = 0;
+    const char *p = text;
+    while ((p = strchr(p, '\n')) != NULL) {
+        count++;
+        p++;
     }
     return count;
 }
 
 
 static void _clear_previous_console_message(
-    Log *log
+    Log *log,
+    size_t line_count
 ) {
-    int line_count = _count_lines(log->prev_console_msg->text);
 
     // // NOTE: not needed after switching from write() to fwrite(), maybe delete one day
     // #if PLATFORM_WINDOWS
@@ -360,33 +354,32 @@ static void _append_inline_truncation_message(
 
 
 static int _get_indented_message(
+    Log* log,
     const char *message,
     char *prepend_info,
     size_t prepend_info_len,
-    const String *indent,
-    size_t max_message_len,
-    size_t max_line_len,
+    const char *indent,
     String *formatted_message,
     PrintOptions *opts
 ) {
 
     // Create indent buffers
-    size_t indent_len = indent->len;
+    size_t indent_len = strlen(indent);
     size_t i = opts->i;
     size_t len1 = indent_len * i;
     size_t len2 = indent_len * (i + 1);
     char total_indent1[len1 + 1];
     char total_indent2[len2 + 1];
     for (size_t j = 0; j < i; j++)
-        memcpy(total_indent1 + j * indent_len, indent->text, indent_len);
+        memcpy(total_indent1 + j * indent_len, indent, indent_len);
     for (size_t j = 0; j < i + 1; j++)
-        memcpy(total_indent2 + j * indent_len, indent->text, indent_len);
+        memcpy(total_indent2 + j * indent_len, indent, indent_len);
     total_indent1[len1] = '\0';
     total_indent2[len2] = '\0';
     const char* total_indent3 = opts->d ? total_indent2 : total_indent1;
 
     // Init tmp buffer for fmt()
-    char tmp[max_line_len * 4];
+    char tmp[log->max_line_len * 4];
 
     // Add starting newline if requested
     if (opts->ns)
@@ -417,10 +410,10 @@ static int _get_indented_message(
         );
 
         // Truncate formatted_message and break if its too long
-        if (formatted_message->len >= max_message_len) {
+        if (formatted_message->len >= log->max_message_len) {
             str_slice(
                 formatted_message,
-                0, max_message_len - MESSAGE_TRUNCATION_MSG_LEN
+                0, log->max_message_len - MESSAGE_TRUNCATION_MSG_LEN
             );
             str_append(
                 formatted_message,
@@ -432,10 +425,10 @@ static int _get_indented_message(
         
         // Truncate line if its too long
         const size_t line_rune_len = formatted_message->len - rune_len_before;
-        if (line_rune_len >= max_line_len) {
+        if (line_rune_len >= log->max_line_len) {
             str_slice(
                 formatted_message,
-                0, rune_len_before + max_line_len - LINE_TRUNCATION_MSG_LEN
+                0, rune_len_before + log->max_line_len - LINE_TRUNCATION_MSG_LEN
             );
             str_append(
                 formatted_message,
@@ -581,12 +574,11 @@ static int _get_formatted_messages(
     if (output_to_console) {
         str_clear(log->console_msg);
         _get_indented_message(
+            log,
             message,
             prepend_info,
             prepend_info_len,
             log->console_indent,
-            log->max_message_len,
-            log->max_line_len,
             log->console_msg,
             opts
         );
@@ -595,12 +587,11 @@ static int _get_formatted_messages(
     if (output_to_logfile) {
         str_clear(log->logfile_msg);
         _get_indented_message(
+            log,
             message,
             prepend_info,
             prepend_info_len,
             log->logfile_indent,
-            log->max_message_len,
-            log->max_line_len,
             log->logfile_msg,
             opts
         );
@@ -617,6 +608,9 @@ int _log_print_unlocked(
 ) {
     if (!opts) opts = &(PrintOptions){DEFAULT_PRINT_OPTIONS};
     int return_code = 0;
+
+    // Save previous line count before updating console_msg
+    size_t prev_console_msg_line_count = _count_lines(log->console_msg->text);
 
     // Use optional opts->oc/of arg(s) if specified, else default to log struct's setting
     bool output_to_console = (opts->oc == -1) ? log->output_to_console : opts->oc;
@@ -640,8 +634,8 @@ int _log_print_unlocked(
     if (output_to_console) {
 
         // Move cursor up and clear previous message if user set overwrite_prev_msg to true
-        if (opts->overwrite_prev_msg && !str_is_empty(log->prev_console_msg))
-            _clear_previous_console_message(log);
+        if (opts->overwrite_prev_msg && prev_console_msg_line_count > 0)
+            _clear_previous_console_message(log, prev_console_msg_line_count);
 
         // Print formatted string to console
         fwrite(log->console_msg->text, 1, log->console_msg->bytes, log->console_stream);
@@ -650,10 +644,6 @@ int _log_print_unlocked(
         // with setvbuf(_IONBF). fprintf() automatically handles \0-terminated strings,
         // Use fwrite to respect console_msg->len if binary content
 
-        // Overwrite the old prev_console_msg with the new console_msg
-        int rc = str_overwrite(log->prev_console_msg, log->console_msg->text);
-        if (rc != 0)
-            return_code = rc;
     }
 
     // Write to log file

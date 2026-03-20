@@ -30,7 +30,6 @@ cmake --build build
 Below is a quick example usage - the [tests/logging_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/tests/logging_util_full_example.c) file shows how to use all this util's features. See [include/logging_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/include/logging_util.h) for all function definitions and descriptions.
 ```c
 #include "logging_util.h"
-#include "string_util.h"
 
 Log *logger; // global variable so you don't need to pass it to each function using it
 
@@ -45,16 +44,14 @@ int main(void) {
     );
 
     // log messages with different indent levels
-	print(logger, "a", .i=0); // no indent
-	print(logger, "b", .i=1); // 1 indent
-	print(logger, "c", .i=2); // 2 indents
-	print(logger, "indented\nmulti\nline\nstring", .i=3);
+    print(logger, "hello", .i=0); // no indent
+    print(logger, "漢字日", .i=1); // 1 indent
+    print(logger, "áéöüñприв", .i=2); // 2 indents
+	print(logger, "indented\nmulti\n\nline\nstring\nет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞\n±≈√∑©®™", .i=3);
 	char buf[128];
-	print(logger, fmt(buf, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
-	print(logger, "new line before log message", .i=1, .ns=true); // ns = newline start
-	print(logger, "new line after log message", .i=1, .ne=true); // ne = newline end
+	print(logger, fmt(buf, "formatted string: %d %c 🎉%s😄", 7, 'f', "🌟hello🚀"), .i=1);
 
-	// prepend datetime and memory usage
+	// prepend info to each line, such as datetime and memory usage
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
 	logger->timezone = "local"; // valid options: "UTC", "local"
 	print(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
@@ -68,7 +65,7 @@ int main(void) {
 	print(logger, "and", .i=2);
 	print(logger, "indents", .i=3);
 
-    log_close(logger);
+    log_close(&logger);
     return 0;
 }
 ```
@@ -76,33 +73,31 @@ int main(void) {
 #### EXAMPLE OUTPUT
 ```
 [luke@luke utils]$ 
-[luke@luke utils]$ 
 [luke@luke utils]$ ./build/logging_util/logging_util_readme_example 
-a
-|   b
-|   |   c
+hello
+|   漢字日
+|   |   áéöüñприв
 |   |   |   indented
 |   |   |   multi
+|   |   |   
 |   |   |   line
 |   |   |   string
-|   formatted string: 7 f hellooo
-|   
-|   new line before log message
-|   new line after log message
-|   
--          2026-03-15 19:36:24.711740 MST  -  multiline
--          2026-03-15 19:36:24.711740 MST  -  message
--          2026-03-15 19:36:24.711740 MST  -  with
--          2026-03-15 19:36:24.711740 MST  -  prepend_datetime_fmt
--              1.7891 MiB used  -  multiline
--              1.7891 MiB used  -  message
--              1.7891 MiB used  -  with
--              1.7891 MiB used  -  prepend_memory_usage
--          2026-03-15 19:36:24.711989 MST  -      1.7891 MiB used  -  message
- -         2026-03-15 19:36:24.712079 MST  -      1.7891 MiB used  -  |   with
- -         2026-03-15 19:36:24.712134 MST  -      1.7891 MiB used  -  |   both
-  -        2026-03-15 19:36:24.712183 MST  -      1.7891 MiB used  -  |   |   and
-   -       2026-03-15 19:36:24.712244 MST  -      1.7891 MiB used  -  |   |   |   indents
+|   |   |   ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞
+|   |   |   ±≈√∑©®™
+|   formatted string: 7 f 🎉🌟hello🚀😄
+-          2026-03-20 00:31:40.094914 MST  -  multiline
+-          2026-03-20 00:31:40.094914 MST  -  message
+-          2026-03-20 00:31:40.094914 MST  -  with
+-          2026-03-20 00:31:40.094914 MST  -  prepend_datetime_fmt
+-              1.9922 MiB used  -  multiline
+-              1.9922 MiB used  -  message
+-              1.9922 MiB used  -  with
+-              1.9922 MiB used  -  prepend_memory_usage
+-          2026-03-20 00:31:40.095140 MST  -      2.0547 MiB used  -  messages
+ -         2026-03-20 00:31:40.095244 MST  -      2.0547 MiB used  -  |   with
+ -         2026-03-20 00:31:40.095322 MST  -      2.0547 MiB used  -  |   both
+  -        2026-03-20 00:31:40.095408 MST  -      2.0547 MiB used  -  |   |   and
+   -       2026-03-20 00:31:40.095495 MST  -      2.0547 MiB used  -  |   |   |   indents
 [luke@luke utils]$ 
 [luke@luke utils]$ 
 [luke@luke utils]$ 
