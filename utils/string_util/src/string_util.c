@@ -7,15 +7,6 @@
 #include <stdarg.h>     // for [tbd]
 #include <stdint.h>     // for SIZE_MAX
 
-// for ssize_t used by utf8proc
-#if defined(_WIN32) || defined(_WIN64)
-    #include <basetsd.h>
-    typedef SSIZE_T ssize_t;
-#else
-    #include <sys/types.h>
-    #include <unistd.h>
-#endif
-
 
 ////////////////////////////// UTF-8 Functions ////////////////////////////
 
@@ -795,44 +786,71 @@ int str_replace(
 }
 
 
-int str_repeat(
+int _str_repeat(
     String *s,
-    const size_t n
+    const size_t n,
+    RepeatOptions *opts
 ) {
-    if (!s || !s->text) return -1; // invalid input
 
-    // Return empty string if n == 0
-    if (n == 0) {
-        char *tmp = realloc(s->text, 1);
-        if (!tmp) return -1;
-        s->text = tmp;
-        s->text[0] = '\0';
-        s->bytes = 0;
-        s->len   = 0;
-        s->cap   = 1;
-        return 0;
-    }
+    // validate s
+    if (!s || !s->text || !opts) return -1;
 
-    // Check for overflow
-    if (s->bytes != 0 && n > SIZE_MAX / s->bytes)
-        return -1;
+    // output to text buffer if text_buffer != NULL,
+    // else modify s in place
+    if (opts->text_buffer) {
 
-    // Resize dynamic array if needed
-    size_t old_bytes = s->bytes;
-    size_t new_bytes = old_bytes * n;
-    size_t needed = new_bytes + 1;
-    if (needed > s->cap) {
-        int rc = grow_capacity(s, needed);
-        if (rc != 0)
+        // buffer_size is required when text_buffer is provided
+        if (opts->buffer_size == (size_t)-1) {
+            fprintf(stderr, "str_repeat() error: text_buffer provided but buffer_size not set. "
+                            "Pass .buffer_size=sizeof(your_buffer).\n");
             return -1;
-    }
+        }
 
-    // Repeat text n times
-    for (size_t i = 1; i < n; i++)
-        memcpy(s->text + i * old_bytes, s->text, old_bytes);
-    s->text[new_bytes] = '\0';
-    s->bytes = new_bytes;
-    s->len = s->len * n; // Update rune count
+        // write empty string if n == 0
+        if (n == 0) { opts->text_buffer[0] = '\0'; return 0; }
+
+        // check for overflow before multiplying
+        if (s->bytes != 0 && n > SIZE_MAX / s->bytes) return -1;
+
+        // check buffer is large enough to hold repeated string
+        size_t needed = s->bytes * n + 1; // +1 for null terminator
+        if (needed > opts->buffer_size) {
+            fprintf(stderr, "str_repeat() error: buffer_size=%zu is too small, need %zu bytes.\n",
+                            opts->buffer_size, needed);
+            return -1;
+        }
+
+        // copy s->text into text_buffer n times
+        for (size_t i = 0; i < n; i++)
+            memcpy(opts->text_buffer + i * s->bytes, s->text, s->bytes);
+        opts->text_buffer[s->bytes * n] = '\0';
+
+    } else {
+
+        // clear string if n == 0
+        if (n == 0) return str_clear(s);
+
+        // check for overflow before multiplying
+        if (s->bytes != 0 && n > SIZE_MAX / s->bytes) return -1;
+
+        // grow allocation if needed
+        size_t old_bytes = s->bytes;
+        size_t new_bytes = old_bytes * n;
+        size_t needed    = new_bytes + 1; // +1 for null terminator
+        if (needed > s->cap) {
+            int rc = grow_capacity(s, needed);
+            if (rc != 0) return -1;
+        }
+
+        // copy s->text repeatedly into itself, starting after the first copy
+        for (size_t i = 1; i < n; i++)
+            memcpy(s->text + i * old_bytes, s->text, old_bytes);
+        s->text[new_bytes] = '\0';
+
+        // update rune and byte count
+        s->bytes = new_bytes;
+        s->len   = s->len * n;
+    }
     return 0;
 }
 
@@ -1260,31 +1278,77 @@ String **str_split(
 }
 
 
-String *str_slice(
-    const String *s,
-    size_t start,
-    size_t end
+int _str_slice(
+    String *s,
+    ssize_t start,
+    ssize_t end,
+    SliceOptions *opts
 ) {
-    if (!s || !s->text) return NULL;
-    if (start >= s->len) start = s->len;
-    if (end > s->len)    end   = s->len;
-    if (end < start)     end   = start;
 
+    // validate s
+    if (!s || !s->text || !opts) return -1;
+
+    // empty string edge case (avoid divide by zero in modulus below)
+    if (s->len == 0) {
+        if (opts->text_buffer) {
+            opts->text_buffer[0] = '\0';
+        } // else do nothing
+        return 0;
+    }
+    ssize_t len = (ssize_t)s->len;
+
+    // Negative indices wrap around, and
+    // indeces longer than s->len are wrapped.
+    // DETAILS: inner modulus brings it into [-len, len] range,
+    // then +len shifts negatives positive,
+    // then the outer % len cleans up the cases that were already positive.
+    start = ((start % len) + len) % len;
+    end   = ((end   % len) + len) % len;
+
+    // end==0 after wrapping means it was a multiple of len (e.g. len itself),
+    // which is valid as the exclusive upper bound — restore it to len
+    if (end == 0) end = len;
+    if (start > end) return -1;
+
+    // get byte range from rune range
     size_t byte_start, byte_len;
     rune_range_to_byte_range(s->text, start, end - start, &byte_start, &byte_len);
 
-    size_t part_runes = end - start;
+    // output to text buffer if text_buffer != NULL,
+    // else modify s in place
+    if (opts->text_buffer) {
 
-    String *result = malloc(sizeof(String));
-    if (!result) return NULL;
-    result->text = malloc(byte_len + 1);
-    if (!result->text) { free(result); return NULL; }
-    memcpy(result->text, s->text + byte_start, byte_len);
-    result->text[byte_len] = '\0';
-    result->bytes = byte_len;
-    result->len   = part_runes;
-    result->cap   = byte_len + 1;
-    return result;
+        // buffer_size is required when text_buffer is provided
+        if (opts->buffer_size == (size_t)-1) {
+            fprintf(stderr, "str_slice() error: text_buffer provided but buffer_size not set. "
+                            "Pass .buffer_size=sizeof(your_buffer).\n");
+            return -1;
+        }
+
+        // check buffer is large enough to hold slice
+        size_t needed = byte_len + 1; // +1 for null terminator
+        if (needed > opts->buffer_size) {
+            fprintf(stderr, "str_slice() error: buffer_size=%zu is too small, need %zu bytes.\n",
+                            opts->buffer_size, needed);
+            return -1;
+        }
+
+        // copy slice into text_buffer
+        memcpy(opts->text_buffer, s->text + byte_start, byte_len);
+        opts->text_buffer[byte_len] = '\0';
+        return 0;
+
+    } else {
+
+        // copy slice into buffer to overwrite s with
+        char *buffer = malloc(byte_len + 1);
+        if (!buffer) return -1;
+        memcpy(buffer, s->text + byte_start, byte_len);
+        buffer[byte_len] = '\0';
+        int rc = str_overwrite(s, buffer);
+        free(buffer);
+        return rc;
+    }
 }
 
 

@@ -130,6 +130,7 @@ Log *_init_log(
         }
     #endif
 
+    // only output to log file if filepath is provided
     log->output_to_logfile = (log->filepath != NULL) ? log->output_to_logfile : false;
 
     // create logfile if it doesn't exist, and clear it if user specified to do so
@@ -146,8 +147,9 @@ Log *_init_log(
     if (log->output_to_logfile && log->file_pointer != NULL)
         setvbuf(log->file_pointer, NULL, _IONBF, 0); // disable buffering for logfile
 
-    // fix weird timezone bug: if "%Z" substring in prepend_datetime_fmt
-    // and timezone = "UTC", replace "%Z" with hardcoded "UTC"
+    // fix weird timezone bug:
+    // if "%Z" substring in prepend_datetime_fmt and
+    // timezone = "UTC", replace "%Z" with hardcoded "UTC"
     if (log->prepend_datetime_fmt && log->timezone) {
         char* fixed_fmt = _fix_utc_format(log->prepend_datetime_fmt, log->timezone);
         // only replace pointer if a new string was returned
@@ -165,10 +167,13 @@ Log *_init_log(
     set_start_time(log, NULL, NULL);
 
     // init overwrite_prev_msg variables
-    log->prev_console_message = NULL;
-    log->prev_console_message_len = 0;
-    log->prev_logfile_start = 0;
-    log->prev_logfile_end   = 0;
+    // these variables are reused each log message to avoid frequent
+    // allocations and deallocations on the heap
+    log->console_msg        = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
+    log->prev_console_msg   = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
+    log->logfile_msg        = str("", .allocation_procedure=MEM_FIXED, .cap=log->max_message_len * 4);
+    log->logfile_msg_start  = 0;
+    log->logfile_msg_end    = 0;
 
     // init mutex
     #if PLATFORM_WINDOWS
@@ -182,13 +187,22 @@ Log *_init_log(
 
 
 void close_log(
-    Log *log
+    Log **log_ptr
 ) {
+    if (!log_ptr || !*log_ptr) return;
+    Log *log = *log_ptr;
 
-    // free struct members
-    if (!log) return;
+    // free log file pointer
     if (log->file_pointer != NULL) fclose(log->file_pointer);
-    if (log->prev_console_message) free(log->prev_console_message);
+
+    // str_free skips over any NULL String pointers
+    str_free(
+        &(log->logfile_indent),
+        &(log->console_indent),
+        &(log->console_msg),
+        &(log->prev_console_msg),
+        &(log->logfile_msg)
+    );
 
     // destroy mutex
     #if PLATFORM_WINDOWS
@@ -197,8 +211,9 @@ void close_log(
         pthread_mutex_destroy(&log->mutex);
     #endif
 
-    // free struct
+    // free struct and NULL close_log() caller's log pointer
     free(log);
+    *log_ptr = NULL;
 }
 
 
@@ -213,10 +228,10 @@ static int _count_lines(
 }
 
 
-static void _console_clear_previous_message(
+static void _clear_previous_console_message(
     Log *log
 ) {
-    int line_count = _count_lines(log->prev_console_message);
+    int line_count = _count_lines(log->prev_console_msg->text);
 
     // // NOTE: not needed after switching from write() to fwrite(), maybe delete one day
     // #if PLATFORM_WINDOWS
@@ -346,104 +361,98 @@ static void _append_inline_truncation_message(
 
 static int _get_indented_message(
     const char *message,
-    const char *indent,
-    size_t max_msg_chars, size_t max_ln_chars,
-    char *p_buf,
-    char **formatted_message, size_t *formatted_message_len,
+    char *prepend_info,
+    size_t prepend_info_len,
+    const String *indent,
+    size_t max_message_len,
+    size_t max_line_len,
+    String *formatted_message,
     PrintOptions *opts
 ) {
 
-    // Init output buffer fmt_msg
-    size_t msg_buf_len = max_msg_chars + MESSAGE_TRUNCATION_MSG_LEN + 1;
-    char *fmt_msg = malloc(msg_buf_len);
-    if (!fmt_msg) return -1;
-    size_t fmt_msg_len = 0;
-
     // Create indent buffers
-    size_t indent_len = strlen(indent);
+    size_t indent_len = indent->len;
     size_t i = opts->i;
     size_t len1 = indent_len * i;
     size_t len2 = indent_len * (i + 1);
     char total_indent1[len1 + 1];
     char total_indent2[len2 + 1];
     for (size_t j = 0; j < i; j++)
-        memcpy(total_indent1 + j * indent_len, indent, indent_len);
+        memcpy(total_indent1 + j * indent_len, indent->text, indent_len);
     for (size_t j = 0; j < i + 1; j++)
-        memcpy(total_indent2 + j * indent_len, indent, indent_len);
+        memcpy(total_indent2 + j * indent_len, indent->text, indent_len);
     total_indent1[len1] = '\0';
     total_indent2[len2] = '\0';
     const char* total_indent3 = opts->d ? total_indent2 : total_indent1;
 
+    // Init tmp buffer for fmt()
+    char tmp[max_line_len * 4];
+
     // Add starting newline if requested
     if (opts->ns)
-        fmt_append(
-            fmt_msg, msg_buf_len, &fmt_msg_len,
-            "%s%s\n", p_buf, total_indent3);
+        str_append(
+            formatted_message,
+            fmt(tmp, "%s%s\n", prepend_info, total_indent3)
+        );
 
     // Format each line in the log message
-    const char *line_start = message;
+    const char *line_byte_start = message;
     bool message_truncated = false;
     do {
-        const char *line_end = strchr(line_start, '\n'); // strchr() returns pointer to next occurrence of '\n'
-        size_t line_len = line_end ? (size_t)(line_end - line_start) : strlen(line_start);
+        const char *line_byte_end = strchr(line_byte_start, '\n'); // strchr() returns a pointer to next occurrence of '\n'
+        size_t line_byte_len = line_byte_end ? (size_t)(line_byte_end - line_byte_start) : strlen(line_byte_start);
 
-        // Append prepended info, indents, and line,
-        // and truncate line if its too long.
-        const char *line_indent = line_len == 0 ? total_indent3 : total_indent1;
-        if (line_len >= max_ln_chars) {
-            fmt_append(
-                fmt_msg, msg_buf_len, &fmt_msg_len,
-                "%s%s%.*s",
-                p_buf,
+        // Append prepended info, indents, and line
+        const char *line_indent = line_byte_len == 0 ? total_indent3 : total_indent1;
+        const size_t rune_len_before = formatted_message->len;
+        str_append(
+            formatted_message,
+            fmt(tmp, "%s%s%.*s%s",
+                prepend_info,
                 line_indent,
-                (int)max_ln_chars,
-                line_start
-            );
-            _append_inline_truncation_message(
-                fmt_msg,
-                msg_buf_len,
-                &fmt_msg_len,
-                LINE_TRUNCATION_MSG
-            );
-
-        } else {
-            fmt_append(
-                fmt_msg, msg_buf_len, &fmt_msg_len,
-                "%s%s%.*s%s",
-                p_buf,
-                line_indent,
-                (int)line_len,
-                line_start,
+                line_byte_len,
+                line_byte_start,
                 opts->end
-            );
-        }
+            )
+        );
 
-        // truncate fmt_msg and break if fmt_line exceeds max_msg_chars
-        if (fmt_msg_len >= max_msg_chars) {
-            fmt_msg_len = max_msg_chars;
-            _append_inline_truncation_message(
-                fmt_msg,
-                msg_buf_len,
-                &fmt_msg_len,
+        // Truncate formatted_message and break if its too long
+        if (formatted_message->len >= max_message_len) {
+            str_slice(
+                formatted_message,
+                0, max_message_len - MESSAGE_TRUNCATION_MSG_LEN
+            );
+            str_append(
+                formatted_message,
                 MESSAGE_TRUNCATION_MSG
             );
             message_truncated = true;
             break;
         }
+        
+        // Truncate line if its too long
+        const size_t line_rune_len = formatted_message->len - rune_len_before;
+        if (line_rune_len >= max_line_len) {
+            str_slice(
+                formatted_message,
+                0, rune_len_before + max_line_len - LINE_TRUNCATION_MSG_LEN
+            );
+            str_append(
+                formatted_message,
+                LINE_TRUNCATION_MSG
+            );
+        }
 
         // Move to next line
-        line_start = line_end ? line_end + 1 : NULL;
-    } while (line_start != NULL);
+        line_byte_start = line_byte_end ? line_byte_end + 1 : NULL;
+    } while (line_byte_start != NULL);
 
     // Add ending newline if requested
     if (opts->ne && !message_truncated)
-        fmt_append(
-            fmt_msg, msg_buf_len, &fmt_msg_len,
-            "%s%s\n", p_buf, total_indent3);
-
-    // Copy final result to formatted_message
-    *formatted_message = fmt_msg;
-    *formatted_message_len = fmt_msg_len;
+        str_append(
+            formatted_message,
+            fmt(tmp, "%s%s\n", prepend_info, total_indent3)
+        );
 
     // Return success code
     return 0;
@@ -453,8 +462,8 @@ static int _get_indented_message(
 static int _get_formatted_messages(
     Log* log,
     const char* message,
-    bool create_console_output, char** console_msg, size_t *console_msg_len,
-    bool create_logfile_output, char** logfile_msg, size_t *logfile_msg_len,
+    bool output_to_console,
+    bool output_to_logfile,
     PrintOptions *opts
 ) {
 
@@ -464,8 +473,9 @@ static int _get_formatted_messages(
     if (i < 0 || i > log->max_indents) return -1;
 
     // Prepend info if requested
-    char p_buf[log->max_line_chars];
-    p_buf[0] = '\0'; // Initialize to empty string for when not prepending anything
+    char prepend_info[log->max_line_len];
+    prepend_info[0] = '\0'; // Initialize to empty string for when not prepending anything
+    size_t prepend_info_len = 0;
     if (log->prepend_datetime_fmt || \
         log->prepend_elapsed_time || \
         log->prepend_memory_usage) {
@@ -474,9 +484,8 @@ static int _get_formatted_messages(
         // If info is prepended to each line, mock indents are tiny one space indents before the prepended info.
         // They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
         const char div_mark = '-';
-        size_t p_len = 0;
         fmt_append(
-            p_buf, sizeof(p_buf), &p_len,
+            prepend_info, sizeof(prepend_info), &prepend_info_len,
             "%*s%c%*s", i, "", div_mark, log->max_indents - i, ""
         );
 
@@ -486,7 +495,7 @@ static int _get_formatted_messages(
         if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
             if (get_current_unix_time(&unix_seconds, &microseconds) != 0) {
                 fprintf(stderr, "LOG ERROR: failed to get current time\n");
-                goto fail;
+                return -1;
             }
         }
 
@@ -502,10 +511,10 @@ static int _get_formatted_messages(
                 sizeof(datetime_str)) != 0) {
 
                 fprintf(stderr, "LOG ERROR: failed to format datetime\n");
-                goto fail;
+                return -1;
             }
             fmt_append(
-                p_buf, sizeof(p_buf), &p_len,
+                prepend_info, sizeof(prepend_info), &prepend_info_len,
                 "%s  ", datetime_str
             );
         }
@@ -522,7 +531,7 @@ static int _get_formatted_messages(
                 &elapsed_usec) != 0) {
 
                 fprintf(stderr, "LOG ERROR: failed to get elapsed time\n");
-                goto fail;
+                return -1;
             }
             char elapsed_time_str[128];
             if (format_elapsed_time(
@@ -532,16 +541,16 @@ static int _get_formatted_messages(
                 sizeof(elapsed_time_str)) != 0) {
 
                 fprintf(stderr, "LOG ERROR: failed to format elapsed time\n");
-                goto fail;
+                return -1;
             }
             if (log->prepend_datetime_fmt) {
                 fmt_append(
-                    p_buf, sizeof(p_buf), &p_len,
+                    prepend_info, sizeof(prepend_info), &prepend_info_len,
                     "%c  ", div_mark
                 );
             }
             fmt_append(
-                p_buf, sizeof(p_buf), &p_len,
+                prepend_info, sizeof(prepend_info), &prepend_info_len,
                 "%s  ", elapsed_time_str
             );
         }
@@ -552,77 +561,50 @@ static int _get_formatted_messages(
             _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
             if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
                 fmt_append(
-                    p_buf, sizeof(p_buf), &p_len,
+                    prepend_info, sizeof(prepend_info), &prepend_info_len,
                     "%c  ", div_mark
                 );
             }
             fmt_append(
-                p_buf, sizeof(p_buf), &p_len,
+                prepend_info, sizeof(prepend_info), &prepend_info_len,
                 "%17s", mem_usage_str
             );
         }
 
         // append a final div mark plus some spacing
         fmt_append(
-            p_buf, sizeof(p_buf), &p_len,
+            prepend_info, sizeof(prepend_info), &prepend_info_len,
             "%c  ", div_mark
         );
     }
 
-    if (create_console_output)
+    if (output_to_console) {
+        str_clear(log->console_msg);
         _get_indented_message(
             message,
+            prepend_info,
+            prepend_info_len,
             log->console_indent,
-            log->max_message_chars, log->max_line_chars,
-            p_buf,
-            console_msg, console_msg_len,
+            log->max_message_len,
+            log->max_line_len,
+            log->console_msg,
             opts
         );
+    }
 
-    if (create_logfile_output)
+    if (output_to_logfile) {
+        str_clear(log->logfile_msg);
         _get_indented_message(
             message,
+            prepend_info,
+            prepend_info_len,
             log->logfile_indent,
-            log->max_message_chars, log->max_line_chars,
-            p_buf,
-            logfile_msg, logfile_msg_len,
+            log->max_message_len,
+            log->max_line_len,
+            log->logfile_msg,
             opts
         );
-
-    return 0;
-
-    fail:
-    return -1;
-}
-
-
-static int _update_prev_message(
-    Log* log,
-    const char* str,
-    size_t str_len
-) {
-    if (!log || !str) return -1;
-
-    char **prev_msg_ptr = &log->prev_console_message;
-    size_t *prev_msg_len_ptr = &log->prev_console_message_len;
-
-    // free old message if any
-    if (*prev_msg_ptr != NULL) {
-        free(*prev_msg_ptr);
-        *prev_msg_ptr = NULL;
     }
-
-    // allocate and copy new message (include null terminator)
-    size_t len = str_len + 1;
-    *prev_msg_ptr = (char*)malloc(len);
-    if (!*prev_msg_ptr) {
-        const char *error_msg = "failed to allocate memory for prev_console_message\n";
-        fprintf(stderr, "%s", error_msg);
-        return -1;
-    }
-    memcpy(*prev_msg_ptr, str, str_len);
-    (*prev_msg_ptr)[str_len] = '\0';  // null-terminate
-    *prev_msg_len_ptr = str_len;
 
     return 0;
 }
@@ -634,21 +616,18 @@ int _log_print_unlocked(
     PrintOptions *opts
 ) {
     if (!opts) opts = &(PrintOptions){DEFAULT_PRINT_OPTIONS};
+    int return_code = 0;
 
     // Use optional opts->oc/of arg(s) if specified, else default to log struct's setting
     bool output_to_console = (opts->oc == -1) ? log->output_to_console : opts->oc;
     bool output_to_logfile = (opts->of == -1) ? log->output_to_logfile : opts->of;
 
-    // Create formatted console and/or logfile strings if needed (printed or returned)
-    bool create_console_output = output_to_console || opts->console_str != NULL;
-    bool create_logfile_output = output_to_logfile || opts->logfile_str != NULL;
-    char *console_str = NULL; size_t console_str_len = 0;
-    char *logfile_str = NULL; size_t logfile_str_len = 0;
-    if (create_console_output || create_logfile_output) {
+    // Get formatted log message for console and/or log file
+    if (output_to_console || output_to_logfile) {
         if (_get_formatted_messages(
                 log, msg,
-                create_console_output, &console_str, &console_str_len,
-                create_logfile_output, &logfile_str, &logfile_str_len,
+                output_to_console,
+                output_to_logfile,
                 opts
             ) != 0) {
 
@@ -657,72 +636,50 @@ int _log_print_unlocked(
         }
     }
 
-    if (console_str != NULL) {
+    // Write to console
+    if (output_to_console) {
 
-        // Print to console
-        if (output_to_console) {
+        // Move cursor up and clear previous message if user set overwrite_prev_msg to true
+        if (opts->overwrite_prev_msg && !str_is_empty(log->prev_console_msg))
+            _clear_previous_console_message(log);
 
-            // Move cursor up and clear previous string if user set overwrite_prev_msg to true
-            if (opts->overwrite_prev_msg && log->prev_console_message != NULL)
-                _console_clear_previous_message(log);
+        // Print formatted string to console
+        fwrite(log->console_msg->text, 1, log->console_msg->bytes, log->console_stream);
+        // NOTE: using fwrite() instead of write() even though its buffered because it
+        // works with FILE* streams, is fully cross-platform, and we can disable buffering
+        // with setvbuf(_IONBF). fprintf() automatically handles \0-terminated strings,
+        // Use fwrite to respect console_msg->len if binary content
 
-            // Print formatted string to console
-            fwrite(console_str, 1, console_str_len, log->console_stream);
-            // NOTES: using fwrite() instead of write() even though its buffered because it works with FILE* streams,
-            // is fully cross-platform, and we can disable buffering with setvbuf(_IONBF).
-            // fprintf() automatically handles \0-terminated strings, Use fwrite to respect console_str_len if binary content
-
-            // Update previous message tracking
-            int rc = _update_prev_message(log, console_str, console_str_len);
-            if (rc != 0) {
-                free(console_str);
-                free(logfile_str);
-                return rc;
-            }
-        }
-
-        // Return console_str to user if requested
-        if (opts->console_str) {
-            *opts->console_str = console_str; // user now owns memory
-        } else {
-            free(console_str);
-        }
+        // Overwrite the old prev_console_msg with the new console_msg
+        int rc = str_overwrite(log->prev_console_msg, log->console_msg->text);
+        if (rc != 0)
+            return_code = rc;
     }
 
-    if (logfile_str != NULL) {
+    // Write to log file
+    if (output_to_logfile && log->file_pointer != NULL) {
 
-        // Print to log file
-        if (output_to_logfile && log->file_pointer != NULL) {
-
-            // Clear previous message in log file if user set overwrite_prev_msg to true
-            long write_pos;
-            if (opts->overwrite_prev_msg && log->prev_logfile_end > log->prev_logfile_start) {
-                write_pos = log->prev_logfile_start;
-                fseek(log->file_pointer, write_pos, SEEK_SET);
-            } else {
-                write_pos = ftell(log->file_pointer);
-                log->prev_logfile_start = write_pos;
-            }
-
-            // Print formatted message to log file
-            fwrite(logfile_str, 1, logfile_str_len, log->file_pointer);
-
-            // Update previous message
-            long new_end = write_pos + logfile_str_len;
-            if (opts->overwrite_prev_msg) // Truncate if overwriting shorter content
-                ftruncate(fileno(log->file_pointer), new_end);
-            log->prev_logfile_end = new_end;
-        }
-
-        // Return logfile_str to user if requested it, else free its memory
-        if (opts->logfile_str) {
-            *opts->logfile_str = logfile_str;
+        // Clear previous message in log file if user set overwrite_prev_msg to true
+        long write_pos;
+        if (opts->overwrite_prev_msg && log->logfile_msg_end > log->logfile_msg_start) {
+            write_pos = log->logfile_msg_start;
+            fseek(log->file_pointer, write_pos, SEEK_SET);
         } else {
-            free(logfile_str);
+            write_pos = ftell(log->file_pointer);
+            log->logfile_msg_start = write_pos;
         }
+
+        // Print formatted message to log file
+        fwrite(log->logfile_msg->text, 1, log->logfile_msg->bytes, log->file_pointer);
+
+        // Update message file start/end position
+        long new_end = write_pos + log->logfile_msg->bytes;
+        if (opts->overwrite_prev_msg) // Truncate if overwriting shorter content
+            ftruncate(fileno(log->file_pointer), new_end);
+        log->logfile_msg_end = new_end;
     }
 
-    return 0;
+    return return_code;
 }
 
 
@@ -757,7 +714,6 @@ int _log_print(
 
     return rc;
 }
-
 
 ////////////////////////////////////////////////////////////
 

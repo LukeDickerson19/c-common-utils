@@ -7,6 +7,15 @@
 #include <stdbool.h> // for bool type
 #include <stddef.h> // for ptrdiff_t
 
+// for ssize_t used by utf8proc
+#if defined(_WIN32) || defined(_WIN64)
+    #include <basetsd.h>
+    typedef SSIZE_T ssize_t;
+#else
+    #include <sys/types.h>
+    #include <unistd.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,7 +23,8 @@ extern "C" {
 
 ///////////////////////////// Structs and Enums //////////////////////////
 
-/**
+/** MemoryAllocationProcedure enum
+ * 
  * The grow_capacity() and shrink_capacity() string util internal static functions implement whichever MemoryAllocationProcedure enum val a user chooses for a String struct. Default option is DEFAULT_MEM_PROC (see below)..
  * Options:
  *   - MEM_LINEAR:
@@ -35,7 +45,8 @@ typedef enum {
 } MemoryAllocationProcedure;
 #define DEFAULT_MEM_PROC MEM_LINEAR
 
-/**
+/** String struct
+ * 
  * UTF-8 compatible dynamic string struct
  * 
  * Struct Members:
@@ -60,9 +71,19 @@ typedef struct String {
 ////////////////////////////// Memory Functions ///////////////////////////
 
 
-// 
-/**
- * Optional Args for String struct
+/** str()
+ * 
+ * Creates a new String for `text`.
+ *
+ * Examples:
+ *   String *s1 = str("Hello, world!");
+ *   String *s2 = str(fmt(buf, "Name: %s, Age: %d", name, age));
+ *
+ * @param text   format string (must not be NULL)
+ * @param opts   optional arguments
+ * @return       pointer to initialized String struct (returns NULL on failure)
+ * 
+ * StringOptions: Optional Args for String struct
  *   - allocation_procedure:
  *         allocation_procedure specifies how to allocate memory for this String. It defaults
  *         to MemoryAllocationProcedure.MEM_LINEAR enum which grows and shrinks the string's
@@ -79,25 +100,13 @@ typedef struct StringOptions {
 #define DEFAULT_STRING_OPTIONS \
     .allocation_procedure = DEFAULT_MEM_PROC, \
     .cap = (size_t)-1
-
-/**
- * Creates a new String for `text`.
- *
- * Examples:
- *   String *s1 = str("Hello, world!");
- *   String *s2 = str(fmt(buf, "Name: %s, Age: %d", name, age));
- *
- * @param text   format string (must not be NULL)
- * @param opts   optional arguments
- * @return      pointer to initialized String struct (returns NULL on failure)
- */
 String *_str(const char *text, const StringOptions *opts);
-// Macro to simulate optional args
 #define str(text, ...) \
     _str((text), &(StringOptions){ DEFAULT_STRING_OPTIONS, ##__VA_ARGS__ })
 
 
-/**
+/** str_free()
+ * 
  * Frees the memory of one or multiple String structs and their struct members
  * given as a variadic list of String pointers, and resets their fields.
  *
@@ -112,7 +121,8 @@ void _str_free(String ***list, size_t count);
     sizeof((String**[]){__VA_ARGS__}) / sizeof(String**))
 
 
-/**
+/** str_clone()
+ * 
  * Creates a deep copy of the given String.
  * Allocates a new heap buffer and copies the contents.
  *
@@ -124,7 +134,8 @@ String *str_clone(
 );
 
 
-/**
+/** str_info()
+ * 
  * Formats String struct metadata and memory footprint into a buffer.
  *
  * @param label    A descriptive name prefix for identifying the string instance.
@@ -142,7 +153,8 @@ void str_info(
 ////////////////////////////// Mutation Functions /////////////////////////
 
 
-/**
+/** str_append()
+ * 
  * Appends the char array `suffix` to the end of `s`.
  * Automatically resizes `s` if necessary (doubles capacity repeatedly).
  *
@@ -156,7 +168,8 @@ int str_append(
 );
 
 
-/**
+/** str_prepend()
+ * 
  * Prepends the char array `suffix` to the end of `s`.
  * Automatically resizes `s` if necessary (doubles capacity repeatedly).
  *
@@ -170,7 +183,8 @@ int str_prepend(
 );
 
 
-/**
+/** str_concat()
+ * 
  * Concatenates multiple strings from a NULL-terminated array into one target string.
  * The result is built in the string at index `opts->output_index` (default: 0).
  * Automatically resizes the target string if necessary (doubles capacity repeatedly).
@@ -198,7 +212,8 @@ int _str_concat(String **s_list, const size_t count, const ConcatOptions *opts);
     )
 
 
-/**
+/** str_to_upper()
+ * 
  * Converts all characters in the string to uppercase in place.
  * Non-alphabetic characters are left unchanged.
  *
@@ -210,7 +225,8 @@ int str_to_upper(
 );
 
 
-/**
+/** str_to_lower()
+ * 
  * Converts all characters in the string to lowercase in place.
  * Non-alphabetic characters are left unchanged.
  *
@@ -222,7 +238,8 @@ int str_to_lower(
 );
 
 
-/**
+/** str_insert()
+ * 
  * Inserts the contents of `sub` into `s` at the given index.
  * Automatically resizes `dst` if necessary (doubles capacity repeatedly).
  *
@@ -239,7 +256,8 @@ int str_insert(
 );
 
 
-/**
+/** str_replace()
+ * 
  * Replaces occurrences of `old_sub` in `s` with `new_sub`.
  *
  * @param s        string to modify (must not be NULL)
@@ -259,21 +277,46 @@ int str_replace(
 );
 
 
-/**
- * Updates String s to repeat n times.
- *
- * @param s    string to repeat (must not be NULL)
- * @param n    number of repetitions (0 -> returns empty string)
+/** str_repeat()
  * 
+ * Repeats s->text n times, either in-place or into a caller-owned buffer.
+ *
+ * @param s    source string to repeat (must not be NULL)
+ * @param n    number of repetitions (0 -> empty string)
+ * @param ...  optional RepeatOptions:
+ *               .text_buffer  - caller-owned buffer to write result into (default: NULL)
+ *               .buffer_size  - size of text_buffer in bytes, required if text_buffer is set
+ *
  * @return 0 on success, -1 on failure
+ *
+ * Behavior:
+ *   - If text_buffer is NULL -> modifies s in place
+ *   - If text_buffer is set  -> writes repeated string into text_buffer, s is unchanged
+ *   - If text_buffer is set but buffer_size is not -> prints error and returns -1
+ *   - If text_buffer is too small to hold result   -> prints error and returns -1
+ *
+ * Notes:
+ *   - text_buffer must be at least s->bytes * n + 1 bytes
+ *   - UTF-8 safe: operates on bytes, rune count is preserved
+ *
+ * Examples:
+ *   str_repeat(s, 3);                                                  // in place
+ *   str_repeat(s, 3, .text_buffer = buf, .buffer_size = sizeof(buf)); // to buffer
  */
-int str_repeat(
-    String *s,
-    const size_t n
-);
+typedef struct RepeatOptions {
+    char *text_buffer;
+    size_t buffer_size;
+} RepeatOptions;
+#define DEFAULT_REPEAT_OPTIONS \
+    .text_buffer = NULL, \
+    .buffer_size = (size_t)-1
+int _str_repeat(String *s, size_t n, RepeatOptions *opts);
+#define str_repeat(s, n, ...) \
+    _str_repeat(s, n, &(RepeatOptions){ DEFAULT_REPEAT_OPTIONS, ##__VA_ARGS__ })
 
 
-/**
+/** str_remove()
+ * 
  * Removes a portion of the string starting at `i` and spanning `n` UTF-8 runes.
  *
  * @param s    string to modify (must not be NULL)
@@ -291,7 +334,8 @@ int str_remove(
 );
 
 
-/**
+/** str_trim()
+ * 
  * Removes whitespace from both ends of the string in place.
  *
  * @param s  string to trim (must not be NULL)
@@ -302,7 +346,8 @@ int str_trim(
 );
 
 
-/**
+/** str_trim_left()
+ * 
  * Removes whitespace from the start (left) of the string in place.
  *
  * @param s  string to trim (must not be NULL)
@@ -313,7 +358,8 @@ int str_trim_left(
 );
 
 
-/**
+/** str_trim_right()
+ * 
  * Removes whitespace from the end (right) of the string in place.
  *
  * @param s  string to trim (must not be NULL)
@@ -324,7 +370,8 @@ int str_trim_right(
 );
 
 
-/**
+/** str_clear()
+ * 
  * Clears all text from the string and shrinks its memory allocation if applicable to the strings memory allocation procedure.
  *
  * @param s  string to clear (must not be NULL)
@@ -335,7 +382,8 @@ int str_clear(
 );
 
 
-/**
+/** str_overwrite()
+ * 
  * Completely overwrites a string with new text, updating its length, byte count,
  * and memory allocation as needed.
  *
@@ -352,7 +400,8 @@ int str_overwrite(
 ////////////////////////////// Query Functions ////////////////////////////
 
 
-/**
+/** str_equals()
+ * 
  * Returns true if both strings contain identical characters.
  *
  * @param a  first string (must not be NULL)
@@ -365,7 +414,8 @@ bool str_equals(
 );
 
 
-/**
+/** str_is_empty()
+ * 
  * Returns true if the string has zero length.
  */
 bool str_is_empty(
@@ -373,7 +423,8 @@ bool str_is_empty(
 );
 
 
-/**
+/** str_starts_with()
+ * 
  * Returns true if the string starts with the given prefix.
  * @param s      the string to check
  * @param prefix the prefix to test
@@ -384,7 +435,8 @@ bool str_starts_with(
 );
 
 
-/**
+/** str_ends_with()
+ * 
  * Returns true if the string ends with the given suffix.
  * @param s      the string to check
  * @param suffix the suffix to test
@@ -395,7 +447,8 @@ bool str_ends_with(
 );
 
 
-/**
+/** str_contains()
+ * 
  * Returns true if `s` contains `substr`, using naive search.
  *
  * @param s       string to search in (must not be NULL)
@@ -412,7 +465,8 @@ bool str_contains(
 );
 
 
-/**
+/** str_count()
+ * 
  * Counts the number of non-overlapping occurrences of `substr` in `s`.
  *
  * @param s       string to search in (must not be NULL)
@@ -429,7 +483,8 @@ size_t str_count(
 );
 
 
-/**
+/** str_index_of()
+ * 
  * Returns the index of the first or last occurrence of `substr` in `s`.
  *
  * @param s       string to search in (must not be NULL)
@@ -445,7 +500,8 @@ size_t str_index_of(
 );
 
 
-/**
+/** str_indices_of()
+ * 
  * Returns all indices of occurrences of `substr` in `s`.
  *
  * @param s        string to search in (must not be NULL)
@@ -464,7 +520,8 @@ size_t* str_indices_of(
 ////////////////////////////// Extract Functions //////////////////////////
 
 
-/**
+/** str_split()
+ * 
  * Splits a string into substrings using a single character delimiter.
  *
  * @param s         string to split
@@ -479,35 +536,64 @@ String **str_split(
 );
 
 
-/**
- * Returns a substring of `s` in the half-open range [start, end).
+/** str_slice()
+ * Copies a substring slice of String `s` at the rune index range [start, end)
+ * into either the caller-owned `opts->text_buffer`, or modifying `s` in place.
  *
  * @param s      source string (must not be NULL)
  * @param start  starting UTF-8 rune index (inclusive)
  * @param end    ending UTF-8 rune index (exclusive)
- * @return       new String containing the requested slice
+ * @param ...    optional SliceOptions:
+ *                 .text_buffer  - caller-owned buffer to write result into (default: NULL)
+ *                 .buffer_size  - size of text_buffer in bytes, required if text_buffer is set
+ * @return       0 on success, -1 on error
  *
  * Behavior:
- *   - If start >= end -> returns empty string
- *   - If start >= s->len -> returns empty string
- *   - If end > s->len -> end is clamped to s->len
+ *   - If text_buffer is NULL -> modifies s in place
+ *   - If text_buffer is set  -> writes slice into text_buffer, s is unchanged
+ *   - If text_buffer is set but buffer_size is not -> prints error and returns -1
+ *   - If text_buffer is too small to hold result   -> prints error and returns -1
+ *   - If start > end after wrapping                -> returns -1
+ *
+ * Index wrapping (python-style):
+ *   - Negative indices wrap from the end: -1 = last rune, -2 = second to last, etc.
+ *   - Indices beyond s->len are wrapped with modulus
+ *   - Multiples of s->len (e.g. 0, s->len, 2*s->len) are treated as s->len for end,
+ *     and 0 for start, allowing end to reach the full length of the string
+ *   - If start > end after wrapping -> returns -1
  *
  * Notes:
- *   - Returned String is heap-allocated and must be freed with str_free()
- *   - Does not modify the original string.
- *   - Time complexity: O(n) where n = end - start.
+ *   - text_buffer must be at least byte length of slice + 1 bytes
+ *   - UTF-8 safe: slices on rune boundaries, not bytes
+ *   - Time complexity: O(n) where n = end - start
+ *
+ * Examples:
+ *   str_slice(s, 0, 5);                                                       // in place
+ *   str_slice(s, 0, 5, .text_buffer = buf, .buffer_size = sizeof(buf));       // to buffer
+ *   str_slice(s, -3, -1, .text_buffer = buf, .buffer_size = sizeof(buf));     // negative indices
  */
-String *str_slice(
-    const String *s,
-    size_t start,
-    size_t end
+typedef struct SliceOptions {
+    char  *text_buffer;
+    size_t buffer_size;
+} SliceOptions;
+#define DEFAULT_SLICE_OPTIONS \
+    .text_buffer = NULL, \
+    .buffer_size = (size_t)-1
+int _str_slice(
+    String *s,
+    ssize_t start,
+    ssize_t end,
+    SliceOptions *opts
 );
+#define str_slice(s, start, end, ...) \
+    _str_slice(s, start, end, &(SliceOptions){ DEFAULT_SLICE_OPTIONS, ##__VA_ARGS__ })
 
 
 ///////////////////////////// Char Array Formatting ///////////////////////
 
 
-/**
+/** fmt()
+ * 
  * fmt() is a convenience macro used to format char arrays. It requires passing a pre-created buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
  * Example usage:
  *     char *buf1[128];
@@ -532,8 +618,9 @@ String *str_slice(
 */
 
 
-/**
- * fmt_append() appends the src char array (plus formatting) to dst buffer, updates the *pos pointer to the new end (null terminator position) of the char array, and returns the number of bytes that would have been written on success (from snprintf() function).
+/** fmt_append()
+ * 
+ * Appends the src char array (plus formatting) to dst buffer, updates the *pos pointer to the new end (null terminator position) of the char array, and returns the number of bytes that would have been written on success (from snprintf() function).
  * 
  * @param dst      pointer to the destination buffer
  * @param dst_cap  size of the destination buffer

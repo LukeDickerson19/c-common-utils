@@ -646,7 +646,7 @@ UTILS:
                     Debug Mode:
                         cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Debug
 
-                    then run:
+                    then run cmd:
                         cmake --build build
                     
                     see utils/CmakeLists.txt for more details/options...
@@ -692,7 +692,7 @@ UTILS:
 
         string_util
 
-            make str_slice wrap for negative indeces like in python (any maybe indeces greater than str.len too)
+            str_repeat and str_slice currently have optional args to return the repeated string or string slice as a char array or to modify string s. make a 3rd option to return a new string with the repeats or slice as well. and also update other modifying functions with similar return options.
 
             maybe update c string util to use hybrid malloc/free and arena allocator?
 

@@ -65,7 +65,7 @@ Log *logger;
     void *thread_print_loop(void *arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        char buffer[logger->max_message_chars];
+        char buffer[logger->max_message_len];
         for (int j = 0; j < ITERATIONS; j++) {
             print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
         }
@@ -127,7 +127,7 @@ void get_full_base_dir(void) {
     *p = '\0';
 
     // remove 1 parent directory
-    int num_lvls = 1; // number of directory levels to go up
+    int num_lvls = 2; // number of directory levels to go up
     for (int i = 0; i < num_lvls; i++) {
         // remove last directory from path
         p = strrchr(exe_path, sep);
@@ -143,16 +143,16 @@ void test_print() {
     print(logger, "\ntest_print():");
 
     // test num_indents and multi line indentation
-    print(logger, "a", .i=0);
-    print(logger, "b", .i=1);
-    print(logger, "c", .i=2);
-    print(logger, "d", .i=3);
-    print(logger, "e", .i=4);
-    print(logger, "indented\nmulti\nline\nstring", .i=5);
+    print(logger, "abc123", .i=1);
+    print(logger, "漢字日", .i=2);
+    print(logger, "áéöüñприв", .i=3);
+    print(logger, "ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞", .i=4);
+    print(logger, "±≈√∑©®™🌟🚀😄🐍🏖️🎉", .i=5);
+    print(logger, "\nindented\nmulti\nline\nstring", .i=6);
 
     // test formatted string
     char buf[256];
-    print(logger, fmt(buf, "formatted string: %d %c %s", 7, 'f', "hellooo"), .i=1);
+    print(logger, fmt(buf, "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=1);
 
     // test new line start
     print(logger, "new line start = true, draw line = false", .i=1, .ns=true);
@@ -164,18 +164,18 @@ void test_print() {
     print(logger, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
     print(logger, "new line end = false", .i=1, .ne=false);
 
-    // test return values
-    char *console_str = NULL, *logfile_str = NULL;
-    print(logger, "test print return value", .i=2, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false, .ns=true, .ne=true);
-    fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
-    fwrite(logfile_str, 1, strlen(logfile_str), stdout);
-    free(console_str);
-    free(logfile_str);
-    print(logger, "test multiline\nprint return\nvalue", .i=3, .console_str=&console_str, .logfile_str=&logfile_str, .oc=false, .of=false, .ns=true, .ne=true);
-    fwrite(console_str, 1, strlen(console_str), stdout); // if theres indents, it was preserved
-    fwrite(logfile_str, 1, strlen(logfile_str), stdout);
-    free(console_str);
-    free(logfile_str);
+    // test get latest msg
+    char *console_msg, *logfile_msg;
+    print(logger, "latest log message", .i=2, .ns=true, .ne=true);
+    console_msg = get_latest_console_msg(logger);
+    logfile_msg = get_latest_logfile_msg(logger);
+    fwrite(console_msg, 1, strlen(console_msg), stdout); // if theres indents, it was preserved
+    fwrite(logfile_msg, 1, strlen(logfile_msg), stdout);
+    print(logger, "latest\nmulti-line\n\nlog\nmessage", .i=3, .ns=true, .ne=true);
+    console_msg = get_latest_console_msg(logger);
+    logfile_msg = get_latest_logfile_msg(logger);
+    fwrite(console_msg, 1, strlen(console_msg), stdout); // if theres indents, it was preserved
+    fwrite(logfile_msg, 1, strlen(logfile_msg), stdout);
 
     // test prepend only datetime
     logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
@@ -239,22 +239,22 @@ void test_print() {
 
     // test line and message truncation
     print(logger, "truncation tests:", .i=1, .ns=true);
-    int default_max_message_chars = logger->max_message_chars;
-    int default_max_line_chars = logger->max_line_chars;
-    int test_max_message_chars = 500;
-    int test_max_line_chars = 50;
-    char *long_line = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "; // ASCII characters
-    // char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉"; // example UTF-8 characters
+    int default_max_message_len = logger->max_message_len;
+    int default_max_line_len = logger->max_line_len;
+    int test_max_message_len = 500;
+    int test_max_line_len = 100;
+    // char *long_line = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "; // ASCII characters
+    char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉"; // example UTF-8 characters
     char buf2[100000];
 
     // test message truncation
-    logger->max_message_chars = test_max_message_chars;
-    print(logger, fmt(buf2, "Test message truncation: set logger->max_message_chars to %d", logger->max_message_chars), .i=2, .ns=true);
+    logger->max_message_len = test_max_message_len;
+    print(logger, fmt(buf2, "Test message truncation: set logger->max_message_len to %d", logger->max_message_len), .i=2, .ns=true);
     print(logger, fmt(buf2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
 
     // test line truncation
-    logger->max_line_chars = test_max_line_chars;
-    print(logger, fmt(buf2, "Test line truncation: set logger->max_line_chars to %d", logger->max_line_chars), .i=2, .ns=true);
+    logger->max_line_len = test_max_line_len;
+    print(logger, fmt(buf2, "Test line truncation: set logger->max_line_len to %d", logger->max_line_len), .i=2, .ns=true);
     print(logger, long_line, .i=3);
 
     // test both
@@ -262,11 +262,11 @@ void test_print() {
     print(logger, fmt(buf2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
 
     // test complete, restore default settings
-    logger->max_message_chars = default_max_message_chars;
-    logger->max_line_chars    = default_max_line_chars;
+    logger->max_message_len = default_max_message_len;
+    logger->max_line_len    = default_max_line_len;
     print(logger, "truncation tests complete.", .i=1, .ns=true, .d=true);
-    print(logger, fmt(buf2, "restored logger->max_line_chars    to default: %d", logger->max_line_chars),    .i=1);
-    print(logger, fmt(buf2, "restored logger->max_message_chars to default: %d", logger->max_message_chars), .i=1, .ne=true);
+    print(logger, fmt(buf2, "restored logger->max_line_len    to default: %d", logger->max_line_len),    .i=1);
+    print(logger, fmt(buf2, "restored logger->max_message_len to default: %d", logger->max_message_len), .i=1, .ne=true);
 
 }
 
@@ -453,12 +453,12 @@ void test_print_json() {
     // json file read/write example
     print(logger, "\nExample 2:", .i=1);
     char *filename = "json_example.json";
-    char *filepath;
+    char filepath[PATH_MAX_CHARS];
     char buffer[PATH_MAX_CHARS];
     #ifdef _WIN32
-        filepath = fmt(buffer, "%s\\test_output\\%s", BASE_DIR, filename);
+        fmt(filepath, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
     #else
-        filepath = fmt(buffer, "%s/test_output/%s", BASE_DIR, filename);
+        fmt(filepath, "%s/logging_util/test_output/%s", BASE_DIR, filename);
     #endif
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
@@ -466,13 +466,16 @@ void test_print_json() {
     cJSON *langs = cJSON_AddArrayToObject(root, "languages");
     cJSON_AddItemToArray(langs, cJSON_CreateString("C"));
     cJSON_AddItemToArray(langs, cJSON_CreateString("Python"));
-    if (write_json_file(root, filepath) != 0) {
-        print(logger, "Failed to write JSON\n");
+    int rc = write_json_file(root, filepath);
+    if (rc != 0) {
+        print(logger, fmt(buffer, "Failed to write JSON, error code %d", rc), .i=2);
+        print(logger, fmt(buffer, "json filepath: %s", filepath), .i=3);
     }
     cJSON_Delete(root);
     cJSON *loaded = read_json_file(filepath);
     if (!loaded) {
-        print(logger, "Failed to read JSON\n");
+        print(logger, "Failed to read JSON", .i=2);
+        print(logger, fmt(buffer, "json filepath: %s", filepath), .i=3);
         return;
     }
     char *loaded_string = cJSON_Print(loaded);
@@ -567,8 +570,8 @@ void test_overwrite_prev_msg() {
 
     char buffer[256];
 	print(logger, fmt(buffer, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
-	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
-	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
+	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent->text), .i=i+1);
+	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent->text), .i=i+1, .ne=true);
 
 }
 
@@ -590,9 +593,9 @@ int main(void) {
     char *log_filepath;
     char buffer[PATH_MAX_CHARS];
     #ifdef _WIN32
-        log_filepath = fmt(buffer, "%s\\log\\log.txt", BASE_DIR);
+        log_filepath = fmt(buffer, "%s\\logging_util\\log\\log.txt", BASE_DIR);
     #else
-        log_filepath = fmt(buffer, "%s/log/log.txt", BASE_DIR);
+        log_filepath = fmt(buffer, "%s/logging_util/log/log.txt", BASE_DIR);
     #endif
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
@@ -615,7 +618,7 @@ int main(void) {
 	test_overwrite_prev_msg();
     test_thread_safety();
 
-    close_log(logger);
+    close_log(&logger);
 
     return 0;
 }

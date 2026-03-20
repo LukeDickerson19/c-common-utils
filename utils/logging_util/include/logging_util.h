@@ -2,6 +2,8 @@
 #ifndef LOGGING_UTIL_H
 #define LOGGING_UTIL_H
 
+#include "string_util.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -42,11 +44,11 @@ typedef struct Log {
     bool clear_old_log; // flag to clear the log file or not
     char *filepath; // path to the log file
     FILE *file_pointer; // FILE* pointer to the log file
-    char *logfile_indent; // what an indent looks like in the log file
+    String *logfile_indent; // what an indent looks like in the log file
 
     bool output_to_console; // flag to print to the console or not
     FILE *console_stream; // FILE* stream to print console output to (e.g., stdout, stderr)
-    char *console_indent; // what an indent looks like in the console
+    String *console_indent; // what an indent looks like in the console
 
     char *prepend_datetime_fmt; // format specifying datetime to prepend to each line printed
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
@@ -55,13 +57,14 @@ typedef struct Log {
     int32_t start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
     size_t max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
-    size_t max_message_chars; // max number of characters per message
-    size_t max_line_chars; // max number of characters per line, NOTE: if max_line_chars is too large it can cause a stack overflow error, recommend at max 4096.
+    size_t max_message_len; // max number of runes (aka UTF-8 code points) per message
+    size_t max_line_len; // max number of runes (aka UTF-8 code points) per line, NOTE: if max_line_len is too large it can cause a stack overflow error, recommend at max 4096.
 
-    // variables used for overwrite_prev_msg
-    char *prev_console_message;
-    size_t prev_console_message_len;
-    off_t prev_logfile_start, prev_logfile_end;
+    // latest and 2nd latest console message printed
+    String *console_msg, *prev_console_msg;
+
+    // latest logfile message printed, and its 
+    String *logfile_msg; off_t logfile_msg_start, logfile_msg_end;
 
     // thread safety mutex
     #if PLATFORM_WINDOWS
@@ -78,10 +81,10 @@ typedef struct Log {
     .clear_old_log = false, \
     .filepath = NULL, \
     .file_pointer = NULL, \
-    .logfile_indent = "    ", \
+    .logfile_indent = str("    ", .allocation_procedure=MEM_LINEAR), \
     .output_to_console = true, \
     .console_stream = stdout, \
-    .console_indent = "|   ", \
+    .console_indent = str("|   ", .allocation_procedure=MEM_LINEAR), \
     .prepend_datetime_fmt = NULL, \
     .timezone = "UTC", \
     .prepend_elapsed_time = false, \
@@ -89,14 +92,14 @@ typedef struct Log {
     .start_time_microseconds = 0, \
     .prepend_memory_usage = false, \
     .max_indents = 10, \
-    .max_message_chars = 8192, \
-    .max_line_chars = 1024
+    .max_message_len = 8192, \
+    .max_line_len = 1024
 Log *_init_log(Log *opts);
 #define init_log(...) _init_log(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
 
 
 void close_log(
-    Log *log
+    Log **log_ptr
 );
 
 
@@ -115,8 +118,6 @@ typedef struct PrintOptions {
     bool d;  // draw a line on the blank line before or after the string, defaults to false
     bool overwrite_prev_msg; // overwrite previous printed message in console and logfile
     char *end; // last character(s) to print at the end of the string, defaults to "\n"
-    char **console_str; // pointer to string printed to console
-    char **logfile_str; // pointer to string printed to logfile
 } PrintOptions;
 
 #define DEFAULT_PRINT_OPTIONS \
@@ -127,9 +128,7 @@ typedef struct PrintOptions {
     .of = -1, \
     .d = false, \
     .overwrite_prev_msg = false, \
-    .end = "\n", \
-    .console_str = NULL, \
-    .logfile_str = NULL
+    .end = "\n"
 
 int _log_print(
     Log *log,
@@ -141,6 +140,13 @@ int _log_print(
 #define print(logger, msg, ...) _log_print((logger), (msg), &(PrintOptions){ DEFAULT_PRINT_OPTIONS, ##__VA_ARGS__})
 // NOTE: __VA_ARGS__ override default print options because when they're later in the struct initialization
 // The prepended "##" characters is a GNU extension that removes the comma if __VA_ARGS__ is empty. This is widely supported but not part of the C standard.
+
+
+// getter functions for the char array of the latest message printed to the console and logfile
+static inline char *get_latest_console_msg(Log *log) { return log->console_msg->text; }
+static inline char *get_latest_logfile_msg(Log *log) { return log->logfile_msg->text; }
+// NOTE: "inline" alone tells the compiler each translation unit (aka c code file) can have its own copy, but doesn't guarantee one gets emitted. "static inline" ensures each translation unit that includes the header gets its own private copy, which is the standard pattern for inline functions in headers.
+// A "translation unit" is one .c file after the preprocessor has run on it — meaning after all #includes have been pasted in and all macros expanded. It's the single chunk of code the compiler sees and compiles into one .o object file.
 
 
 ///////////////// time functions ///////////////

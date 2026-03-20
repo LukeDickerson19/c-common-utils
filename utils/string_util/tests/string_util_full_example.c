@@ -683,56 +683,127 @@ void test_replace(bool verbose) {
 void test_str_repeat(bool verbose) {
     printf("\n=== test: str_repeat() ===\n");
     int passed = 0, failed = 0;
-
     char test_details[1024] = "";
+    char buf[256];
 
-    // Repeat once (no-op)
-    append_formatted_text("repeat string once (no-op)\n\n", test_details, sizeof(test_details));
+    // --- in-place tests ---
+
+    // repeat once (no-op)
+    append_formatted_text("in-place: repeat string once (no-op)\n\n", test_details, sizeof(test_details));
     String *s = str("ha");
     append_string_details("s", s, test_details, sizeof(test_details));
     str_repeat(s, 1);
-    ASSERT_STR_EQ("Test 1: repeat once", s, "ha", test_details, verbose);
+    ASSERT_STR_EQ("Test 1: in-place repeat once", s, "ha", test_details, verbose);
 
-    // Repeat multiple times
+    // repeat multiple times
     test_details[0] = '\0';
-    append_formatted_text("repeat string 3 times\n\n", test_details, sizeof(test_details));
+    append_formatted_text("in-place: repeat string 3 times\n\n", test_details, sizeof(test_details));
     append_string_details("s", s, test_details, sizeof(test_details));
     str_repeat(s, 3);
-    ASSERT_STR_EQ("Test 2: repeat 3 times", s, "hahaha", test_details, verbose);
+    ASSERT_STR_EQ("Test 2: in-place repeat 3 times", s, "hahaha", test_details, verbose);
 
-    // Repeat zero times (clear)
+    // repeat zero times (clear)
     test_details[0] = '\0';
-    append_formatted_text("repeat string 0 times (empty result)\n\n", test_details, sizeof(test_details));
+    append_formatted_text("in-place: repeat string 0 times (empty result)\n\n", test_details, sizeof(test_details));
     append_string_details("s", s, test_details, sizeof(test_details));
     str_repeat(s, 0);
-    ASSERT_STR_EQ("Test 3: repeat 0 times", s, "", test_details, verbose);
+    ASSERT_STR_EQ("Test 3: in-place repeat 0 times", s, "", test_details, verbose);
     str_free(&s);
 
-    // Repeat UTF-8 string
+    // repeat UTF-8 string
     test_details[0] = '\0';
-    append_formatted_text("repeat utf-8 string\n\n", test_details, sizeof(test_details));
+    append_formatted_text("in-place: repeat utf-8 string\n\n", test_details, sizeof(test_details));
     s = str("東京");
     append_string_details("s", s, test_details, sizeof(test_details));
     str_repeat(s, 3);
-    ASSERT_STR_EQ("Test 4: repeat utf-8", s, "東京東京東京", test_details, verbose);
+    ASSERT_STR_EQ("Test 4: in-place repeat utf-8", s, "東京東京東京", test_details, verbose);
     str_free(&s);
 
-    // Repeat emoji string
+    // repeat emoji string
     test_details[0] = '\0';
-    append_formatted_text("repeat emoji string\n\n", test_details, sizeof(test_details));
+    append_formatted_text("in-place: repeat emoji string\n\n", test_details, sizeof(test_details));
     s = str("😀🌍");
     append_string_details("s", s, test_details, sizeof(test_details));
     str_repeat(s, 3);
-    ASSERT_STR_EQ("Test 5: repeat emoji", s, "😀🌍😀🌍😀🌍", test_details, verbose);
+    ASSERT_STR_EQ("Test 5: in-place repeat emoji", s, "😀🌍😀🌍😀🌍", test_details, verbose);
     str_free(&s);
 
-    // Repeat mixed multi-byte
+    // repeat mixed multi-byte
     test_details[0] = '\0';
-    append_formatted_text("repeat mixed multi-byte string\n\n", test_details, sizeof(test_details));
+    append_formatted_text("in-place: repeat mixed multi-byte string\n\n", test_details, sizeof(test_details));
     s = str("★café");
     append_string_details("s", s, test_details, sizeof(test_details));
     str_repeat(s, 2);
-    ASSERT_STR_EQ("Test 6: repeat mixed multi-byte", s, "★café★café", test_details, verbose);
+    ASSERT_STR_EQ("Test 6: in-place repeat mixed multi-byte", s, "★café★café", test_details, verbose);
+    str_free(&s);
+
+    // --- text_buffer tests ---
+
+    // repeat once into buffer (no-op)
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: repeat string once (no-op)\n\n", test_details, sizeof(test_details));
+    s = str("ha");
+    append_string_details("s", s, test_details, sizeof(test_details));
+    str_repeat(s, 1, .text_buffer = buf, .buffer_size = sizeof(buf));
+    ASSERT_TEXT_EQ("Test 7: buffer repeat once", buf, "ha", test_details, verbose);
+
+    // repeat multiple times into buffer
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: repeat string 3 times\n\n", test_details, sizeof(test_details));
+    append_string_details("s", s, test_details, sizeof(test_details));
+    str_repeat(s, 3, .text_buffer = buf, .buffer_size = sizeof(buf));
+    ASSERT_TEXT_EQ("Test 8: buffer repeat 3 times", buf, "hahaha", test_details, verbose);
+
+    // repeat zero times into buffer
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: repeat string 0 times (empty result)\n\n", test_details, sizeof(test_details));
+    append_string_details("s", s, test_details, sizeof(test_details));
+    str_repeat(s, 0, .text_buffer = buf, .buffer_size = sizeof(buf));
+    ASSERT_TEXT_EQ("Test 9: buffer repeat 0 times", buf, "", test_details, verbose);
+    str_free(&s);
+
+    // repeat UTF-8 into buffer
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: repeat utf-8 string\n\n", test_details, sizeof(test_details));
+    s = str("東京");
+    append_string_details("s", s, test_details, sizeof(test_details));
+    str_repeat(s, 3, .text_buffer = buf, .buffer_size = sizeof(buf));
+    ASSERT_TEXT_EQ("Test 10: buffer repeat utf-8", buf, "東京東京東京", test_details, verbose);
+    str_free(&s);
+
+    // repeat emoji into buffer
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: repeat emoji string\n\n", test_details, sizeof(test_details));
+    s = str("😀🌍");
+    append_string_details("s", s, test_details, sizeof(test_details));
+    str_repeat(s, 3, .text_buffer = buf, .buffer_size = sizeof(buf));
+    ASSERT_TEXT_EQ("Test 11: buffer repeat emoji", buf, "😀🌍😀🌍😀🌍", test_details, verbose);
+    str_free(&s);
+
+    // repeat mixed multi-byte into buffer
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: repeat mixed multi-byte string\n\n", test_details, sizeof(test_details));
+    s = str("★café");
+    append_string_details("s", s, test_details, sizeof(test_details));
+    str_repeat(s, 2, .text_buffer = buf, .buffer_size = sizeof(buf));
+    ASSERT_TEXT_EQ("Test 12: buffer repeat mixed multi-byte", buf, "★café★café", test_details, verbose);
+    str_free(&s);
+
+    // buffer too small (should return -1)
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: buffer too small (should return -1)\n\n", test_details, sizeof(test_details));
+    s = str("hello");
+    append_string_details("s", s, test_details, sizeof(test_details));
+    char small_buf[4];
+    ASSERT_INT_EQ("Test 13: buffer too small", str_repeat(s, 3, .text_buffer = small_buf, .buffer_size = sizeof(small_buf)), -1, test_details, verbose);
+    str_free(&s);
+
+    // missing buffer_size (should return -1)
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: missing buffer_size (should return -1)\n\n", test_details, sizeof(test_details));
+    s = str("hello");
+    append_string_details("s", s, test_details, sizeof(test_details));
+    ASSERT_INT_EQ("Test 14: missing buffer_size", str_repeat(s, 3, .text_buffer = buf), -1, test_details, verbose);
     str_free(&s);
 
     printf("\n    %s test: str_repeat() %d passed, %d failed\n",
@@ -1464,7 +1535,7 @@ void test_index_functions(bool verbose) {
     all_failed_tests += failed;
 }
 
-void test_split(bool verbose) {
+void test_str_split(bool verbose) {
     printf("\n=== test: str_split() ===\n");
     int passed = 0, failed = 0;
 
@@ -1626,95 +1697,199 @@ void test_str_slice(bool verbose) {
     int passed = 0, failed = 0;
 
     char test_details[1024] = "";
+    char slice_buf[256];
+
+    // =========================
+    // --- text_buffer tests ---
+    // =========================
 
     // Basic ASCII slices
-    append_formatted_text("basic ASCII slices\n\n", test_details, sizeof(test_details));
+    append_formatted_text("text_buffer: basic ASCII slices\n\n", test_details, sizeof(test_details));
     String *s1 = str("Hello, world!");
     append_string_details("s1", s1, test_details, sizeof(test_details));
-    String *a = str_slice(s1, 0, 5);
-    String *b = str_slice(s1, 7, 12);
-    String *c = str_slice(s1, 0, 13);
-    ASSERT_STR_EQ("Test 1: slice(0, 5)",  a, "Hello",         test_details, verbose);
-    ASSERT_STR_EQ("Test 2: slice(7, 12)", b, "world",         test_details, verbose);
-    ASSERT_STR_EQ("Test 3: slice(0, 13)", c, "Hello, world!", test_details, verbose);
-    str_free(&s1, &a, &b, &c);
+    str_slice(s1, 0, 5,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 1: slice(0, 5)",  slice_buf, "Hello",         test_details, verbose);
+    str_slice(s1, 7, 12, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 2: slice(7, 12)", slice_buf, "world",         test_details, verbose);
+    str_slice(s1, 0, 13, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 3: slice(0, 13)", slice_buf, "Hello, world!", test_details, verbose);
+    str_free(&s1);
 
     // Empty slice (start == end)
     test_details[0] = '\0';
-    append_formatted_text("empty slice (start == end)\n\n", test_details, sizeof(test_details));
+    append_formatted_text("text_buffer: empty slice (start == end)\n\n", test_details, sizeof(test_details));
     String *s2 = str("Hello");
     append_string_details("s2", s2, test_details, sizeof(test_details));
-    String *d = str_slice(s2, 3, 3);
-    ASSERT_STR_EQ("Test 4: slice(3, 3) empty", d, "", test_details, verbose);
-    str_free(&s2, &d);
+    str_slice(s2, 3, 3, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 4: slice(3, 3) empty", slice_buf, "", test_details, verbose);
+    str_free(&s2);
 
-    // Out of bounds clamping
+    // Out of bounds wrapping
     test_details[0] = '\0';
-    append_formatted_text("out of bounds clamping\n\n", test_details, sizeof(test_details));
-    String *s3 = str("Hello");
+    append_formatted_text("text_buffer: out of bounds wrapping\n\n", test_details, sizeof(test_details));
+    String *s3 = str("Hello"); // len=5
     append_string_details("s3", s3, test_details, sizeof(test_details));
-    String *e = str_slice(s3, 0, 100);
-    String *f = str_slice(s3, 50, 60);
-    ASSERT_STR_EQ("Test 5: slice(0, 100) clamps to full", e, "Hello", test_details, verbose);
-    ASSERT_STR_EQ("Test 6: slice(50, 60) clamps to empty", f, "",     test_details, verbose);
-    str_free(&s3, &e, &f);
+    str_slice(s3, 0, 6,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 5: slice(0, 6)  6%5=1,   'H'",          slice_buf, "H",     test_details, verbose);
+    str_slice(s3, 0, 10, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 6: slice(0, 10) 10%5=0 -> end=5, full", slice_buf, "Hello", test_details, verbose);
+    str_slice(s3, 5, 10, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 7: slice(5, 10) 0 to 5, full",          slice_buf, "Hello", test_details, verbose);
+    str_slice(s3, 6, 11, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 8: slice(6, 11) 1 to 1,  ''",           slice_buf, "",     test_details, verbose);
+    str_slice(s3, 6, 12, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 9: slice(6, 12) 1 to 2,  'e'",          slice_buf, "e",    test_details, verbose);
+    str_free(&s3);
 
-    // end < start -> empty
+    // Negative index wrapping
     test_details[0] = '\0';
-    append_formatted_text("end < start (should return empty)\n\n", test_details, sizeof(test_details));
-    String *s4 = str("Hello");
+    append_formatted_text("text_buffer: negative index wrapping\n\n", test_details, sizeof(test_details));
+    String *s4 = str("Hello"); // len=5, H=0 e=1 l=2 l=3 o=4
     append_string_details("s4", s4, test_details, sizeof(test_details));
-    String *g = str_slice(s4, 4, 2);
-    ASSERT_STR_EQ("Test 7: slice(4, 2) empty", g, "", test_details, verbose);
-    str_free(&s4, &g);
+    str_slice(s4, -5, 5,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 10: slice(-5, 5)  full string",   slice_buf, "Hello", test_details, verbose);
+    str_slice(s4, -4, 5,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 11: slice(-4, 5)  'ello'",         slice_buf, "ello",  test_details, verbose);
+    str_slice(s4, -1, 5,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 12: slice(-1, 5)  last char 'o'", slice_buf, "o",     test_details, verbose);
+    str_slice(s4, -3, -1, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 13: slice(-3, -1) 'll'",           slice_buf, "ll",    test_details, verbose);
+    str_slice(s4, -1, -1, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 14: slice(-1, -1) empty",          slice_buf, "",      test_details, verbose);
+    str_free(&s4);
+
+    // Very large / very negative indices
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: very large and very negative indices\n\n", test_details, sizeof(test_details));
+    String *s5 = str("Hello"); // len=5
+    append_string_details("s5", s5, test_details, sizeof(test_details));
+    str_slice(s5, -100, 5,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 15: slice(-100, 5)   -100%5=0, full",      slice_buf, "Hello", test_details, verbose);
+    str_slice(s5, -101, 5,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 16: slice(-101, 5)   -101%5=4, 'o'",        slice_buf, "o",     test_details, verbose);
+    str_slice(s5, 0, 1000,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 17: slice(0, 1000)   1000%5=0 -> end=5, full", slice_buf, "Hello", test_details, verbose);
+    str_slice(s5, 1, 1001,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 18: slice(1, 1001)   1001%5=1, ''",          slice_buf, "",      test_details, verbose);
+    str_slice(s5, -100, 101, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 19: slice(-100, 101) 0 to 1,  'H'",          slice_buf, "H",     test_details, verbose);
+    str_free(&s5);
+
+    // start > end after wrapping (should return -1)
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: start > end after wrapping (should return -1)\n\n", test_details, sizeof(test_details));
+    String *s6 = str("Hello");
+    append_string_details("s6", s6, test_details, sizeof(test_details));
+    ASSERT_INT_EQ("Test 20: slice(4, 2)  start > end", str_slice(s6, 4, 2,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)), -1, test_details, verbose);
+    ASSERT_INT_EQ("Test 21: slice(3, 1)  start > end", str_slice(s6, 3, 1,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)), -1, test_details, verbose);
+    ASSERT_INT_EQ("Test 22: slice(-1, 1) 4 > 1",       str_slice(s6, -1, 1, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)), -1, test_details, verbose);
+    str_free(&s6);
 
     // Single rune
     test_details[0] = '\0';
-    append_formatted_text("single rune slice\n\n", test_details, sizeof(test_details));
-    String *s5 = str("Hello");
-    append_string_details("s5", s5, test_details, sizeof(test_details));
-    String *h = str_slice(s5, 1, 2);
-    ASSERT_STR_EQ("Test 8: slice(1, 2) single rune", h, "e", test_details, verbose);
-    str_free(&s5, &h);
+    append_formatted_text("text_buffer: single rune slice\n\n", test_details, sizeof(test_details));
+    String *s7 = str("Hello");
+    append_string_details("s7", s7, test_details, sizeof(test_details));
+    str_slice(s7, 1, 2, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 23: slice(1, 2) single rune", slice_buf, "e", test_details, verbose);
+    str_free(&s7);
 
     // UTF-8 multibyte runes
     test_details[0] = '\0';
-    append_formatted_text("utf-8 multibyte rune slices\n\n", test_details, sizeof(test_details));
-    String *s6 = str("café");  // c=0 a=1 f=2 é=3
-    append_string_details("s6", s6, test_details, sizeof(test_details));
-    String *si = str_slice(s6, 0, 3);
-    String *sj = str_slice(s6, 3, 4);
-    String *sk = str_slice(s6, 1, 3);
-    ASSERT_STR_EQ("Test 9:  slice(0, 3)",  si, "caf", test_details, verbose);
-    ASSERT_STR_EQ("Test 10: slice(3, 4)",  sj, "é",   test_details, verbose);
-    ASSERT_STR_EQ("Test 11: slice(1, 3)",  sk, "af",  test_details, verbose);
-    str_free(&s6, &si, &sj, &sk);
+    append_formatted_text("text_buffer: utf-8 multibyte rune slices\n\n", test_details, sizeof(test_details));
+    String *s8 = str("café");  // c=0 a=1 f=2 é=3
+    append_string_details("s8", s8, test_details, sizeof(test_details));
+    str_slice(s8, 0, 3,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 24: slice(0, 3)",           slice_buf, "caf", test_details, verbose);
+    str_slice(s8, 3, 4,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 25: slice(3, 4)",           slice_buf, "é",   test_details, verbose);
+    str_slice(s8, 1, 3,  .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 26: slice(1, 3)",           slice_buf, "af",  test_details, verbose);
+    str_slice(s8, -1, 4, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 27: slice(-1, 4) last 'é'", slice_buf, "é",   test_details, verbose);
+    str_free(&s8);
 
     // UTF-8 emoji (4-byte runes)
     test_details[0] = '\0';
-    append_formatted_text("utf-8 emoji slices\n\n", test_details, sizeof(test_details));
-    String *s7 = str("hi😀bye");  // h=0 i=1 😀=2 b=3 y=4 e=5
-    append_string_details("s7", s7, test_details, sizeof(test_details));
-    String *sl = str_slice(s7, 2, 3);
-    String *sm = str_slice(s7, 0, 2);
-    String *sn = str_slice(s7, 3, 6);
-    ASSERT_STR_EQ("Test 12: slice(2, 3) emoji", sl, "😀", test_details, verbose);
-    ASSERT_STR_EQ("Test 13: slice(0, 2)",       sm, "hi",  test_details, verbose);
-    ASSERT_STR_EQ("Test 14: slice(3, 6)",       sn, "bye", test_details, verbose);
-    str_free(&s7, &sl, &sm, &sn);
+    append_formatted_text("text_buffer: utf-8 emoji slices\n\n", test_details, sizeof(test_details));
+    String *s9 = str("hi😀bye");  // h=0 i=1 😀=2 b=3 y=4 e=5
+    append_string_details("s9", s9, test_details, sizeof(test_details));
+    str_slice(s9, 2, 3,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 28: slice(2, 3)  emoji",    slice_buf, "😀",   test_details, verbose);
+    str_slice(s9, 0, 2,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 29: slice(0, 2)",            slice_buf, "hi",    test_details, verbose);
+    str_slice(s9, 3, 6,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 30: slice(3, 6)",            slice_buf, "bye",   test_details, verbose);
+    str_slice(s9, -4, -1, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 31: slice(-4, -1) '😀by'",  slice_buf, "😀by", test_details, verbose);
+    str_free(&s9);
 
     // Mixed CJK, emoji, accented
     test_details[0] = '\0';
-    append_formatted_text("mixed utf-8 slices\n\n", test_details, sizeof(test_details));
-    String *s8 = str("東京😀café");  // 東=0 京=1 😀=2 c=3 a=4 f=5 é=6
-    append_string_details("s8", s8, test_details, sizeof(test_details));
-    String *so = str_slice(s8, 0, 2);
-    String *sp = str_slice(s8, 2, 3);
-    String *sq = str_slice(s8, 3, 7);
-    ASSERT_STR_EQ("Test 15: slice(0, 2) CJK",   so, "東京", test_details, verbose);
-    ASSERT_STR_EQ("Test 16: slice(2, 3) emoji",  sp, "😀",  test_details, verbose);
-    ASSERT_STR_EQ("Test 17: slice(3, 7) accented", sq, "café", test_details, verbose);
-    str_free(&s8, &so, &sp, &sq);
+    append_formatted_text("text_buffer: mixed utf-8 slices\n\n", test_details, sizeof(test_details));
+    String *s10 = str("東京😀café");  // 東=0 京=1 😀=2 c=3 a=4 f=5 é=6
+    append_string_details("s10", s10, test_details, sizeof(test_details));
+    str_slice(s10, 0, 2,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 32: slice(0, 2)  CJK",           slice_buf, "東京",  test_details, verbose);
+    str_slice(s10, 2, 3,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 33: slice(2, 3)  emoji",          slice_buf, "😀",   test_details, verbose);
+    str_slice(s10, 3, 7,   .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 34: slice(3, 7)  accented",       slice_buf, "café",  test_details, verbose);
+    str_slice(s10, -4, -1, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 35: slice(-4, -1) 'caf'",         slice_buf, "caf",   test_details, verbose);
+    str_slice(s10, -7, -5, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 36: slice(-7, -5) '東京'",         slice_buf, "東京", test_details, verbose);
+    str_free(&s10);
+
+    // Empty string edge case
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: empty string edge case\n\n", test_details, sizeof(test_details));
+    String *s11 = str("");
+    append_string_details("s11", s11, test_details, sizeof(test_details));
+    str_slice(s11, 0, 0, .text_buffer = slice_buf, .buffer_size = sizeof(slice_buf)); ASSERT_TEXT_EQ("Test 37: empty string slice(0,0)", slice_buf, "", test_details, verbose);
+    str_free(&s11);
+
+    // buffer too small (should return -1)
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: buffer too small (should return -1)\n\n", test_details, sizeof(test_details));
+    String *s12 = str("Hello");
+    append_string_details("s12", s12, test_details, sizeof(test_details));
+    char small_buf[3];
+    ASSERT_INT_EQ("Test 38: buffer too small", str_slice(s12, 0, 5, .text_buffer = small_buf, .buffer_size = sizeof(small_buf)), -1, test_details, verbose);
+    str_free(&s12);
+
+    // missing buffer_size (should return -1)
+    test_details[0] = '\0';
+    append_formatted_text("text_buffer: missing buffer_size (should return -1)\n\n", test_details, sizeof(test_details));
+    String *s13 = str("Hello");
+    append_string_details("s13", s13, test_details, sizeof(test_details));
+    ASSERT_INT_EQ("Test 39: missing buffer_size", str_slice(s13, 0, 5, .text_buffer = slice_buf), -1, test_details, verbose);
+    str_free(&s13);
+
+    // ======================
+    // --- in-place tests ---
+    // ======================
+
+    // Basic ASCII slices in-place
+    test_details[0] = '\0';
+    append_formatted_text("in-place: basic ASCII slices\n\n", test_details, sizeof(test_details));
+    String *s14 = str("Hello, world!");
+    append_string_details("s14", s14, test_details, sizeof(test_details));
+    str_slice(s14, 0, 5);  ASSERT_STR_EQ("Test 40: in-place slice(0, 5)",  s14, "Hello",  test_details, verbose);
+    str_free(&s14);
+    s14 = str("Hello, world!");
+    str_slice(s14, 7, 12); ASSERT_STR_EQ("Test 41: in-place slice(7, 12)", s14, "world",  test_details, verbose);
+    str_free(&s14);
+    s14 = str("Hello, world!");
+    str_slice(s14, 0, 13); ASSERT_STR_EQ("Test 42: in-place slice(0, 13)", s14, "Hello, world!", test_details, verbose);
+    str_free(&s14);
+
+    // Negative indices in-place
+    test_details[0] = '\0';
+    append_formatted_text("in-place: negative index wrapping\n\n", test_details, sizeof(test_details));
+    String *s15 = str("Hello"); // H=0 e=1 l=2 l=3 o=4
+    append_string_details("s15", s15, test_details, sizeof(test_details));
+    str_slice(s15, -3, -1); ASSERT_STR_EQ("Test 43: in-place slice(-3, -1) 'll'", s15, "ll", test_details, verbose);
+    str_free(&s15);
+
+    // UTF-8 in-place
+    test_details[0] = '\0';
+    append_formatted_text("in-place: utf-8 multibyte rune slices\n\n", test_details, sizeof(test_details));
+    String *s16 = str("café");  // c=0 a=1 f=2 é=3
+    append_string_details("s16", s16, test_details, sizeof(test_details));
+    str_slice(s16, 3, 4); ASSERT_STR_EQ("Test 44: in-place slice(3, 4) 'é'", s16, "é", test_details, verbose);
+    str_free(&s16);
+
+    // Emoji in-place
+    test_details[0] = '\0';
+    append_formatted_text("in-place: utf-8 emoji slices\n\n", test_details, sizeof(test_details));
+    String *s17 = str("hi😀bye");  // h=0 i=1 😀=2 b=3 y=4 e=5
+    append_string_details("s17", s17, test_details, sizeof(test_details));
+    str_slice(s17, 2, 3); ASSERT_STR_EQ("Test 45: in-place slice(2, 3) emoji", s17, "😀", test_details, verbose);
+    str_free(&s17);
+
+    // start > end in-place (should return -1)
+    test_details[0] = '\0';
+    append_formatted_text("in-place: start > end (should return -1)\n\n", test_details, sizeof(test_details));
+    String *s18 = str("Hello");
+    append_string_details("s18", s18, test_details, sizeof(test_details));
+    ASSERT_INT_EQ("Test 46: in-place slice(4, 2) start > end", str_slice(s18, 4, 2), -1, test_details, verbose);
+    str_free(&s18);
+
+    // Empty string in-place
+    test_details[0] = '\0';
+    append_formatted_text("in-place: empty string edge case\n\n", test_details, sizeof(test_details));
+    String *s19 = str("");
+    append_string_details("s19", s19, test_details, sizeof(test_details));
+    str_slice(s19, 0, 0); ASSERT_STR_EQ("Test 47: in-place empty string slice(0,0)", s19, "", test_details, verbose);
+    str_free(&s19);
 
     printf("\n    %s test: str_slice() %d passed, %d failed\n",
         failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:", passed, failed);
@@ -1994,7 +2169,7 @@ int main(void) {
     test_str_contains(verbose);
     test_str_count(verbose);
     test_index_functions(verbose);
-    test_split(verbose);
+    test_str_split(verbose);
     test_str_slice(verbose);
     test_fmt(verbose);
     test_fmt_append(verbose);
