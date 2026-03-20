@@ -5,7 +5,7 @@ Log *logger; // global variable so you don't need to pass it to each function us
 int main(void) {
 
     // init any non default log settings (see include/logging_util.h for all settings)
-    logger = init_log(
+    logger = log_init(
         .filepath = "log.txt",
         .output_to_console = true,
         .output_to_logfile = true,
@@ -36,6 +36,6 @@ int main(void) {
 	print(logger, "and", .i=2);
 	print(logger, "indents", .i=3);
 
-    close_log(logger);
+    log_close(logger);
     return 0;
 }

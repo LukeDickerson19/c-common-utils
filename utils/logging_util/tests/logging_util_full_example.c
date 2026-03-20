@@ -600,7 +600,7 @@ int main(void) {
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
     // initialize log struct
-    logger = init_log(
+    logger = log_init(
         .enabled = LOGGING_ENABLED,
         .filepath = log_filepath,
         .output_to_console = true,
@@ -618,7 +618,7 @@ int main(void) {
 	test_overwrite_prev_msg();
     test_thread_safety();
 
-    close_log(&logger);
+    log_close(&logger);
 
     return 0;
 }

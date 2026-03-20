@@ -53,7 +53,7 @@ typedef struct Log {
     char *prepend_datetime_fmt; // format specifying datetime to prepend to each line printed
     char *timezone; // timezone to use if prepend_datetime_fmt is not an empty string
     bool prepend_elapsed_time; // flag to prepend the time elapsed since the the Log's unix_start_time
-    int64_t unix_start_time; // unix start time used for prepending elapsed time, defaults to time when init_log() is called
+    int64_t unix_start_time; // unix start time used for prepending elapsed time, defaults to time when log_init() is called
     int32_t start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
     size_t max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
@@ -94,11 +94,11 @@ typedef struct Log {
     .max_indents = 10, \
     .max_message_len = 8192, \
     .max_line_len = 1024
-Log *_init_log(Log *opts);
-#define init_log(...) _init_log(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
+Log *_log_init(Log *opts);
+#define log_init(...) _log_init(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
 
 
-void close_log(
+void log_close(
     Log **log_ptr
 );
 

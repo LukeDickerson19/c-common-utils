@@ -107,7 +107,7 @@ void set_start_time(
 
 //////////////////////// logging functions /////////////////
 
-Log *_init_log(
+Log *_log_init(
     Log *opts
 ) {
 
@@ -115,7 +115,7 @@ Log *_init_log(
     Log *log = malloc(sizeof(Log));
     if (!log) return NULL; // allocation failed
     if (!opts)
-        opts = &(Log){ DEFAULT_LOG_OPTIONS }; // in case user calls _init_log without init_log macro
+        opts = &(Log){ DEFAULT_LOG_OPTIONS }; // in case user calls _log_init without log_init macro
     *log = *opts;
 
     // return early if logging is disabled
@@ -186,7 +186,7 @@ Log *_init_log(
 }
 
 
-void close_log(
+void log_close(
     Log **log_ptr
 ) {
     if (!log_ptr || !*log_ptr) return;
@@ -211,7 +211,7 @@ void close_log(
         pthread_mutex_destroy(&log->mutex);
     #endif
 
-    // free struct and NULL close_log() caller's log pointer
+    // free struct and NULL log_close() caller's log pointer
     free(log);
     *log_ptr = NULL;
 }
