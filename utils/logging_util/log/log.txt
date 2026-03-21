@@ -31,70 +31,70 @@ test_print():
             log
             message
             
--          2026-03-20 21:11:22.459412 MST  -  
--          2026-03-20 21:11:22.459412 MST  -  testing single line prepend_datetime_fmt w/out indent
- -         2026-03-20 21:11:22.460108 MST  -      testing
- -         2026-03-20 21:11:22.460108 MST  -      multi
- -         2026-03-20 21:11:22.460108 MST  -      line
- -         2026-03-20 21:11:22.460108 MST  -      
- -         2026-03-20 21:11:22.460108 MST  -      prepend_datetime_fmt
-  -        2026-03-20 21:11:22.460178 MST  -          testing single line indented prepend_datetime_fmt
--          00:00:00.013380  -  
--          00:00:00.013380  -  testing single line prepend_elapsed_time w/out indent
- -         00:00:00.013410  -      testing
- -         00:00:00.013410  -      multi
- -         00:00:00.013410  -      line
- -         00:00:00.013410  -      
- -         00:00:00.013410  -      prepend_elapsed_time
-  -        00:00:00.013449  -          testing single line indented prepend_elapsed_time
--             14.9883 MiB used  -  
--             14.9883 MiB used  -  testing single line prepend_memory_usage w/out indent
- -            15.0078 MiB used  -      testing
- -            15.0078 MiB used  -      multi
- -            15.0078 MiB used  -      line
- -            15.0078 MiB used  -      
- -            15.0078 MiB used  -      prepend_memory_usage
-  -           15.0352 MiB used  -          testing single line indented prepend_memory_usage
--          2026-03-20 21:11:22.460768 MST  -  00:00:00.013925  -  
--          2026-03-20 21:11:22.460768 MST  -  00:00:00.013925  -  testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      testing
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      multi
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      line
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      prepend_datetime_fmt
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      and
- -         2026-03-20 21:11:22.460915 MST  -  00:00:00.014072  -      prepend_elapsed_time
-  -        2026-03-20 21:11:22.460990 MST  -  00:00:00.014147  -          testing single line indented prepend_datetime_fmt and prepend_elapsed_time
--          2026-03-20 21:11:22.461035 MST  -     15.0938 MiB used  -  
--          2026-03-20 21:11:22.461035 MST  -     15.0938 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      testing
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      multi
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      line
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      prepend_datetime_fmt
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      and
- -         2026-03-20 21:11:22.461168 MST  -     15.1250 MiB used  -      prepend_memory_usage
-  -        2026-03-20 21:11:22.461316 MST  -     15.1523 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
--          00:00:00.014623  -     15.1719 MiB used  -  
--          00:00:00.014623  -     15.1719 MiB used  -  testing single line prepend_elapsed_time and prepend_memory_usage w/out indent
- -         00:00:00.014738  -     15.1914 MiB used  -      testing
- -         00:00:00.014738  -     15.1914 MiB used  -      multi
- -         00:00:00.014738  -     15.1914 MiB used  -      line
- -         00:00:00.014738  -     15.1914 MiB used  -      
- -         00:00:00.014738  -     15.1914 MiB used  -      prepend_elapsed_time
- -         00:00:00.014738  -     15.1914 MiB used  -      and
- -         00:00:00.014738  -     15.1914 MiB used  -      prepend_memory_usage
-  -        00:00:00.014892  -     15.2188 MiB used  -          testing single line indented prepend_elapsed_time and prepend_memory_usage
--          2026-03-20 21:11:22.461853 MST  -  00:00:00.015010  -     15.2422 MiB used  -  
--          2026-03-20 21:11:22.461853 MST  -  00:00:00.015010  -     15.2422 MiB used  -  testing single line prepend all 3 w/out indent
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      testing
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      multi
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      line
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      prepend
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      all
- -         2026-03-20 21:11:22.462022 MST  -  00:00:00.015179  -     15.2734 MiB used  -      3
-  -        2026-03-20 21:11:22.462195 MST  -  00:00:00.015352  -     15.3008 MiB used  -          testing single line indented prepend all 3
+-          2026-03-20 23:09:11.117167 US Mountain Standard Time  -  
+-          2026-03-20 23:09:11.117167 US Mountain Standard Time  -  testing single line prepend_datetime_fmt w/out indent
+ -         2026-03-20 23:09:11.118585 US Mountain Standard Time  -      testing
+ -         2026-03-20 23:09:11.118585 US Mountain Standard Time  -      multi
+ -         2026-03-20 23:09:11.118585 US Mountain Standard Time  -      line
+ -         2026-03-20 23:09:11.118585 US Mountain Standard Time  -      
+ -         2026-03-20 23:09:11.118585 US Mountain Standard Time  -      prepend_datetime_fmt
+  -        2026-03-20 23:09:11.118929 US Mountain Standard Time  -          testing single line indented prepend_datetime_fmt
+-          00:00:00.004606  -  
+-          00:00:00.004606  -  testing single line prepend_elapsed_time w/out indent
+ -         00:00:00.004860  -      testing
+ -         00:00:00.004860  -      multi
+ -         00:00:00.004860  -      line
+ -         00:00:00.004860  -      
+ -         00:00:00.004860  -      prepend_elapsed_time
+  -        00:00:00.005104  -          testing single line indented prepend_elapsed_time
+-             11.8867 MiB used  -  
+-             11.8867 MiB used  -  testing single line prepend_memory_usage w/out indent
+ -            11.9531 MiB used  -      testing
+ -            11.9531 MiB used  -      multi
+ -            11.9531 MiB used  -      line
+ -            11.9531 MiB used  -      
+ -            11.9531 MiB used  -      prepend_memory_usage
+  -           11.9531 MiB used  -          testing single line indented prepend_memory_usage
+-          2026-03-20 23:09:11.120312 US Mountain Standard Time  -  00:00:00.005751  -  
+-          2026-03-20 23:09:11.120312 US Mountain Standard Time  -  00:00:00.005751  -  testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      testing
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      multi
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      line
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      prepend_datetime_fmt
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      and
+ -         2026-03-20 23:09:11.120451 US Mountain Standard Time  -  00:00:00.005890  -      prepend_elapsed_time
+  -        2026-03-20 23:09:11.120684 US Mountain Standard Time  -  00:00:00.006123  -          testing single line indented prepend_datetime_fmt and prepend_elapsed_time
+-          2026-03-20 23:09:11.120903 US Mountain Standard Time  -     12.0547 MiB used  -  
+-          2026-03-20 23:09:11.120903 US Mountain Standard Time  -     12.0547 MiB used  -  testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      testing
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      multi
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      line
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      prepend_datetime_fmt
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      and
+ -         2026-03-20 23:09:11.121067 US Mountain Standard Time  -     12.0781 MiB used  -      prepend_memory_usage
+  -        2026-03-20 23:09:11.121316 US Mountain Standard Time  -     12.0977 MiB used  -          testing single line indented prepend_datetime_fmt and prepend_memory_usage
+-          00:00:00.006944  -     12.1016 MiB used  -  
+-          00:00:00.006944  -     12.1016 MiB used  -  testing single line prepend_elapsed_time and prepend_memory_usage w/out indent
+ -         00:00:00.007048  -     12.1016 MiB used  -      testing
+ -         00:00:00.007048  -     12.1016 MiB used  -      multi
+ -         00:00:00.007048  -     12.1016 MiB used  -      line
+ -         00:00:00.007048  -     12.1016 MiB used  -      
+ -         00:00:00.007048  -     12.1016 MiB used  -      prepend_elapsed_time
+ -         00:00:00.007048  -     12.1016 MiB used  -      and
+ -         00:00:00.007048  -     12.1016 MiB used  -      prepend_memory_usage
+  -        00:00:00.007241  -     12.1016 MiB used  -          testing single line indented prepend_elapsed_time and prepend_memory_usage
+-          2026-03-20 23:09:11.121896 US Mountain Standard Time  -  00:00:00.007335  -     12.1250 MiB used  -  
+-          2026-03-20 23:09:11.121896 US Mountain Standard Time  -  00:00:00.007335  -     12.1250 MiB used  -  testing single line prepend all 3 w/out indent
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      testing
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      multi
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      line
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      prepend
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      all
+ -         2026-03-20 23:09:11.122063 US Mountain Standard Time  -  00:00:00.007502  -     12.1445 MiB used  -      3
+  -        2026-03-20 23:09:11.122280 US Mountain Standard Time  -  00:00:00.007719  -     12.1680 MiB used  -          testing single line indented prepend all 3
     
     truncation tests:
         
@@ -155,94 +155,94 @@ a
     test regular print() after overwrite_prev_msg
     
     log file with final test_overwrite_prev_msg output at:
-    /home/luke/rooms/tech/software/projects/c-common-utils/utils/logging_util/log/log.txt
+    C:\Users\luciu\rooms\c-common-utils\utils\logging_util\log\log.txt
         console indent  = "|   "
         log file indent = "    "
         
 
 test_thread_safety():
+    thread 2 iteration 0
+    thread 3 iteration 0
+    thread 1 iteration 0
+    thread 1 iteration 1
     thread 0 iteration 0
     thread 0 iteration 1
     thread 0 iteration 2
-    thread 0 iteration 3
-    thread 0 iteration 4
-    thread 0 iteration 5
-    thread 0 iteration 6
-    thread 0 iteration 7
-    thread 0 iteration 8
-    thread 0 iteration 9
-    thread 0 iteration 10
-    thread 0 iteration 11
-    thread 0 iteration 12
-    thread 0 iteration 13
-    thread 0 iteration 14
-    thread 0 iteration 15
-    thread 0 iteration 16
-    thread 0 iteration 17
-    thread 0 iteration 18
-    thread 0 iteration 19
-    thread 2 iteration 0
-    thread 2 iteration 1
-    thread 2 iteration 2
-    thread 2 iteration 3
-    thread 2 iteration 4
-    thread 2 iteration 5
-    thread 2 iteration 6
-    thread 2 iteration 7
-    thread 2 iteration 8
-    thread 2 iteration 9
-    thread 2 iteration 10
-    thread 2 iteration 11
-    thread 2 iteration 12
-    thread 2 iteration 13
-    thread 1 iteration 0
-    thread 1 iteration 1
     thread 1 iteration 2
+    thread 3 iteration 1
+    thread 2 iteration 1
+    thread 0 iteration 3
     thread 1 iteration 3
+    thread 3 iteration 2
+    thread 3 iteration 3
+    thread 0 iteration 4
     thread 1 iteration 4
     thread 1 iteration 5
     thread 1 iteration 6
-    thread 3 iteration 0
-    thread 3 iteration 1
-    thread 3 iteration 2
-    thread 3 iteration 3
-    thread 3 iteration 4
-    thread 3 iteration 5
-    thread 3 iteration 6
-    thread 3 iteration 7
-    thread 3 iteration 8
-    thread 3 iteration 9
-    thread 3 iteration 10
-    thread 3 iteration 11
-    thread 3 iteration 12
-    thread 3 iteration 13
-    thread 3 iteration 14
-    thread 3 iteration 15
-    thread 3 iteration 16
-    thread 3 iteration 17
-    thread 3 iteration 18
-    thread 3 iteration 19
-    thread 2 iteration 14
-    thread 2 iteration 15
-    thread 2 iteration 16
-    thread 2 iteration 17
-    thread 2 iteration 18
-    thread 2 iteration 19
     thread 1 iteration 7
     thread 1 iteration 8
     thread 1 iteration 9
+    thread 0 iteration 5
+    thread 2 iteration 2
+    thread 3 iteration 4
     thread 1 iteration 10
+    thread 0 iteration 6
+    thread 2 iteration 3
+    thread 3 iteration 5
     thread 1 iteration 11
+    thread 0 iteration 7
+    thread 2 iteration 4
+    thread 3 iteration 6
     thread 1 iteration 12
+    thread 0 iteration 8
+    thread 2 iteration 5
+    thread 2 iteration 6
+    thread 2 iteration 7
+    thread 0 iteration 9
+    thread 3 iteration 7
     thread 1 iteration 13
+    thread 2 iteration 8
+    thread 0 iteration 10
+    thread 3 iteration 8
     thread 1 iteration 14
+    thread 2 iteration 9
+    thread 0 iteration 11
+    thread 3 iteration 9
     thread 1 iteration 15
+    thread 2 iteration 10
+    thread 0 iteration 12
+    thread 3 iteration 10
     thread 1 iteration 16
+    thread 2 iteration 11
+    thread 0 iteration 13
+    thread 3 iteration 11
+    thread 3 iteration 12
+    thread 3 iteration 13
+    thread 2 iteration 12
+    thread 0 iteration 14
     thread 1 iteration 17
+    thread 3 iteration 14
+    thread 2 iteration 13
+    thread 0 iteration 15
     thread 1 iteration 18
+    thread 3 iteration 15
+    thread 2 iteration 14
+    thread 0 iteration 16
+    thread 0 iteration 17
+    thread 3 iteration 16
+    thread 2 iteration 15
     thread 1 iteration 19
+    thread 0 iteration 18
+    thread 0 iteration 19
+    thread 2 iteration 16
+    thread 2 iteration 17
+    thread 2 iteration 18
+    thread 3 iteration 17
+    thread 3 iteration 18
+    thread 3 iteration 19
+    thread 2 iteration 19
 
 test passes if all 4 x 20 thread/iteration combinations were printed (order does't matter)
 test complete, log file at:
-/home/luke/rooms/tech/software/projects/c-common-utils/utils/logging_util/log/log.txt
+C:\Users\luciu\rooms\c-common-utils\utils\logging_util\log\log.txt
 

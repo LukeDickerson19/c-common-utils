@@ -366,8 +366,8 @@ static int _get_indented_message(
     // Create indent buffers
     size_t indent_len = strlen(indent);
     size_t i = opts->i;
-    size_t len1 = indent_len * i;
-    size_t len2 = indent_len * (i + 1);
+    const size_t len1 = indent_len * i;
+    const size_t len2 = indent_len * (i + 1);
     char total_indent1[len1 + 1];
     char total_indent2[len2 + 1];
     for (size_t j = 0; j < i; j++)
@@ -403,7 +403,7 @@ static int _get_indented_message(
             fmt(tmp, "%s%s%.*s%s",
                 prepend_info,
                 line_indent,
-                line_byte_len,
+                (int)line_byte_len,
                 line_byte_start,
                 opts->end
             )

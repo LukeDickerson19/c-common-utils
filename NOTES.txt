@@ -679,6 +679,28 @@ UTILS:
                 .\build\logging_util\Release\logging_util_full_example.exe
                 .\build\time_util\Release\time_util_full_example.exe
 
+            tesing clang:
+
+                windows:
+
+                    build:
+                        open terminal "x64 native Tools Command Prompt for VS"
+                        cd path\to\c-common-utils\utils\
+                        rd /s /q build
+                        cmake -G Ninja -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_ALL_UTILS=ON
+                        cmake --build build
+
+                    run:
+                        chcp 65001
+                        .\build\string_util\string_util_readme_example.exe
+                        .\build\string_util\string_util_full_example.exe
+                        .\build\logging_util\logging_util_readme_example.exe
+                        .\build\logging_util\logging_util_full_example.exe
+                        .\build\time_util\time_util_full_example.exe
+
+                linux:
+                    cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DBUILD_STRING_UTIL=ON
+
         Android:
             tbd
 

@@ -14,7 +14,8 @@ Log *logger;
     #include <fcntl.h>
     #include <windows.h>
 
-    typedef long ssize_t;
+    // NOTE: ssize_t aleady defined in string_util.h which is imported in logging_util.h
+    // typedef SSIZE_T ssize_t;
 
     #define open  _open
     #define read  _read
