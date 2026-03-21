@@ -701,6 +701,25 @@ UTILS:
                 linux:
                     cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DBUILD_STRING_UTIL=ON
 
+            testing all compilers:
+
+                rd /s /q build
+
+                # Linux, GCC
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=gcc
+
+                # Linux, Clang (VLAs enabled)
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=clang
+
+                # Windows, MSVC
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=msvc
+
+                # Windows, clang-cl (VLAs enabled)
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=clang-cl -DCLANG_CL_PATH="C:/Program Files/LLVM/bin/clang-cl.exe" -G "Ninja"
+
+                cmake --build build
+                    window release vs debug?
+
         Android:
             tbd
 

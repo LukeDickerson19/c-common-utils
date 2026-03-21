@@ -1,75 +1,132 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(c_common_utils
-    VERSION 1.0
-    DESCRIPTION "Reusable C utility libraries"
-    LANGUAGES C
-)
+# ---------------------------------------------
+# Compiler  Platform    C standard  VLA support
+# 
+# gcc       Linux       C99         Yes (C99 VLAs allowed)
+# clang     Linux       C99         Yes (C99 VLAs allowed)
+# msvc      Windows     C99         No (MSVC never supports VLAs)
+# clang-cl  Windows     C99         Yes (only C11 VLAs, not C99 VLAs)
+# ---------------------------------------------
 
-# -------------------------------
-# Compiler & C standard
-# -------------------------------
-set(CMAKE_C_STANDARD 99)
+# ---------------------------------------------
+# User must pass -DCOMPILER=<compiler>
+# Valid options: gcc, clang, msvc, clang-cl
+# ---------------------------------------------
+if(NOT DEFINED COMPILER)
+    message(FATAL_ERROR "COMPILER is required. Valid options are:\n
+    gcc        - GCC on Linux, C99\n
+    clang      - Clang on Linux, C99, VLAs allowed\n
+    msvc       - MSVC on Windows, C99, VLAs NOT allowed\n
+    clang-cl   - Clang-cl on Windows, C99, VLAs allowed if /std:c11")
+endif()
+
+string(TOLOWER "${COMPILER}" COMPILER)
+
+# ---------------------------------------------
+# Platform validation
+# ---------------------------------------------
+if((${COMPILER} STREQUAL "gcc" OR ${COMPILER} STREQUAL "clang") AND NOT UNIX)
+    message(FATAL_ERROR "${COMPILER} is only valid on Linux/macOS")
+endif()
+
+if((${COMPILER} STREQUAL "msvc" OR ${COMPILER} STREQUAL "clang-cl") AND NOT WIN32)
+    message(FATAL_ERROR "${COMPILER} is only valid on Windows")
+endif()
+
+# ---------------------------------------------
+# Set compilers BEFORE project()
+# ---------------------------------------------
+if(${COMPILER} STREQUAL "gcc")
+    set(CMAKE_C_COMPILER "gcc" CACHE FILEPATH "C compiler" FORCE)
+elseif(${COMPILER} STREQUAL "clang")
+    set(CMAKE_C_COMPILER "clang" CACHE FILEPATH "C compiler" FORCE)
+elseif(${COMPILER} STREQUAL "msvc")
+    # MSVC usually detected automatically
+elseif(${COMPILER} STREQUAL "clang-cl")
+    if(WIN32)
+        if(NOT DEFINED CLANG_CL_PATH OR NOT EXISTS "${CLANG_CL_PATH}")
+            message(FATAL_ERROR "CLANG_CL_PATH must be defined and point to a valid clang-cl executable")
+        endif()
+        # Use clang-cl for both C and C++
+        set(CMAKE_C_COMPILER "${CLANG_CL_PATH}" CACHE FILEPATH "C compiler" FORCE)
+        set(CMAKE_CXX_COMPILER "${CLANG_CL_PATH}" CACHE FILEPATH "C++ compiler" FORCE)
+
+        # Enable /std:c11 for VLAs in C, pick reasonable C++ standard
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /std:c11")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+    else()
+        message(FATAL_ERROR "clang-cl is only supported on Windows")
+    endif()
+endif()
+
+# ------------------------------------------------
+# Set C and C++ compilers on Windows if using clang-cl (propagates to subprojects)
+# ------------------------------------------------
+if(WIN32 AND DEFINED CLANG_CL_PATH)
+    set(CMAKE_C_COMPILER   "${CLANG_CL_PATH}" CACHE FILEPATH "Path to clang-cl" FORCE)
+    set(CMAKE_CXX_COMPILER "${CLANG_CL_PATH}" CACHE FILEPATH "Path to clang-cl" FORCE)
+endif()
+
+# ------------------------------------------------
+# Set C standard before project() so it propagates to subprojects
+# ------------------------------------------------
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-# Detect compiler
-message(STATUS "Compiler ID: ${CMAKE_C_COMPILER_ID}")
-message(STATUS "Compiler: ${CMAKE_C_COMPILER}")
+# ------------------------------------------------
+# Project declaration 
+# ------------------------------------------------
+project(c_common_utils
+    VERSION 1.0
+    DESCRIPTION "Reusable C utility libraries"
+    LANGUAGES C CXX
+)
 
-set(USING_CLANG_WINDOWS OFF)
-if(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND WIN32)
-    set(USING_CLANG_WINDOWS ON)
-endif()
+message(STATUS "Selected compiler: ${COMPILER}")
+message(STATUS "C standard enforced: C${CMAKE_C_STANDARD}")
+message(STATUS "C++ standard enforced: C++${CMAKE_CXX_STANDARD}")
 
-# -------------------------------
+# ---------------------------------------------
 # Default build type
-# -------------------------------
+# ---------------------------------------------
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose build type" FORCE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# -------------------------------
+# ---------------------------------------------
 # AddressSanitizer in Debug
-# -------------------------------
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        message(STATUS "AddressSanitizer: ENABLED (Debug mode)")
-
-        # ASan + LeakSanitizer
+# ---------------------------------------------
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
+    if(${COMPILER} STREQUAL "clang" OR ${COMPILER} STREQUAL "clang-cl" OR ${COMPILER} STREQUAL "gcc")
+        message(STATUS "AddressSanitizer: ENABLED")
         add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g -O0)
         add_link_options(-fsanitize=address)
-
-        # UndefinedBehaviorSanitizer
-        add_compile_options(-fsanitize=undefined)
-        add_link_options(-fsanitize=undefined)
-
-        # Optional: ThreadSanitizer
-        # add_compile_options(-fsanitize=thread)
-        # add_link_options(-fsanitize=thread)
-
-        # Environment options for sanitizers
-        set(ENV{ASAN_OPTIONS} "detect_leaks=1:abort_on_error=1:symbolize=1")
-        set(ENV{UBSAN_OPTIONS} "print_stacktrace=1")
     else()
-        message(WARNING "AddressSanitizer only fully supported with Clang")
+        message(WARNING "AddressSanitizer not supported on MSVC")
     endif()
+else()
+    message(STATUS "AddressSanitizer: DISABLED")
 endif()
 
-# -------------------------------
+# ---------------------------------------------
 # Strict warnings
-# -------------------------------
-add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wformat=2)
+# ---------------------------------------------
+if(NOT MSVC)
+    add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wformat=2)
+endif()
 
-# -------------------------------
+# ---------------------------------------------
 # Threads
-# -------------------------------
+# ---------------------------------------------
 find_package(Threads REQUIRED)
 
-# -------------------------------
+# ---------------------------------------------
 # Build options
-# -------------------------------
+# ---------------------------------------------
 option(BUILD_ALL_UTILS "Build all utility libraries" OFF)
 option(BUILD_STRING_UTIL "Build string_util library" OFF)
 option(BUILD_TIME_UTIL "Build time_util library" OFF)
@@ -81,9 +138,9 @@ if(BUILD_ALL_UTILS)
     set(BUILD_LOGGING_UTIL ON CACHE BOOL "Build logging_util library" FORCE)
 endif()
 
-# -------------------------------
+# ---------------------------------------------
 # Add subdirectories
-# -------------------------------
+# ---------------------------------------------
 if(BUILD_STRING_UTIL)
     add_subdirectory(string_util)
 endif()
@@ -93,14 +150,11 @@ if(BUILD_TIME_UTIL)
 endif()
 
 if(BUILD_LOGGING_UTIL)
-    # Ensure dependencies exist
     if(NOT BUILD_STRING_UTIL)
         message(FATAL_ERROR "logging_util requires string_util. Set -DBUILD_STRING_UTIL=ON")
     endif()
     if(NOT BUILD_TIME_UTIL)
         message(FATAL_ERROR "logging_util requires time_util. Set -DBUILD_TIME_UTIL=ON")
     endif()
-
     add_subdirectory(logging_util)
 endif()
-

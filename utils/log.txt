@@ -9,16 +9,16 @@ hello
             ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞
             ±≈√∑©®™
     formatted string: 7 f 🎉🌟hello🚀😄
--          2026-03-20 23:08:57.500207 US Mountain Standard Time  -  multiline
--          2026-03-20 23:08:57.500207 US Mountain Standard Time  -  message
--          2026-03-20 23:08:57.500207 US Mountain Standard Time  -  with
--          2026-03-20 23:08:57.500207 US Mountain Standard Time  -  prepend_datetime_fmt
--             11.5664 MiB used  -  multiline
--             11.5664 MiB used  -  message
--             11.5664 MiB used  -  with
--             11.5664 MiB used  -  prepend_memory_usage
--          2026-03-20 23:08:57.502213 US Mountain Standard Time  -     11.6523 MiB used  -  messages
- -         2026-03-20 23:08:57.502461 US Mountain Standard Time  -     11.6797 MiB used  -      with
- -         2026-03-20 23:08:57.502781 US Mountain Standard Time  -     11.6992 MiB used  -      both
-  -        2026-03-20 23:08:57.503030 US Mountain Standard Time  -     11.7188 MiB used  -          and
-   -       2026-03-20 23:08:57.503200 US Mountain Standard Time  -     11.7461 MiB used  -              indents
+-          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  multiline
+-          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  message
+-          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  with
+-          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  prepend_datetime_fmt
+-              3.6523 MiB used  -  multiline
+-              3.6523 MiB used  -  message
+-              3.6523 MiB used  -  with
+-              3.6523 MiB used  -  prepend_memory_usage
+-          2026-03-21 11:24:56.551628 US Mountain Standard Time  -      3.7227 MiB used  -  messages
+ -         2026-03-21 11:24:56.551735 US Mountain Standard Time  -      3.7266 MiB used  -      with
+ -         2026-03-21 11:24:56.551854 US Mountain Standard Time  -      3.7266 MiB used  -      both
+  -        2026-03-21 11:24:56.551932 US Mountain Standard Time  -      3.7266 MiB used  -          and
+   -       2026-03-21 11:24:56.551976 US Mountain Standard Time  -      3.7266 MiB used  -              indents
