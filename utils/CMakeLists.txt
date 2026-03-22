@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
 # ---------------------------------------------
-# Compiler  Platform    C standard  VLA support
-# 
-# gcc       Linux       C99         Yes (C99 VLAs allowed)
-# clang     Linux       C99         Yes (C99 VLAs allowed)
-# msvc      Windows     C99         No (MSVC never supports VLAs)
-# clang-cl  Windows     C99         Yes (only C11 VLAs, not C99 VLAs)
+# Compiler   Platform    C standard  VLA support
+#
+# gcc        Linux       C99         Yes (C99 VLAs allowed)
+# clang      Linux       C99         Yes (C99 VLAs allowed)
+# msvc       Windows     C99         No  (MSVC never supports VLAs)
+# clang-cl   Windows     C99/C11     Yes (VLAs supported via Clang backend)
 # ---------------------------------------------
 
 # ---------------------------------------------
@@ -71,7 +71,7 @@ endif()
 # ------------------------------------------------
 # Set C standard before project() so it propagates to subprojects
 # ------------------------------------------------
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
