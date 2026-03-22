@@ -9,16 +9,16 @@ hello
             ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞
             ±≈√∑©®™
     formatted string: 7 f 🎉🌟hello🚀😄
--          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  multiline
--          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  message
--          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  with
--          2026-03-21 11:24:56.551229 US Mountain Standard Time  -  prepend_datetime_fmt
--              3.6523 MiB used  -  multiline
--              3.6523 MiB used  -  message
--              3.6523 MiB used  -  with
--              3.6523 MiB used  -  prepend_memory_usage
--          2026-03-21 11:24:56.551628 US Mountain Standard Time  -      3.7227 MiB used  -  messages
- -         2026-03-21 11:24:56.551735 US Mountain Standard Time  -      3.7266 MiB used  -      with
- -         2026-03-21 11:24:56.551854 US Mountain Standard Time  -      3.7266 MiB used  -      both
-  -        2026-03-21 11:24:56.551932 US Mountain Standard Time  -      3.7266 MiB used  -          and
-   -       2026-03-21 11:24:56.551976 US Mountain Standard Time  -      3.7266 MiB used  -              indents
+-          2026-03-21 20:37:56.239268 MST  -  multiline
+-          2026-03-21 20:37:56.239268 MST  -  message
+-          2026-03-21 20:37:56.239268 MST  -  with
+-          2026-03-21 20:37:56.239268 MST  -  prepend_datetime_fmt
+-              1.7930 MiB used  -  multiline
+-              1.7930 MiB used  -  message
+-              1.7930 MiB used  -  with
+-              1.7930 MiB used  -  prepend_memory_usage
+-          2026-03-21 20:37:56.239519 MST  -      1.8555 MiB used  -  messages
+ -         2026-03-21 20:37:56.239601 MST  -      1.8555 MiB used  -      with
+ -         2026-03-21 20:37:56.239656 MST  -      1.8555 MiB used  -      both
+  -        2026-03-21 20:37:56.239707 MST  -      1.8555 MiB used  -          and
+   -       2026-03-21 20:37:56.239756 MST  -      1.8555 MiB used  -              indents

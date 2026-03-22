@@ -640,85 +640,85 @@ UTILS:
 
             Build:
 
-                Build ALL utils in c-common-utils:
-                    Release Mode:
-                        cmake -S . -B build -DBUILD_ALL_UTILS=ON
-                    Debug Mode:
-                        cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Debug
+                NOTE: linux can use gcc or clang to compile c code. msvc and clang-cl are for windows. Its good practice to test C code through multiple compilers to catch different types of bugs.
 
-                    then run cmd:
-                        cmake --build build
+                GCC (VLAs supported):
+                    build ALL utils in c-common-utils:
+                        Release Mode:
+                            cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=gcc -DCMAKE_BUILD_TYPE=Release
+                        Debug Mode:
+                            cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=gcc -DCMAKE_BUILD_TYPE=Debug
+                    build individual util:
+                        string util:
+                            same as building ALL utils but change "-DBUILD_ALL_UTILS=ON" flag to "-DBUILD_STRING_UTIL=ON"
+                        logging util:
+                            same as building ALL utils but change "-DBUILD_ALL_UTILS=ON" flag to "-DBUILD_LOGGING_UTIL=ON"
+                        time util:
+                            same as building ALL utils but change "-DBUILD_ALL_UTILS=ON" flag to "-DBUILD_TIME_UTIL=ON"
+
+                Clang (VLAs supported):
+                    Release Mode:
+                        cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=clang -DCMAKE_BUILD_TYPE=Release
+                    Debug Mode:
+                        cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=clang -DCMAKE_BUILD_TYPE=Debug
+
+                then run cmd:
+                    cmake --build build
                     
-                    see utils/CmakeLists.txt for more details/options...
+                see utils/CmakeLists.txt for more details...
 
             Run:
-                option 1:
-                    run the executable w/ cmd:
-                        Release Mode:
-                            ./executable_filename
-                            example:
-                                ./build/logging_util/logging_util_full_example
-                        Debug Mode (GDB w/ GDB script + AddressSanitizer), logging_util example:
-                            logging_util:
-                                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
-                            string_util:
-                                ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/string_util/string_util_full_example -x string_util/scripts/debugging_scratchpad.gdb
+                Release Mode:
+                    logging util
+                        ./build/logging_util/logging_util_readme_example
+                        ./build/logging_util/logging_util_full_example
+                    string_util:
+                        ./build/string_util/string_util_readme_example
+                        ./build/string_util/string_util_full_example
+                    time_util:
+                        ./build/time_util/time_util_full_example
+                Debug Mode (GDB w/ GDB script + AddressSanitizer), logging_util example:
+                    logging_util:
+                        ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
+                    string_util:
+                        ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/string_util/string_util_full_example -x string_util/scripts/debugging_scratchpad.gdb
 
         Windows:
             Build:
                 open terminal "x64 native Tools Command Prompt for VS"
                 cd path\to\c-common-utils\utils\
                 rd /s /q build
-                cmake -S . -B build -DBUILD_ALL_UTILS=ON
-                cmake --build build --config Release
-            Run:
-                chcp 65001
-                .\build\string_util\Release\string_util_readme_example.exe
-                .\build\string_util\Release\string_util_full_example.exe
-                .\build\logging_util\Release\logging_util_readme_example.exe
-                .\build\logging_util\Release\logging_util_full_example.exe
-                .\build\time_util\Release\time_util_full_example.exe
 
-            tesing clang:
+                # EITHER build on Windows with MSVC compiler (VLAs unsupported with MSVC)
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Release -DCOMPILER=msvc
 
-                windows:
+                # OR build on Windows with clang-cl compiler (VLAs supported)
+                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCMAKE_BUILD_TYPE=Release -DCOMPILER=clang-cl -DCLANG_CL_PATH="C:/Program Files/LLVM/bin/clang-cl.exe" -G "Ninja"
 
-                    build:
-                        open terminal "x64 native Tools Command Prompt for VS"
-                        cd path\to\c-common-utils\utils\
-                        rd /s /q build
-                        cmake -G Ninja -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_ALL_UTILS=ON
-                        cmake --build build
-
-                    run:
-                        chcp 65001
-                        .\build\string_util\string_util_readme_example.exe
-                        .\build\string_util\string_util_full_example.exe
-                        .\build\logging_util\logging_util_readme_example.exe
-                        .\build\logging_util\logging_util_full_example.exe
-                        .\build\time_util\time_util_full_example.exe
-
-                linux:
-                    cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DBUILD_STRING_UTIL=ON
-
-            testing all compilers:
-
-                rd /s /q build
-
-                # Linux, GCC
-                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=gcc
-
-                # Linux, Clang (VLAs enabled)
-                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=clang
-
-                # Windows, MSVC
-                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=msvc
-
-                # Windows, clang-cl (VLAs enabled)
-                cmake -S . -B build -DBUILD_ALL_UTILS=ON -DCOMPILER=clang-cl -DCLANG_CL_PATH="C:/Program Files/LLVM/bin/clang-cl.exe" -G "Ninja"
+                # FOR DEBUG VERSION of above windows MSVC and clang-cl cmds,
+                # change -DCMAKE_BUILD_TYPE=Release
+                # to -DCMAKE_BUILD_TYPE=Debug
 
                 cmake --build build
-                    window release vs debug?
+            Run:
+
+                # MSVC
+                    chcp 65001
+                    .\build\string_util\Release\string_util_readme_example.exe
+                    .\build\string_util\Release\string_util_full_example.exe
+                    .\build\logging_util\Release\logging_util_readme_example.exe
+                    .\build\logging_util\Release\logging_util_full_example.exe
+                    .\build\time_util\Release\time_util_full_example.exe
+
+                    # or replace "Release" with "Debug"
+
+                # clang-cl
+                    chcp 65001
+                    .\build\string_util\string_util_readme_example.exe
+                    .\build\string_util\string_util_full_example.exe
+                    .\build\logging_util\logging_util_readme_example.exe
+                    .\build\logging_util\logging_util_full_example.exe
+                    .\build\time_util\time_util_full_example.exe
 
         Android:
             tbd
