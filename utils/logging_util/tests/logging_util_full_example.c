@@ -2,12 +2,18 @@
 
 #include <stdint.h> // intptr_t
 
+///////////////// global variables ///////////////////
+
+Log *logger; // global logging util Log struct
+Buffer *hbuf; // global heap Buffer struct for fmt*() functions
+#define hbuf_cap 1024
 #define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
 #define PATH_MAX_CHARS 1024
 char BASE_DIR[PATH_MAX_CHARS];
-Log *logger;
 #define THREAD_COUNT 4
 #define ITERATIONS 20
+
+//////////////////////////////////////////////////////
 
 #ifdef _WIN32
     #include <io.h>
@@ -31,8 +37,18 @@ Log *logger;
         int thread_id = (int)(intptr_t)arg;
         char *msg;
         char buffer[256];
+
+        // stack buffer (no need to free)
+        char stack_mem[256]; // raw char array on stack
+        Buffer buf_struct = { // Buffer struct on stack
+            .text = stack_mem,
+            .cap = sizeof(stack_mem),
+            .pos = 0
+        };
+        Buffer *buf = &buf_struct;
+
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buf, "thread %d iteration %d", thread_id, j), .i=1);
         }
         return 0;
     }
@@ -65,9 +81,18 @@ Log *logger;
     void *thread_print_loop(void *arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        char buffer[logger->max_message_len];
+
+        // stack buffer (no need to free)
+        char stack_mem[256]; // raw char array on stack
+        Buffer buf_struct = { // Buffer struct on stack
+            .text = stack_mem,
+            .cap = sizeof(stack_mem),
+            .pos = 0
+        };
+        Buffer *buf = &buf_struct;
+
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt(buffer, "thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buf, "thread %d iteration %d", thread_id, j), .i=1);
         }
         return NULL;
     }
@@ -107,6 +132,7 @@ Log *logger;
 #include <errno.h>
 
 
+
 void get_full_base_dir(void) {
     char exe_path[PATH_MAX_CHARS];
     char sep;
@@ -126,8 +152,14 @@ void get_full_base_dir(void) {
     if (!p) return;
     *p = '\0';
 
-    // remove 1 parent directory
-    int num_lvls = 2; // number of directory levels to go up
+    // remove 1 parent directory/ies
+    int num_lvls; // number of directory levels to go up
+    #if defined(_WIN32) && defined(_MSC_VER)
+        // MSVC compiler (only available on windows) puts the executable in an added Release (or Debug) directory
+        num_lvls = 3;
+    #else
+        num_lvls = 2;
+    #endif
     for (int i = 0; i < num_lvls; i++) {
         // remove last directory from path
         p = strrchr(exe_path, sep);
@@ -152,7 +184,7 @@ void test_print() {
 
     // test formatted string
     char buf[256];
-    print(logger, fmt(buf, "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=1);
+    print(logger, fmt(hbuf, "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=1);
 
     // test new line start
     print(logger, "new line start = true, draw line = false", .i=1, .ns=true);
@@ -249,24 +281,24 @@ void test_print() {
 
     // test message truncation
     logger->max_message_len = test_max_message_len;
-    print(logger, fmt(buf2, "Test message truncation: set logger->max_message_len to %d", logger->max_message_len), .i=2, .ns=true);
-    print(logger, fmt(buf2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    print(logger, fmt(hbuf, "Test message truncation: set logger->max_message_len to %zd", logger->max_message_len), .i=2, .ns=true);
+    print(logger, fmt(hbuf, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
 
     // test line truncation
     logger->max_line_len = test_max_line_len;
-    print(logger, fmt(buf2, "Test line truncation: set logger->max_line_len to %d", logger->max_line_len), .i=2, .ns=true);
+    print(logger, fmt(hbuf, "Test line truncation: set logger->max_line_len to %zd", logger->max_line_len), .i=2, .ns=true);
     print(logger, long_line, .i=3);
 
     // test both
     print(logger, "Test both:", .i=2, .ns=true);
-    print(logger, fmt(buf2, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    print(logger, fmt(hbuf, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
 
     // test complete, restore default settings
     logger->max_message_len = default_max_message_len;
     logger->max_line_len    = default_max_line_len;
     print(logger, "truncation tests complete.", .i=1, .ns=true, .d=true);
-    print(logger, fmt(buf2, "restored logger->max_line_len    to default: %d", logger->max_line_len),    .i=1);
-    print(logger, fmt(buf2, "restored logger->max_message_len to default: %d", logger->max_message_len), .i=1, .ne=true);
+    print(logger, fmt(hbuf, "restored logger->max_line_len    to default: %zd", logger->max_line_len),    .i=1);
+    print(logger, fmt(hbuf, "restored logger->max_message_len to default: %zd", logger->max_message_len), .i=1, .ne=true);
 
 }
 
@@ -453,12 +485,15 @@ void test_print_json() {
     // json file read/write example
     print(logger, "\nExample 2:", .i=1);
     char *filename = "json_example.json";
-    char filepath[PATH_MAX_CHARS];
-    char buffer[PATH_MAX_CHARS];
+    char filepath[hbuf_cap];
     #ifdef _WIN32
-        fmt(filepath, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
+        fmt(hbuf, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
+        memcpy(filepath, hbuf->text, hbuf->pos);
+        filepath[hbuf->pos] = '\0';
     #else
-        fmt(filepath, "%s/logging_util/test_output/%s", BASE_DIR, filename);
+        fmt(hbuf, "%s/logging_util/test_output/%s", BASE_DIR, filename);
+        memcpy(filepath, hbuf->text, hbuf->pos);
+        filepath[hbuf->pos] = '\0';
     #endif
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
@@ -468,25 +503,24 @@ void test_print_json() {
     cJSON_AddItemToArray(langs, cJSON_CreateString("Python"));
     int rc = write_json_file(root, filepath);
     if (rc != 0) {
-        print(logger, fmt(buffer, "Failed to write JSON, error code %d", rc), .i=2);
-        print(logger, fmt(buffer, "json filepath: %s", filepath), .i=3);
+        print(logger, fmt(hbuf, "Failed to write JSON, error code %d", rc), .i=2);
+        print(logger, fmt(hbuf, "json filepath: %s", filepath), .i=3);
     }
     cJSON_Delete(root);
     cJSON *loaded = read_json_file(filepath);
     if (!loaded) {
         print(logger, "Failed to read JSON", .i=2);
-        print(logger, fmt(buffer, "json filepath: %s", filepath), .i=3);
+        print(logger, fmt(hbuf, "json filepath: %s", filepath), .i=3);
         return;
     }
     char *loaded_string = cJSON_Print(loaded);
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
     print(logger, loaded_string, .i=2);
-    char buffer2[128];
     if (cJSON_IsString(name))
-        print(logger, fmt(buffer2, "name = %s", name->valuestring), .i=2);
+        print(logger, fmt(hbuf, "name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
-        print(logger, fmt(buffer2, "age = %d", age->valueint), .i=2);
+        print(logger, fmt(hbuf, "age = %d", age->valueint), .i=2);
         cJSON_Delete(loaded);
     free(loaded_string);
 
@@ -568,10 +602,9 @@ void test_overwrite_prev_msg() {
 
     print(logger, "test regular print() after overwrite_prev_msg", .i=i, .ne=true);
 
-    char buffer[256];
-	print(logger, fmt(buffer, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
-	print(logger, fmt(buffer, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
-	print(logger, fmt(buffer, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
+	print(logger, fmt(hbuf, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
+	print(logger, fmt(hbuf, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
+	print(logger, fmt(hbuf, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
 
 }
 
@@ -580,21 +613,30 @@ void test_thread_safety() {
     if (thread_safety_test() != 0) {
         fprintf(stderr, "Thread safety test failed\n");
     } else {
-        char buffer[256];
-        print(logger, fmt(buffer, "test passes if all %d x %d thread/iteration combinations were printed (order does\'t matter)", THREAD_COUNT, ITERATIONS), .ns=true);
-        print(logger, fmt(buffer, "test complete, log file at:\n%s", logger->filepath), .ne=true);
+        print(logger, fmt(hbuf, "test passes if all %d x %d thread/iteration combinations were printed (order does\'t matter)", THREAD_COUNT, ITERATIONS), .ns=true);
+        print(logger, fmt(hbuf, "test complete, log file at:\n%s", logger->filepath), .ne=true);
     }
 }
 
 int main(void) {
 
+    // init global heap buffer for fmt*() functions
+    hbuf = malloc(sizeof(Buffer));
+    hbuf->text = malloc(hbuf_cap);
+    hbuf->cap = hbuf_cap;
+    hbuf->pos = 0;
+
     // Set log file path
     get_full_base_dir();
-    char log_filepath[PATH_MAX_CHARS];
+    char log_filepath[hbuf_cap];
     #ifdef _WIN32
-        fmt(log_filepath, "%s\\logging_util\\log\\log.txt", BASE_DIR);
+        fmt(hbuf, "%s\\logging_util\\log\\log.txt", BASE_DIR);
+        memcpy(log_filepath, hbuf->text, hbuf->pos);
+        log_filepath[hbuf->pos] = '\0';
     #else
-        fmt(log_filepath, "%s/logging_util/log/log.txt", BASE_DIR);
+        fmt(hbuf, "%s/logging_util/log/log.txt", BASE_DIR);
+        memcpy(log_filepath, hbuf->text, hbuf->pos);
+        log_filepath[hbuf->pos] = '\0';
     #endif
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
@@ -617,7 +659,9 @@ int main(void) {
 	test_overwrite_prev_msg();
     test_thread_safety();
 
+    // free logger and heap buffer
     log_close(&logger);
+    free(hbuf->text); free(hbuf);
 
     return 0;
 }

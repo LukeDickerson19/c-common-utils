@@ -68,6 +68,24 @@ typedef struct String {
     MemoryAllocationProcedure allocation_procedure;
 } String;
 
+
+/** Buffer struct
+ *
+ * Represents a character buffer used for char array formatting functions.
+ * Can wrap both stack-allocated and heap-allocated arrays. No UTF-8 normalization support
+ *
+ * Members:
+ *   text - pointer to the underlying character array storing the string.
+ *   cap  - total allocated capacity of the text array (in bytes).
+ *   pos  - current write position within the buffer; new data is appended here.
+ */
+typedef struct Buffer {
+    char *text; // text char array
+    size_t cap; // memory capacity allocated for text
+    size_t pos; // current position of buffer
+} Buffer;
+
+
 ////////////////////////////// Memory Functions ///////////////////////////
 
 
@@ -140,14 +158,12 @@ String *str_clone(
  *
  * @param label    A descriptive name prefix for identifying the string instance.
  * @param s        Pointer to the String structure to inspect.
- * @param out      The destination buffer to receive the formatted text.
- * @param out_cap  Maximum capacity of the destination buffer.
+ * @param out      The destination Buffer struct to receive the formatted text.
  * @return         The number of characters written (standard snprintf behavior).
  */
 void str_info(
     const String *s,
-    char *out,
-    size_t out_cap
+    Buffer *out
 );
 
 ////////////////////////////// Mutation Functions /////////////////////////
@@ -601,39 +617,30 @@ int _str_slice(
  *     printf("%s %s\n", fmt(buf1, "A"), fmt(buf2, "B"));
  * 
  * @param buf      pointer to a char array
+ * @param fmt_text text to format and write into buf->text
  * @param ...      printf-style format string followed by any values to substitute
  * @return         pointer to the formatted string, buf
  */
-#define fmt(buf, ...) ( \
-    snprintf(buf, sizeof(buf), __VA_ARGS__), \
-    buf \
-)
-/* NOTE:
-    int snprintf(char *str, size_t size, const char *format, ...);
-        Args:
-            str     Pointer to the destination buffer.
-            size    Maximum number of bytes to write to the buffer including the null terminator.
-            format  Format string (same syntax as printf).
-            ...     Values to substitute into the format string.
-*/
+char *fmt(
+    Buffer *buf,
+    const char *fmt_text,
+    ...
+);
 
 
 /** fmt_append()
  * 
  * Appends the src char array (plus formatting) to dst buffer, updates the *pos pointer to the new end (null terminator position) of the char array, and returns the number of bytes that would have been written on success (from snprintf() function).
  * 
- * @param dst      pointer to the destination buffer
- * @param dst_cap  size of the destination buffer
+ * @param buf      pointer to the destination Buffer struct
  * @param pos      position in dst to append to
- * @param src      source text to write into dst
+ * @param fmt_text text to format and write into buf->text + buf->pos
  * @param ...      printf-style string formatting values to substitute into src
  * @return         number of bytes written, or (size_t)-1 on failure
  */
 size_t fmt_append(
-    char *dst,
-    size_t dst_cap,
-    size_t *pos,
-    const char *src,
+    Buffer *buf,
+    const char *fmt_text,
     ...
 );
 

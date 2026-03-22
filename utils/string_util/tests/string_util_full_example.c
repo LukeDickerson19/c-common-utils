@@ -4,6 +4,10 @@
 #include <stdio.h>  // for printf
 #include <assert.h> // for assert (optional - can remove if you prefer)
 
+///////////////// global variables ///////////////////
+
+Buffer *heap_buf;
+
 //////////////// test helper functions ///////////////
 
 int all_passed_tests = 0;
@@ -86,9 +90,10 @@ static void append_formatted_text(const char *text, char *out, size_t out_cap) {
 
 static void append_string_details(const char *label, const String *s, char *out, size_t out_cap) {
     if (!s || !s->text || !out) return;
-    char s_info[1024]; str_info(s, s_info, sizeof(s_info));
-    size_t offset = strlen(out);
-    snprintf(out + offset, out_cap - offset, "            String %s: %s\n", label, s_info);
+
+    str_info(s, heap_buf);
+    size_t offset = heap_buf->pos;
+    snprintf(out + offset, out_cap - offset, "            String %s: %s\n", label, heap_buf->text);
 }
 
 ////////////////// test functions //////////////////
@@ -115,7 +120,9 @@ void test_str_init(bool verbose) {
     // Formatted strings
     test_details[0] = '\0';
     append_formatted_text("initialize formatted strings\n\n", test_details, sizeof(test_details));
-    char buf1[128], buf2[128], buf3[128];
+    char text1[128]; Buffer buf1_struct = { .text = text1, .cap=sizeof(text1), .pos = 0 }; Buffer *buf1 = &buf1_struct;
+    char text2[128]; Buffer buf2_struct = { .text = text2, .cap=sizeof(text2), .pos = 0 }; Buffer *buf2 = &buf2_struct;
+    char text3[128]; Buffer buf3_struct = { .text = text3, .cap=sizeof(text3), .pos = 0 }; Buffer *buf3 = &buf3_struct;
     String *f1 = str(fmt(buf1, "Hi my name is %s.", "Luke"));
     String *f2 = str(fmt(buf1, "nested fmt() calls %s", fmt(buf2, "require separate %s", "buffers")));
     String *f3 = str(fmt(buf1, "so do %s %s", fmt(buf2, "%s", "neighboring"), fmt(buf3, "%s", "fmt() calls")));
@@ -1903,40 +1910,22 @@ void test_fmt(bool verbose) {
 
     char test_details[1024] = "";
 
-    // reusable buffers
-    char buf1[128];
-    char buf2[128];
-    char buf3[128];
-    char buf4[128];
-
     // Basic formatting
     append_formatted_text("basic formatting\n\n", test_details, sizeof(test_details));
-    char *r1 = fmt(buf1, "hello %s", "world");
+    char *r1 = fmt(heap_buf, "hello %s", "world");
     ASSERT_TEXT_EQ("Test 1: basic format", r1, "hello world", test_details, verbose);
-    char *r2 = fmt(buf2, "%d + %d = %d", 2, 3, 5);
+    char *r2 = fmt(heap_buf, "%d + %d = %d", 2, 3, 5);
     ASSERT_TEXT_EQ("Test 2: integer format", r2, "2 + 3 = 5", test_details, verbose);
-
-    // Multiple fmt() calls in one line
-    test_details[0] = '\0';
-    append_formatted_text("multiple fmt() calls in one line\n\n", test_details, sizeof(test_details));
-    char *multi_a = fmt(buf1, "A=%d", 10);
-    char *multi_b = fmt(buf2, "B=%d", 20);
-    ASSERT_TEXT_EQ("Test 3: multi-call A", multi_a, "A=10", test_details, verbose);
-    ASSERT_TEXT_EQ("Test 4: multi-call B", multi_b, "B=20", test_details, verbose);
-
-    // Nested fmt() calls (two-step)
-    test_details[0] = '\0';
-    append_formatted_text("nested fmt() calls\n\n", test_details, sizeof(test_details));
-    char *nested_inner = fmt(buf3, "value=%d", 42);
-    char *nested_outer = fmt(buf1, "wrapped(%s)", nested_inner);
-    ASSERT_TEXT_EQ("Test 5: nested inner", nested_inner, "value=42", test_details, verbose);
-    ASSERT_TEXT_EQ("Test 6: nested outer", nested_outer, "wrapped(value=42)", test_details, verbose);
 
     // Nested fmt() inline expression
     test_details[0] = '\0';
+    char text1[128]; Buffer buf1_struct = { .text = text1, .cap=sizeof(text1) }; Buffer *buf1 = &buf1_struct;
+    char text2[128]; Buffer buf2_struct = { .text = text2, .cap=sizeof(text2) }; Buffer *buf2 = &buf2_struct;
+    char text3[128]; Buffer buf3_struct = { .text = text3, .cap=sizeof(text3) }; Buffer *buf3 = &buf3_struct;
+    // NOTE: multiple buffers are required for multiple fmt calls at the same nested level
     append_formatted_text("inline nested fmt() expression\n\n", test_details, sizeof(test_details));
-    char *nested_inline = fmt(buf1, "outer(%s)", fmt(buf2, "inner-%d", 7));
-    ASSERT_TEXT_EQ("Test 7: inline nested", nested_inline, "outer(inner-7)", test_details, verbose);
+    char *nested_inline = fmt(buf1, "outer(%s, %s)", fmt(buf2, "inner%d", 1), fmt(buf3, "inner%d", 2));
+    ASSERT_TEXT_EQ("Test 7: inline nested", nested_inline, "outer(inner1, inner2)", test_details, verbose);
 
     printf("\n    %s test: fmt() %d passed, %d failed\n",
         failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:",
@@ -1953,93 +1942,109 @@ void test_fmt_append(bool verbose) {
 
     // Test basic append
     append_formatted_text("Test basic append\n\n", test_details, sizeof(test_details));
-    char buf1[128];
-    size_t pos = 0;
-    size_t r1 = fmt_append(buf1, sizeof(buf1), &pos, "Hello, ");
-    size_t r2 = fmt_append(buf1, sizeof(buf1), &pos, "%s!", "world");
+
+    // create example stack buffer (no need to free)
+    char stack_mem[128];           // raw char array on stack
+    Buffer buf_struct = {         // Buffer struct on stack
+        .text = stack_mem,
+        .cap = sizeof(stack_mem),
+        .pos = 0
+    };
+    Buffer *buf = &buf_struct;
+
+    size_t r1 = fmt_append(buf, "Hello, ");
+    size_t r2 = fmt_append(buf, "%s!", "world");
     ASSERT_BOOL_TRUE("Test 1: first append returns correct length",
                      r1 == 7, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 2: second append returns correct length",
                      r2 == 6, test_details, verbose);
     ASSERT_TEXT_EQ("Test 3: basic append produces correct string",
-                   buf1, "Hello, world!", test_details, verbose);
+                   buf->text, "Hello, world!", test_details, verbose);
 
     // Test multiple format specifiers
+    test_details[0] = '\0';
     append_formatted_text("Test multiple format specifiers\n\n", test_details, sizeof(test_details));
-    char buf2[128];
-    pos = 0;
-    fmt_append(buf2, sizeof(buf2), &pos, "Values: ");
-    fmt_append(buf2, sizeof(buf2), &pos, "%d, %f, %c", 42, 3.14, 'x');
+    buf->pos = 0;
+    fmt_append(buf, "Values: ");
+    fmt_append(buf, "%d, %f, %c", 42, 3.14, 'x');
     ASSERT_TEXT_EQ("Test 4: multiple format specifiers",
-                   buf2, "Values: 42, 3.140000, x", test_details, verbose);
+                   buf->text, "Values: 42, 3.140000, x", test_details, verbose);
 
     // Test buffer overflow handling
+    test_details[0] = '\0';
     append_formatted_text("Test buffer overflow handling\n\n", test_details, sizeof(test_details));
-    char small_buf[8];
-    pos = 0;
-    size_t first_written  = fmt_append(small_buf, sizeof(small_buf), &pos, "123");
-    size_t second_written = fmt_append(small_buf, sizeof(small_buf), &pos, "456789");
+    char small_stack_mem[8];
+    Buffer small_buf_struct = {
+        .text = small_stack_mem,
+        .cap = sizeof(small_stack_mem),
+        .pos = 0
+    };
+    Buffer *small_buf = &small_buf_struct;
+    size_t first_written  = fmt_append(small_buf, "123");
+    size_t second_written = fmt_append(small_buf, "456789");
     ASSERT_BOOL_TRUE("Test 5: first append fits in small buffer",
                      first_written == 3, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 6: second append returns would-be length on truncation",
                      second_written == 6, test_details, verbose);
     ASSERT_TEXT_EQ("Test 7: buffer overflow handled correctly",
-                   small_buf, "1234567", test_details, verbose);
+                   small_buf->text, "1234567", test_details, verbose);
 
     // Test position tracking
+    test_details[0] = '\0';
     append_formatted_text("Test position tracking\n\n", test_details, sizeof(test_details));
-    char buf3[128];
-    pos = 5;
-    memcpy(buf3, "12345", 5);
-    size_t r3 = fmt_append(buf3, sizeof(buf3), &pos, "6789");
+    buf->pos = 5;    
+    memcpy(buf->text, "12345\0", buf->pos + 1);
+    size_t r3 = fmt_append(buf, "6789");
     ASSERT_BOOL_TRUE("Test 8: position tracking works",
-                     pos == 9, test_details, verbose);
+                     buf->pos == 9, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 9: append returns correct length",
                      r3 == 4, test_details, verbose);
     ASSERT_TEXT_EQ("Test 10: appended at correct position",
-                   buf3, "123456789", test_details, verbose);
+                   buf->text, "123456789", test_details, verbose);
 
     // Test NULL destination buffer
+    test_details[0] = '\0';
     append_formatted_text("Test NULL destination buffer\n\n", test_details, sizeof(test_details));
-    pos = 0;
-    size_t r4 = fmt_append(NULL, sizeof(buf1), &pos, "test");
+    buf->pos = 0;
+    size_t r4 = fmt_append(NULL, "test");
     ASSERT_BOOL_TRUE("Test 11: NULL buffer returns (size_t)-1",
                      r4 == (size_t)-1, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 12: position unchanged with NULL buffer",
-                     pos == 0, test_details, verbose);
+                     buf->pos == 0, test_details, verbose);
 
-    // Test NULL position pointer
-    append_formatted_text("Test NULL position pointer\n\n", test_details, sizeof(test_details));
-    char buf4[128];
-    size_t r5 = fmt_append(buf4, sizeof(buf4), NULL, "test");
-    ASSERT_BOOL_TRUE("Test 13: NULL position pointer returns (size_t)-1",
+    // Test invalid position pointer
+    test_details[0] = '\0';
+    buf->pos = (size_t)-1;
+    append_formatted_text("Test invalid position pointer\n\n", test_details, sizeof(test_details));
+    size_t r5 = fmt_append(buf, "test");
+    ASSERT_BOOL_TRUE("Test 13: invalid position pointer returns (size_t)-1",
                      r5 == (size_t)-1, test_details, verbose);
 
     // Test position at buffer limit
+    test_details[0] = '\0';
     append_formatted_text("Test position at buffer limit\n\n", test_details, sizeof(test_details));
-    char buf5[128];
-    pos = sizeof(buf5);  // Position at capacity triggers guard
-    size_t r6 = fmt_append(buf5, sizeof(buf5), &pos, "x");
+    buf->pos = buf->cap;  // Position at capacity triggers guard
+    size_t r6 = fmt_append(buf, "x");
     ASSERT_BOOL_TRUE("Test 14: position at limit returns (size_t)-1",
                      r6 == (size_t)-1, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 15: position unchanged at limit",
-                     pos == sizeof(buf5), test_details, verbose);
+                     buf->pos == buf->cap, test_details, verbose);
 
     // Test format string with %%
+    test_details[0] = '\0';
     append_formatted_text("Test format string with %%\n\n", test_details, sizeof(test_details));
-    char buf6[128];
-    pos = 0;
-    fmt_append(buf6, sizeof(buf6), &pos, "50%% off");
+    buf->pos = 0;
+    fmt_append(buf, "50%% off");
     ASSERT_TEXT_EQ("Test 16: percent sign handled correctly",
-                   buf6, "50% off", test_details, verbose);
+                   buf->text, "50% off", test_details, verbose);
 
     // Test UTF-8 formatting
+    test_details[0] = '\0';
     append_formatted_text("Test UTF-8 formatting\n\n", test_details, sizeof(test_details));
-    char buf7[128];
-    pos = 0;
-    size_t r7 = fmt_append(buf7, sizeof(buf7), &pos, "東京: %d, 🌍: %s", 2020, "world");
+    buf->pos = 0;
+    size_t r7 = fmt_append(buf, "東京: %d, 🌍: %s", 2020, "world");
     ASSERT_TEXT_EQ("Test 17: UTF-8 formatting works",
-                   buf7, "東京: 2020, 🌍: world", test_details, verbose);
+                   buf->text, "東京: 2020, 🌍: world", test_details, verbose);
     ASSERT_BOOL_TRUE("Test 18: UTF-8 returns byte length not char count",
                      r7 == strlen("東京: 2020, 🌍: world"), test_details, verbose);
 
@@ -2144,9 +2149,15 @@ void test_memory_allocation_procedures(bool verbose) {
 }
 
 
-
 int main(void) {
     printf("====== string_util tests: ======\n");
+
+    // example heap buffer for fmt*() functions
+    size_t heap_buf_cap = 1024;
+    heap_buf = malloc(sizeof(Buffer));
+    heap_buf->text = malloc(heap_buf_cap);
+    heap_buf->cap = heap_buf_cap;
+    heap_buf->pos = 0;
 
     bool verbose = false; // set verbose to true for all tests (of a specific test) to print test details of a test even if it passes, by default test details are only printed if a test fails
 
@@ -2179,6 +2190,9 @@ int main(void) {
     printf("    %s %d passed, %d failed\n\n",
         all_failed_tests > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:",
         all_passed_tests, all_failed_tests);
+
+    free(heap_buf->text);
+    free(heap_buf);
     return 0;
 }
 

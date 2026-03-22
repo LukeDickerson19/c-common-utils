@@ -101,6 +101,20 @@ void set_start_time(
 }
 
 
+void set_max_indentation(
+    const size_t max_indents,
+    const char *indent,
+    char **max_indentation
+) {
+    size_t indent_len = strlen(indent);
+    *max_indentation = malloc(max_indents * indent_len + 1);
+    if (!*max_indentation) return;  // handle allocation failure
+
+    for (size_t i = 0; i < max_indents; i++)
+        memcpy(*max_indentation + i * indent_len, indent, indent_len);
+    (*max_indentation)[max_indents * indent_len] = '\0';
+}
+
 //////////////////////// logging functions /////////////////
 
 Log *_log_init(
@@ -158,9 +172,25 @@ Log *_log_init(
     }
     // TODO: assert valid prepend_datetime_fmt
     // TODO: assert valid timezone
+    // Init tmp buffer for fmt() used for prepend_info
+    size_t p_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
+    log->p_buf = malloc(sizeof(Buffer));
+    log->p_buf->text = malloc(p_buf_cap);
+    log->p_buf->cap = p_buf_cap;
+    log->p_buf->pos = 0;
 
-    // initialize log start time to current time
+    // Initialize log start time to the current time
     set_start_time(log, NULL, NULL);
+
+    // Set max console/logfile indentation
+    set_max_indentation(log->max_indents, log->console_indent, &log->max_console_indentation);
+    set_max_indentation(log->max_indents, log->logfile_indent, &log->max_logfile_indentation);
+    // init tmp buffer for fmt() used for indents
+    size_t i_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
+    log->i_buf = malloc(sizeof(Buffer));
+    log->i_buf->text = malloc(i_buf_cap);
+    log->i_buf->cap = i_buf_cap;
+    log->i_buf->pos = 0;
 
     // init overwrite_prev_msg variables
     // these variables are reused each log message to avoid frequent
@@ -189,6 +219,14 @@ void log_close(
 
     // free log file pointer
     if (log->file_pointer != NULL) fclose(log->file_pointer);
+
+    // free max console and logfile indentation char arrays
+    free(log->max_console_indentation);
+    free(log->max_logfile_indentation);
+
+    // free fmt() heap buffers
+    free(log->p_buf->text); free(log->p_buf);
+    free(log->i_buf->text); free(log->i_buf);
 
     // str_free skips over any NULL String pointers
     str_free(
@@ -356,9 +394,8 @@ static void _append_inline_truncation_message(
 static int _get_indented_message(
     Log* log,
     const char *message,
-    char *prepend_info,
-    size_t prepend_info_len,
     const char *indent,
+    const char *max_indentation,
     String *formatted_message,
     PrintOptions *opts
 ) {
@@ -366,26 +403,16 @@ static int _get_indented_message(
     // Create indent buffers
     size_t indent_len = strlen(indent);
     size_t i = opts->i;
-    const size_t len1 = indent_len * i;
-    const size_t len2 = indent_len * (i + 1);
-    char total_indent1[len1 + 1];
-    char total_indent2[len2 + 1];
-    for (size_t j = 0; j < i; j++)
-        memcpy(total_indent1 + j * indent_len, indent, indent_len);
-    for (size_t j = 0; j < i + 1; j++)
-        memcpy(total_indent2 + j * indent_len, indent, indent_len);
-    total_indent1[len1] = '\0';
-    total_indent2[len2] = '\0';
-    const char* total_indent3 = opts->d ? total_indent2 : total_indent1;
-
-    // Init tmp buffer for fmt()
-    char tmp[log->max_line_len * 4];
+    const size_t total_indent1 = indent_len * i;
+    const size_t total_indent2 = indent_len * (i + 1);
+    const size_t total_indent3 = opts->d ? total_indent2 : total_indent1;
+    log->i_buf->text[0] = '\0'; log->i_buf->pos = 0; // reset i_buf
 
     // Add starting newline if requested
     if (opts->ns)
         str_append(
             formatted_message,
-            fmt(tmp, "%s%s\n", prepend_info, total_indent3)
+            fmt(log->i_buf, "%s%.*s\n", log->p_buf->text, (int)total_indent3, max_indentation)
         );
 
     // Format each line in the log message
@@ -396,13 +423,14 @@ static int _get_indented_message(
         size_t line_byte_len = line_byte_end ? (size_t)(line_byte_end - line_byte_start) : strlen(line_byte_start);
 
         // Append prepended info, indents, and line
-        const char *line_indent = line_byte_len == 0 ? total_indent3 : total_indent1;
+        const size_t line_indent = line_byte_len == 0 ? total_indent3 : total_indent1;
         const size_t rune_len_before = formatted_message->len;
         str_append(
             formatted_message,
-            fmt(tmp, "%s%s%.*s%s",
-                prepend_info,
-                line_indent,
+            fmt(log->i_buf, "%s%.*s%.*s%s",
+                log->p_buf->text,
+                (int)line_indent,
+                max_indentation,
                 (int)line_byte_len,
                 line_byte_start,
                 opts->end
@@ -444,7 +472,7 @@ static int _get_indented_message(
     if (opts->ne && !message_truncated)
         str_append(
             formatted_message,
-            fmt(tmp, "%s%s\n", prepend_info, total_indent3)
+            fmt(log->i_buf, "%s%.*s\n", log->p_buf->text, (int)total_indent3, max_indentation)
         );
 
     // Return success code
@@ -465,10 +493,9 @@ static int _get_formatted_messages(
     int i = opts->i;
     if (i < 0 || i > log->max_indents) return -1;
 
+
     // Prepend info if requested
-    char prepend_info[log->max_line_len];
-    prepend_info[0] = '\0'; // Initialize to empty string for when not prepending anything
-    size_t prepend_info_len = 0;
+    log->p_buf->text[0] = '\0'; log->p_buf->pos = 0; // reset p_buf incase user requested not to prepend anything
     if (log->prepend_datetime_fmt || \
         log->prepend_elapsed_time || \
         log->prepend_memory_usage) {
@@ -478,7 +505,7 @@ static int _get_formatted_messages(
         // They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
         const char div_mark = '-';
         fmt_append(
-            prepend_info, sizeof(prepend_info), &prepend_info_len,
+            log->p_buf,
             "%*s%c%*s", i, "", div_mark, log->max_indents - i, ""
         );
 
@@ -507,7 +534,7 @@ static int _get_formatted_messages(
                 return -1;
             }
             fmt_append(
-                prepend_info, sizeof(prepend_info), &prepend_info_len,
+                log->p_buf,
                 "%s  ", datetime_str
             );
         }
@@ -538,12 +565,12 @@ static int _get_formatted_messages(
             }
             if (log->prepend_datetime_fmt) {
                 fmt_append(
-                    prepend_info, sizeof(prepend_info), &prepend_info_len,
+                    log->p_buf,
                     "%c  ", div_mark
                 );
             }
             fmt_append(
-                prepend_info, sizeof(prepend_info), &prepend_info_len,
+                log->p_buf,
                 "%s  ", elapsed_time_str
             );
         }
@@ -554,19 +581,19 @@ static int _get_formatted_messages(
             _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
             if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
                 fmt_append(
-                    prepend_info, sizeof(prepend_info), &prepend_info_len,
+                    log->p_buf,
                     "%c  ", div_mark
                 );
             }
             fmt_append(
-                prepend_info, sizeof(prepend_info), &prepend_info_len,
+                log->p_buf,
                 "%17s", mem_usage_str
             );
         }
 
         // append a final div mark plus some spacing
         fmt_append(
-            prepend_info, sizeof(prepend_info), &prepend_info_len,
+            log->p_buf,
             "%c  ", div_mark
         );
     }
@@ -576,22 +603,19 @@ static int _get_formatted_messages(
         _get_indented_message(
             log,
             message,
-            prepend_info,
-            prepend_info_len,
             log->console_indent,
+            log->max_console_indentation,
             log->console_msg,
             opts
         );
     }
-
     if (output_to_logfile) {
         str_clear(log->logfile_msg);
         _get_indented_message(
             log,
             message,
-            prepend_info,
-            prepend_info_len,
             log->logfile_indent,
+            log->max_logfile_indentation,
             log->logfile_msg,
             opts
         );
@@ -678,6 +702,7 @@ int _log_print(
     const char *msg,   // message to print
     PrintOptions *opts // optional print arguments
 ) {
+
     if (!log || !msg) {
         perror("must pass a Log struct pointer and string message");
         return -1;

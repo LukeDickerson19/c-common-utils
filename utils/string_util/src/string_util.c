@@ -387,20 +387,36 @@ String *str_clone(
 
 void str_info(
     const String *s,
-    char *out,
-    size_t out_cap
+    Buffer *out
 ) {
-    if (!s || !out) return;
+    if (!s) return;
 
-    snprintf(out, out_cap,
-        "text=\"%s\", len=%zu, bytes=%zu, cap=%zu, String struct size=%zu, total size=%zu bytes",
-        s->text ? s->text : "NULL",
-        s->len,
-        s->bytes,
-        s->cap,
-        sizeof(*s),
-        sizeof(*s) + s->cap
-    );
+    // copy to result to out->text if out != NULL,
+    // else just print it to the console
+    const char *text_repr = s->text ? s->text : "NULL";
+    size_t total_size = sizeof(*s) + s->cap;
+    if (out) {
+        fmt(out,
+            "text=\"%s\", len=%zu, bytes=%zu, cap=%zu, String struct size=%zu, total size=%zu bytes",
+            s->text ? s->text : "NULL",
+            s->len,
+            s->bytes,
+            s->cap,
+            sizeof(*s),
+            total_size
+        );
+    } else {
+        printf(
+            "text=\"%s\", len=%zu, bytes=%zu, cap=%zu, String struct size=%zu, total size=%zu bytes\n",
+            text_repr,
+            s->len,
+            s->bytes,
+            s->cap,
+            sizeof(*s),
+            total_size
+        );
+        fflush(stdout);  // print immediately
+    }
 }
 
 
@@ -414,7 +430,13 @@ int str_append(
     if (s == NULL || s->text == NULL || suffix == NULL)
         return -1;
 
-    size_t suffix_bytes = strlen(suffix);
+    // Normalize the prefix (NFC)
+    // This ensures combining codepoints become canonical before insertion.
+    const char *normalized = normalize_utf8_str(suffix);
+    if (!normalized)
+        return -1;
+
+    size_t suffix_bytes = strlen(normalized);
 
     // Resize dynamic array if needed
     size_t needed = s->bytes + suffix_bytes + 1;
@@ -425,12 +447,12 @@ int str_append(
     }
 
     // Append suffix characters to s->text
-    memcpy(s->text + s->bytes, suffix, suffix_bytes);
+    memcpy(s->text + s->bytes, normalized, suffix_bytes);
     s->bytes += suffix_bytes;
     s->text[s->bytes] = '\0';
 
     // Update rune count
-    s->len += count_utf8_runes(suffix);
+    s->len += count_utf8_runes(normalized);
 
     return 0;
 }
@@ -440,12 +462,18 @@ int str_prepend(
     const char *prefix,
     String *s
 ) {
-    if (s == NULL || s->text == NULL || prefix == NULL)
+    if (!s || !s->text || !prefix)
         return -1;
 
-    size_t prefix_bytes = strlen(prefix);
+    // Normalize the prefix (NFC)
+    // This ensures combining codepoints become canonical before insertion.
+    const char *normalized = normalize_utf8_str(prefix);
+    if (!normalized)
+        return -1;
 
-    // Resize dynamic array if needed
+    size_t prefix_bytes = strlen(normalized);
+
+    // Ensure capacity
     size_t needed = s->bytes + prefix_bytes + 1;
     if (needed > s->cap) {
         int rc = grow_capacity(s, needed);
@@ -453,15 +481,19 @@ int str_prepend(
             return -1;
     }
 
-    // Shift existing s->text to the right (including null terminator)
-    memmove(s->text + prefix_bytes, s->text, s->bytes + 1);
+    // Shift existing bytes to the right (including null terminator)
+    memmove(
+        s->text + prefix_bytes,   // destination
+        s->text,                  // source
+        s->bytes + 1              // +1 for '\0'
+    );
 
-    // Copy prefix to the beginning
-    memcpy(s->text, prefix, prefix_bytes);
+    // Insert normalized prefix at the start
+    memcpy(s->text, normalized, prefix_bytes);
 
-    // Update total byte usage and rune count
+    // Update metadata
     s->bytes += prefix_bytes;
-    s->len += count_utf8_runes(prefix);
+    s->len   += count_utf8_runes(normalized);
 
     return 0;
 }
@@ -1355,20 +1387,45 @@ int _str_slice(
 ////////////////////////////// Char Array Formatting //////////////////////
 
 
-size_t fmt_append(
-    char *dst,
-    size_t dst_cap,
-    size_t *pos,
-    const char *src,
+char *fmt(
+    Buffer *buf,
+    const char *fmt_text,
     ...
 ) {
-    /* Append src string (plus formatting) to dst buffer with length tracking */
-
-    if (!dst || !pos || *pos >= dst_cap) return (size_t)-1;
+    if (!buf ||
+        !buf->text ||
+        buf->cap == 0) return NULL;
+    if (!fmt_text) return NULL;
 
     va_list args;
-    va_start(args, src);
-    int n = vsnprintf(dst + *pos, dst_cap - *pos, src, args);
+    va_start(args, fmt_text);
+    int n = vsnprintf(buf->text, buf->cap, fmt_text, args);
+    va_end(args);
+
+    if (n < 0) return NULL;  // encoding/formatting error
+    buf->pos = (size_t)n < buf->cap ? (size_t)n : buf->cap - 1; // update pos
+    return buf->text;
+}
+
+
+size_t fmt_append(
+    Buffer *buf,
+    const char *fmt_text,
+    ...
+) {
+    /// Append src string (plus formatting) to buf buffer with length tracking ///
+
+    // validate buffer and fmt_text args
+    if (!buf ||
+        !buf->text ||
+        buf->cap == (size_t)-1 ||
+        buf->pos == (size_t)-1 ||
+        buf->pos == buf->cap) return (size_t)-1;
+    if (!fmt_text) return (size_t)-1;
+
+    va_list args;
+    va_start(args, fmt_text);
+    int n = vsnprintf(buf->text + buf->pos, buf->cap - buf->pos, fmt_text, args);
     // NOTE: vsnprintf() returns:
     // On success:
     // Returns the number of characters that would have been written (excluding the null terminator). If the output was truncated due to insufficient space, it still returns the number of characters that would have been written if there had been enough space. It tells you how much space you would have needed for the full formatted string.
@@ -1376,18 +1433,21 @@ size_t fmt_append(
     // Returns a negative value if an encoding error occurs.
     va_end(args);
 
-    if (n < 0) return (size_t)-1; // snprintf error, leave pos unchanged
+    // snprintf error, leave pos unchanged
+    if (n < 0) return (size_t)-1;
+
+    // Clamp written bytes to remaining space
     size_t written = (size_t)n;
-    if (written >= dst_cap - *pos) {
-        written = dst_cap - *pos - 1;  // leave room for null
+    if (written >= buf->cap - buf->pos) {
+        written = buf->cap - buf->pos - 1; // leave room for null terminator
     }
-    *pos += written;
+    buf->pos += written;
 
     // null-terminate updated string
-    dst[*pos] = '\0';
+    buf->text[buf->pos] = '\0';
+
     return (size_t)n; // return would-be length, caller can detect truncation
 }
-
 
 ///////////////////////////////////////////////////////////////////////////
 

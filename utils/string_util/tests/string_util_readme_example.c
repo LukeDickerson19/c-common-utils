@@ -5,21 +5,20 @@ int main(void) {
 
     // init string
     String *s1 = str("Hello");
-    char buffer[1024]; str_info(s1, buffer, sizeof(buffer));
-    printf("%s\n", buffer);
-    // outputs: text="Hello", len=5, bytes=5, cap=11, String struct size=32, total size=43 bytes
+    str_info(s1, NULL); // prints: text="Hello", len=5, bytes=5, cap=11, String struct size=32, total size=43 bytes
 
     // append char array to string
     str_append(s1, ", world");
-    buffer[0] = '\0'; str_info(s1, buffer, sizeof(buffer));
-    printf("%s\n", buffer);
-    // outputs: text="Hello, world", len=12, bytes=12, cap=22, String struct size=32, total size=54 bytes
+    str_info(s1, NULL); // prints: text="Hello, world", len=12, bytes=12, cap=14, String struct size=40, total size=54 bytes
 
     // prepend char array to string
     str_prepend("... ", s1);
-    buffer[0] = '\0'; str_info(s1, buffer, sizeof(buffer));
-    printf("%s\n", buffer);
-    // outputs: text="... Hello, world", len=16, bytes=16, cap=22, String struct size=32, total size=54 bytes
+    // capture str_info() output instead of printing it by passing a non-NULL Buffer struct pointer
+    char buf_text[128]; // stack char array with length known at compile time doesnt need to be freed
+    Buffer buf_struct = { .text = buf_text, .cap=sizeof(buf_text), .pos = 0 }; // stack buffer doesn't need to be freed
+    Buffer *buf = &buf_struct;
+    str_info(s1, buf);
+    printf("%s\n", buf->text); // prints: text="... Hello, world", len=16, bytes=16, cap=18, String struct size=40, total size=58 bytes
 
     // free string struct and text
     str_free(&s1);
@@ -29,17 +28,16 @@ int main(void) {
     String *a = str("Hello"), *b = str("東京"), *c = str("¡café!naïve"), *d = str("😀🍓🌍❌✅");
     String *parts[] = {a, b, c, d};
     str_concat(parts, .output_index=2);
-    printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅"
+    printf("%s\n", c->text); // prints: Hello東京¡café!naïve😀🍓🌍❌✅
     String *e = str("→↙●■▲");
     String *f = str("∞∑√");
     String *g = str("★♥🔒🔓");
     str_concat(((String *[]){c, e, f, g}));
-    printf("%s\n", c->text); // "Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓"
+    printf("%s\n", c->text); // prints: Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓
 
     // init formatted string
-    char buf[64];
     String *h = str(fmt(buf, "formatted😀🍓🌍%s", "string√★♥🔒🔓"));
-    printf("%s\n", h->text); // "formatted😀🍓🌍string√★♥🔒🔓"
+    printf("%s\n", h->text); // prints: formatted😀🍓🌍string√★♥🔒🔓
 
     // free multiple strings at once
     str_free(&a, &b, &c, &d, &e, &f, &g, &h);
