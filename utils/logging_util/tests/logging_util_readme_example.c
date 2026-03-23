@@ -17,22 +17,23 @@ int main(void) {
     print(logger, "漢字日", .i=1); // 1 indent
     print(logger, "áéöüñприв", .i=2); // 2 indents
 	print(logger, "indented\nmulti\n\nline\nstring\nет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞\n±≈√∑©®™", .i=3);
-	// char buf[128];
-	// print(logger, fmt(buf, "formatted string: %d %c 🎉%s😄", 7, 'f', "🌟hello🚀"), .i=1);
+	char fmt_buffer[128];
+    snprintf(fmt_buffer, sizeof(fmt_buffer), "formatted string: %d %c 🎉%s😄", 7, 'f', "🌟hello🚀");
+	print(logger, fmt_buffer, .i=1);
 
-	// // prepend info to each line, such as datetime and memory usage
-    // logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
-	// logger->timezone = "local"; // valid options: "UTC", "local"
-	// print(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
-    // logger->prepend_datetime_fmt = NULL;
-    // logger->prepend_memory_usage = true;
-	// print(logger, "multiline\nmessage\nwith\nprepend_memory_usage");
-    // logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
-	// print(logger, "messages", .i=0);
-	// print(logger, "with", .i=1);
-	// print(logger, "both", .i=1);
-	// print(logger, "and", .i=2);
-	// print(logger, "indents", .i=3);
+	// prepend info to each line, such as datetime and memory usage
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+	logger->timezone = "local"; // valid options: "UTC", "local"
+	print(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
+    logger->prepend_datetime_fmt = NULL;
+    logger->prepend_memory_usage = true;
+	print(logger, "multiline\nmessage\nwith\nprepend_memory_usage");
+    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+	print(logger, "messages", .i=0);
+	print(logger, "with", .i=1);
+	print(logger, "both", .i=1);
+	print(logger, "and", .i=2);
+	print(logger, "indents", .i=3);
 
     log_close(&logger);
     return 0;

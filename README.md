@@ -8,6 +8,8 @@ C utilities, language tutorials, and example data stuctures
 > - [time_util](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/time_util) (functions for getting current and elapsed time)
 
 
+See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) for more info.
+
 ## AI Disclaimer
 Parts of this repo were developed with the assistance of large language models (LLMs).
 All code has been reviewed, tested, and validated by the author.

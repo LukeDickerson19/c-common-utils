@@ -738,6 +738,8 @@ UTILS:
 
         string_util
 
+            maybe make a MEM_CAPPED_TRAILING memory allocation procedure?
+
             str_repeat and str_slice currently have optional args to return the repeated string or string slice as a char array or to modify string s. make a 3rd option to return a new string with the repeats or slice as well. and also update other modifying functions with similar return options.
 
             maybe update c string util to use hybrid malloc/free and arena allocator?

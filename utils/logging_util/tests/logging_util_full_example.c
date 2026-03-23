@@ -1,5 +1,7 @@
 #include "logging_util.h"
 
+#include "string_util.h" // NOTE: string_util is used for its fmt*() functions and its Buffer struct. logging_util uses it under the hood but string_util isn't required to use logging_util.
+
 #include <stdint.h> // intptr_t
 
 ///////////////// global variables ///////////////////
