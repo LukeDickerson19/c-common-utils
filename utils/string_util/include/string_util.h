@@ -58,7 +58,7 @@ typedef enum {
  * 
  * Important:
  *   - Don't modify struct members directly, use the provided functions
- *   - Clean up with free_string() to avoid memory leak
+ *   - Clean up with str_free() to avoid memory leak
  */
 typedef struct String {
     char   *text;

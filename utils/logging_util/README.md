@@ -16,15 +16,17 @@
 > This project is a rewrite of a previous [Python logging util](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging). Also available in [Odin lang](https://github.com/LukeDickerson19/odin-common-utils/tree/master/utils/logging_util).
 > 
 
-#### BUILD
-```
-see [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) section Utils, subsection Usage for the specific CLI commands to build.
-Code has been tested on:
-Linux (with Manjaro v25.0.10, x86_64) with both GCC and Clang
-Windows (on Windows 11, x86_64 using clang/LLVM) with both MSVC (version 19.50.35723.0) and clang-cl (version 21.1.0)
-```
+#### BUILD & RUN
+> See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) section Utils, subsection Usage, for the specific CLI commands to build and run this code.
+> Code has been tested on:
+>   - Linux (with Manjaro v25.0.10, x86_64) with compilers:
+>      - GCC (version 15.2.1)
+>      - Clang/LLVM (version 21.1.8)
+>   - Windows (on Windows 11, x86_64) with compilers:
+>      - MSVC (version 19.50.35723.0)
+>      - clang-cl (version 21.1.0)
 
-#### USAGE
+#### EXAMPLE USAGE
 Below is a quick example usage - the [tests/logging_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/tests/logging_util_full_example.c) file shows how to use all this util's features. See [include/logging_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/logging_util/include/logging_util.h) for all function definitions and descriptions.
 ```c
 #include "logging_util.h"

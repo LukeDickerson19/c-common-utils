@@ -6,11 +6,27 @@
 
 ##### Main string struct:
 ```c
+/** String struct
+ * 
+ * UTF-8 compatible dynamic string struct
+ * 
+ * Struct Members:
+ *   - text:                 pointer to heap-allocated memory containing the null terminated string
+ *   - len:                  number of UTF-8 characters (aka "UTF-8 code points", aka "runes")
+ *   - bytes:                number of bytes the current text occupies (s.bytes <= s.cap)
+ *   - cap:                  total bytes of memory capacity allocated for this string to grow and shrink (s.cap >= s.bytes + 1 for null terminator, so s->cap = opts->cap + 1)
+ *   - allocation_procedure: the specified procedure for how memory is allocated for when the dynamic text size grows and shrinks. See StringOptions for default value and valid options
+ * 
+ * Important:
+ *   - Don't modify struct members directly, use the provided functions
+ *   - Clean up with str_free() to avoid memory leak
+ */
 typedef struct String {
     char   *text;
     size_t  len;
     size_t  bytes;
     size_t  cap;
+    MemoryAllocationProcedure allocation_procedure;
 } String;
 ```
 
@@ -57,30 +73,17 @@ typedef struct String {
 
 #### BUILD & RUN
 
-> - Tested on:
->   - Linux   (on Manjaro v25.0.10, x86_64 using gcc)
->   - Windows (on Windows 11, x86_64 using clang/LLVM)
+> See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) section Utils, subsection Usage, for the specific CLI commands to build and run this code
+> Code has been tested on:
+>   - Linux (with Manjaro v25.0.10, x86_64) with compilers:
+>      - GCC (version 15.2.1)
+>      - Clang/LLVM (version 21.1.8)
+>   - Windows (on Windows 11, x86_64) with compilers:
+>      - MSVC (version 19.50.35723.0)
+>      - clang-cl (version 21.1.0)
 
-**Linux:**
-```bash
-cd c-common-utils/utils
-cmake -S . -B build -DBUILD_STRING_UTIL=ON # Only build string_util
-cmake --build build
-./build/string_util/string_util_readme_example
-./build/string_util/string_util_full_example
-```
+#### EXAMPLE USAGE
 
-**Windows** (run from "x64 Native Tools Command Prompt for VS"):
-```bat
-cd c-common-utils\utils
-cmake -S . -B build -DBUILD_STRING_UTIL=ON
-cmake --build build --config Release
-chcp 65001
-.\build\string_util\Release\string_util_readme_example.exe
-.\build\string_util\Release\string_util_full_example.exe
-```
-
-#### USAGE
 Below is a quick example usage. The [tests/string_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/tests/string_util_full_example.c) file shows how to use all this string_util's features. See [include/string_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util/include/string_util.h) for all function definitions and descriptions.
 ```c
 #include "string_util.h"
