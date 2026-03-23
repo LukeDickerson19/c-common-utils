@@ -75,7 +75,7 @@ typedef struct String {
 
 > See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) section Utils, subsection Usage, for the specific CLI commands to build and run this code
 > Code has been tested on:
->   - Linux (with Manjaro v25.0.10, x86_64) with compilers:
+>   - Linux (on Manjaro v25.0.10, x86_64) with compilers:
 >      - GCC (version 15.2.1)
 >      - Clang/LLVM (version 21.1.8)
 >   - Windows (on Windows 11, x86_64) with compilers:

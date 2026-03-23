@@ -11,6 +11,7 @@
 > - Overwrite the previously printed log message (via optional bool argument)
 > - Output to console, log file, or both
 > - Thread-safety (using single global mutex)
+> - UTF-8 compatible (by using [utils/string_util](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/string_util) under the hood)
 > 
 > Traditional log levels (INFO, ERROR, etc.) are currently not yet implemented.
 > This project is a rewrite of a previous [Python logging util](https://github.com/LukeDickerson19/python-common-utils/tree/master/utils/logging). Also available in [Odin lang](https://github.com/LukeDickerson19/odin-common-utils/tree/master/utils/logging_util).
@@ -19,7 +20,7 @@
 #### BUILD & RUN
 > See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) section Utils, subsection Usage, for the specific CLI commands to build and run this code.
 > Code has been tested on:
->   - Linux (with Manjaro v25.0.10, x86_64) with compilers:
+>   - Linux (on Manjaro v25.0.10, x86_64) with compilers:
 >      - GCC (version 15.2.1)
 >      - Clang/LLVM (version 21.1.8)
 >   - Windows (on Windows 11, x86_64) with compilers:
