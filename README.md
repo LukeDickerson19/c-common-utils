@@ -1,7 +1,7 @@
 # c-common-utils
 C utilities, language tutorials, and example data stuctures
 
-See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) for tutorial notes and util usage commands.
+See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) for tutorial notes and util setup/usage commands.
 
 ## AI Disclaimer
 This repo is developed with LLM assistance. All code has been reviewed, tested, and validated by the author.
