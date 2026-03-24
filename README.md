@@ -4,8 +4,8 @@ C utilities, language tutorials, and example data stuctures
 See [NOTES.txt](https://github.com/LukeDickerson19/c-common-utils/blob/master/NOTES.txt) for tutorial notes and util usage commands.
 
 ## Tutorials
-> - [hash map example](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/src/hashmap.c) (example usage of [uthash](https://troydhanson.github.io/uthash/) lib)
-> - [SQLite example](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/src/sqlite.c) (example usage of [sqlite3.c](https://github.com/clibs/sqlite/blob/master/sqlite3.c) lib)
+> - [C hash map](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/src/hashmap.c) (example usage of [uthash](https://troydhanson.github.io/uthash/) lib)
+> - [C SQLite connector](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/src/sqlite.c) (example usage of [sqlite3.c](https://github.com/clibs/sqlite/blob/master/sqlite3.c) lib)
 > - [debugging with GDB scripts + Asan (Address Sanitizer)](https://github.com/LukeDickerson19/c-common-utils/blob/master/tutorials/debugging_tutorial_with_gdb_and_asan/)
 
 ## Utils
