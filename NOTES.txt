@@ -221,7 +221,6 @@ TUTORIALS:
 
             maybe do some c hackerrank
 
-
     DEBUGGING:
 
         debugging_tutorial_with_gdb_and_asan:
