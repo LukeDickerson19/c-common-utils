@@ -3,18 +3,17 @@
 #include <time.h>          // time_t, struct tm, time(), localtime_r(), gmtime_r(), strftime(), gettimeofday()
 #include <stdio.h>         // fprintf(), snprintf()
 #include <string.h>        // strcmp(), strstr(), memcpy(), strncat(), strlen()
-#include <stdlib.h>        // malloc(), free(), setenv()
+#include <stdlib.h>        // malloc(), free()
 
 #ifdef _WIN32
     #include <windows.h>   // FILETIME, GetSystemTimePreciseAsFileTime()
-    #include <psapi.h> // for PROCESS_MEMORY_COUNTERS and GetProcessMemoryInfo
+    #define gmtime_r(t, tm)    (gmtime_s((tm), (t)) == 0 ? (tm) : NULL)
+    #define localtime_r(t, tm) (localtime_s((tm), (t)) == 0 ? (tm) : NULL)
+    #define snprintf _snprintf
 // #elif defined(__APPLE__)
 //     #include <mach/mach.h>
 // #elif defined(__linux__) || defined(__ANDROID__)
 //     #include <unistd.h>
-    #define gmtime_r(t, tm)   gmtime_s((tm), (t))
-    #define localtime_r(t, tm) localtime_s((tm), (t))
-    #define snprintf _snprintf
 #else
     #include <sys/time.h>   // struct timeval, gettimeofday()
     #include <unistd.h>     // usleep()
@@ -65,17 +64,9 @@ int format_datetime_str(
     struct tm tm_info;
     time_t sec = (time_t)unix_seconds;
     if (!timezone || strcmp(timezone, "UTC") == 0) {
-        #ifdef _WIN32
-            if (gmtime_s(&tm_info, &sec) != 0) return -2;
-        #else
-            if (!gmtime_r(&sec, &tm_info)) return -2;
-        #endif
+        if (!gmtime_r(&sec, &tm_info)) return -2;
     } else if (strcmp(timezone, "local") == 0) {
-        #ifdef _WIN32
-            if (localtime_s(&tm_info, &sec) != 0) return -3;
-        #else
-            if (!localtime_r(&sec, &tm_info)) return -3;
-        #endif
+        if (!localtime_r(&sec, &tm_info)) return -3;
     } else {
         fprintf(stderr, "Invalid timezone: \"%s\", valid options: \"UTC\", \"local\"\n", timezone);
         return -4;
@@ -103,7 +94,8 @@ int format_datetime_str(
         memcpy(expanded_fmt + prefix_len + 6, us_ptr + 2, suffix_len); // Copy suffix
         expanded_fmt[total_len - 1] = '\0'; // Null-terminate
     }
-    strftime(datetime_str, datetime_str_capacity, expanded_fmt, &tm_info);
+    if (strftime(datetime_str, datetime_str_capacity, expanded_fmt, &tm_info) == 0)
+        return -7;
     free(expanded_fmt);
     return 0;
 }
