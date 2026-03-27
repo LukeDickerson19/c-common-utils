@@ -71,7 +71,8 @@ typedef struct Log {
     String *logfile_msg;
     off_t logfile_msg_start, logfile_msg_end;
 
-    // thread safety mutex
+    // thread safety flag and mutex
+    bool thread_safe; // if false, the mutex won't be locked and unlocked each time the print() function is called, however the mutex is still initialized and freed regardless of the thread_safe bool in log_init() and log_close() so the user can change the thread_safe bool whenever they want
     #if PLATFORM_WINDOWS
         CRITICAL_SECTION mutex;
     #else
@@ -98,7 +99,8 @@ typedef struct Log {
     .prepend_memory_usage = false, \
     .max_indents = 10, \
     .max_message_len = 8192, \
-    .max_line_len = 1024
+    .max_line_len = 1024, \
+    .thread_safe = false
 Log *_log_init(Log *opts);
 #define log_init(...) _log_init(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })
 

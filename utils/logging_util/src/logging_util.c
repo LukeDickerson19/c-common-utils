@@ -711,21 +711,25 @@ int _log_print(
     if (!log->enabled) return 0;
 
     // Lock mutex
-    #if PLATFORM_WINDOWS
-        EnterCriticalSection(&log->mutex);
-    #else
-        pthread_mutex_lock(&log->mutex);
-    #endif
+    if (log->thread_safe) {
+        #if PLATFORM_WINDOWS
+            EnterCriticalSection(&log->mutex);
+        #else
+            pthread_mutex_lock(&log->mutex);
+        #endif
+    }
 
     // Call _log_print_unlocked()
     int rc = _log_print_unlocked(log, msg, opts);
 
     // Unlock mutex
-    #if PLATFORM_WINDOWS
-        LeaveCriticalSection(&log->mutex);
-    #else
-        pthread_mutex_unlock(&log->mutex);
-    #endif
+    if (log->thread_safe) {
+        #if PLATFORM_WINDOWS
+            LeaveCriticalSection(&log->mutex);
+        #else
+            pthread_mutex_unlock(&log->mutex);
+        #endif
+    }
 
     return rc;
 }

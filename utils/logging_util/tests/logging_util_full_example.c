@@ -8,7 +8,7 @@
 
 Log *logger; // global logging util Log struct
 Buffer *hbuf; // global heap Buffer struct for fmt*() functions
-#define hbuf_cap 1024
+#define HBUF_CAP 1024
 #define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
 #define PATH_MAX_CHARS 1024
 char BASE_DIR[PATH_MAX_CHARS];
@@ -487,7 +487,7 @@ void test_print_json() {
     // json file read/write example
     print(logger, "\nExample 2:", .i=1);
     char *filename = "json_example.json";
-    char filepath[hbuf_cap];
+    char filepath[HBUF_CAP];
     #ifdef _WIN32
         fmt(hbuf, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
         memcpy(filepath, hbuf->text, hbuf->pos);
@@ -612,6 +612,7 @@ void test_overwrite_prev_msg() {
 
 void test_thread_safety() {
     print(logger, "\ntest_thread_safety():");
+    logger->thread_safe = true;
     if (thread_safety_test() != 0) {
         fprintf(stderr, "Thread safety test failed\n");
     } else {
@@ -622,15 +623,15 @@ void test_thread_safety() {
 
 int main(void) {
 
-    // init global heap buffer for fmt*() functions
+    // init global heap buffer for string_util fmt*() functions
     hbuf = malloc(sizeof(Buffer));
-    hbuf->text = malloc(hbuf_cap);
-    hbuf->cap = hbuf_cap;
+    hbuf->text = malloc(HBUF_CAP);
+    hbuf->cap = HBUF_CAP;
     hbuf->pos = 0;
 
     // Set log file path
     get_full_base_dir();
-    char log_filepath[hbuf_cap];
+    char log_filepath[HBUF_CAP];
     #ifdef _WIN32
         fmt(hbuf, "%s\\logging_util\\log\\log.txt", BASE_DIR);
         memcpy(log_filepath, hbuf->text, hbuf->pos);
