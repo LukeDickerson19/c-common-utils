@@ -641,6 +641,9 @@ UTILS:
 
                 NOTE: linux can use gcc or clang to compile c code. msvc and clang-cl are for windows. Its good practice to test C code through multiple compilers to catch different types of bugs.
 
+                # first delete old build directory, or move it somewhere else
+                rm -rf build
+
                 GCC (VLAs supported):
                     build ALL utils in c-common-utils:
                         Release Mode:

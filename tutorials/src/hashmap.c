@@ -166,11 +166,9 @@ int main(void) {
     map_init(&map);
 
     // Add key/value pairs
-
     MapValue v1 = {42, strdup("hello")};
     MapValue v2 = {99, strdup("world")};
     MapValue v3 = {7, strdup("foo")};
-
     map_put(&map, "apple",  v1);
     map_put(&map, "banana", v2);
     map_put(&map, "orange", v3);

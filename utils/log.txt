@@ -1,0 +1,24 @@
+hello
+    漢字日
+        áéöüñприв
+            indented
+            multi
+            
+            line
+            string
+            ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞
+            ±≈√∑©®™
+    formatted string: 7 f 🎉🌟hello🚀😄
+-          2026-04-07 18:48:01.834758 MST  -  multiline
+-          2026-04-07 18:48:01.834758 MST  -  message
+-          2026-04-07 18:48:01.834758 MST  -  with
+-          2026-04-07 18:48:01.834758 MST  -  prepend_datetime_fmt
+-              2.0508 MiB used  -  multiline
+-              2.0508 MiB used  -  message
+-              2.0508 MiB used  -  with
+-              2.0508 MiB used  -  prepend_memory_usage
+-          2026-04-07 18:48:01.835095 MST  -      2.0508 MiB used  -  messages
+ -         2026-04-07 18:48:01.835175 MST  -      2.0508 MiB used  -      with
+ -         2026-04-07 18:48:01.835238 MST  -      2.0508 MiB used  -      both
+  -        2026-04-07 18:48:01.835300 MST  -      2.0508 MiB used  -          and
+   -       2026-04-07 18:48:01.835408 MST  -      2.0508 MiB used  -              indents
