@@ -22,13 +22,13 @@ int main(void) {
 	print(logger, fmt_buffer, .i=1);
 
 	// prepend info to each line, such as datetime and memory usage
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z"; // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
-	logger->timezone = "local"; // valid options: "UTC", "local"
+    set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z"); // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+    set_timezone(logger, "local"); // valid options: "UTC", "local"
 	print(logger, "multiline\nmessage\nwith\nprepend_datetime_fmt");
-    logger->prepend_datetime_fmt = NULL;
+    set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_memory_usage = true;
 	print(logger, "multiline\nmessage\nwith\nprepend_memory_usage");
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
 	print(logger, "messages", .i=0);
 	print(logger, "with", .i=1);
 	print(logger, "both", .i=1);

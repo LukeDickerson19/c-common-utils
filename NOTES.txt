@@ -211,7 +211,7 @@ TUTORIALS:
                 Need data persistence, centralized network multi-user database access with advanced SQL?
                     Use PostgreSQL
 
-            See files table_struct.c and sqlite.c for examples implemented so far.
+            See files tutorials/src/table_struct.c and utils/sqlite_util for examples implemented so far.
 
 
         BACKLOG:
@@ -657,6 +657,8 @@ UTILS:
                             same as building ALL utils but change "-DBUILD_ALL_UTILS=ON" flag to "-DBUILD_LOGGING_UTIL=ON"
                         time util:
                             same as building ALL utils but change "-DBUILD_ALL_UTILS=ON" flag to "-DBUILD_TIME_UTIL=ON"
+                        sqlite util:
+                            same as building ALL utils but change "-DBUILD_ALL_UTILS=ON" flag to "-DBUILD_SQLITE_UTIL=ON"
 
                 Clang (VLAs supported):
                     Release Mode:
@@ -679,6 +681,8 @@ UTILS:
                         ./build/string_util/string_util_full_example
                     time_util:
                         ./build/time_util/time_util_full_example
+                    sqlite_util:
+                        ./build/sqlite_util/sqlite_util_full_example
                 Debug Mode (GDB w/ GDB script + AddressSanitizer), logging_util example:
                     logging_util:
                         ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:detect_stack_use_after_scope=1:symbolize=1 UBSAN_OPTIONS=print_stacktrace=1 gdb ./build/logging_util/logging_util_full_example -x logging_util/scripts/debugging_scratchpad.gdb
@@ -752,41 +756,23 @@ UTILS:
 
         logging_util
 
-            update log util to use string_util or bstring
-                https://bstring.sourceforge.net/
-                https://github.com/websnarf/bstrlib
-
-                save a copy that doesn't use bstring
-                    or maybe make them the same functions with a "_raw_char_array" suffix or something
+            might want to update logging util print function to take an optional arbitrary prefix too
+                i could send [APP] in the sdl-common-utils
+                maybe put it after all other prepend info but before indents. thats where the [SDL] prepend info is
 
             try to find a c lib that converts unix timestamps to a timezone aware datetime
-                this would allow the user to specify any timezone id to their log
+                this would allow the user to specify any timezone in the log
                 https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
             update log util to do asyncronous logging
                 ideally logging can be done in prod (aka on users' devices without noticably slowing down the app)
                 or maybe on a dedicated separate thread? is this cross platform though?
 
-            make these constants Log struct members instead
-                #define LOGGING_ENABLED true // toggle logging entirely
-                #define MAX_INDENTS 10 // max number of indents the user can indent a log message
-                #define MAX_MESSAGE_CHARS 10000 // max number of characters per message, tested w/ value: 500
-                #define MAX_LINE_CHARS 1000 // max number of characters per line (must be less than MAX_MESSAGE_CHARS), tested w/ value: 150
-                // #define MAX_MESSAGE_CHARS 500 // FOR TESTING PURPOSES ONLY
-                // #define MAX_LINE_CHARS 150 // FOR TESTING PURPOSES ONLY
-
             implement traditional log levels (INFO, ERROR, etc.)
 
             create a test_memory_usage.c test that flags prepend_memory_usage true and uses a for loop to iteratively print the same dummy message over and over, to make sure the memory usage isn't growing continuously
                 maybe graph it instead of console output?
                 maybe use overwrite_prev_msg flag every 1000 iterations or so so that console output is easier to read 
-
-            test logging_utils on android SDL app once you've learned SDL
-                apparently SDL has its own logging?
-                    i might need to make my _log_print return a string and put it inside it?
-                        or maybe a macro that takes a string and puts it in the SDL logger print call?
-                    or maybe this?
-                        SDL_LogSetOutputFunction(my_logger_callback, NULL);
 
         create examples for postgres and an n-dimensional GSL table
 

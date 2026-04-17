@@ -212,8 +212,8 @@ void test_print() {
     fwrite(logfile_msg, 1, strlen(logfile_msg), stdout);
 
     // test prepend only datetime
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
-    logger->timezone = "local"; // valid options: "UTC", "local"
+    set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
+    set_timezone(logger, "local");
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
     print(logger, "testing single line prepend_datetime_fmt w/out indent", .ns=true);
@@ -221,7 +221,7 @@ void test_print() {
     print(logger, "testing single line indented prepend_datetime_fmt", .i=2);
 
     // test prepend only elapsed time
-    logger->prepend_datetime_fmt = NULL;
+    set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = false;
     print(logger, "testing single line prepend_elapsed_time w/out indent", .ns=true);
@@ -229,7 +229,7 @@ void test_print() {
     print(logger, "testing single line indented prepend_elapsed_time", .i=2);
 
     // test prepend only memory usage
-    logger->prepend_datetime_fmt = NULL;
+    set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
     print(logger, "testing single line prepend_memory_usage w/out indent", .ns=true);
@@ -237,7 +237,7 @@ void test_print() {
     print(logger, "testing single line indented prepend_memory_usage", .i=2);
 
     // test both prepend datetime and prepend elapsed time
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = false;
     print(logger, "testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent", .ns=true);
@@ -245,7 +245,7 @@ void test_print() {
     print(logger, "testing single line indented prepend_datetime_fmt and prepend_elapsed_time", .i=2);
 
     // test both prepend datetime and prepend memory usage
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
     print(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent", .ns=true);
@@ -253,7 +253,7 @@ void test_print() {
     print(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
 
     // test both prepend elapsed time and prepend memory usage
-    logger->prepend_datetime_fmt = NULL;
+    set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = true;
     print(logger, "testing single line prepend_elapsed_time and prepend_memory_usage w/out indent", .ns=true);
@@ -261,13 +261,13 @@ void test_print() {
     print(logger, "testing single line indented prepend_elapsed_time and prepend_memory_usage", .i=2);
 
     // test all 3 prependable information
-    logger->prepend_datetime_fmt = "%Y-%m-%d %H:%M:%S.%f %Z";
+    set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = true;
     print(logger, "testing single line prepend all 3 w/out indent", .ns=true);
     print(logger, "testing\nmulti\nline\n\nprepend\nall\n3", .i=1);
     print(logger, "testing single line indented prepend all 3", .i=2);
-    logger->prepend_datetime_fmt = NULL;
+    set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
 

@@ -131,11 +131,13 @@ option(BUILD_ALL_UTILS "Build all utility libraries" OFF)
 option(BUILD_STRING_UTIL "Build string_util library" OFF)
 option(BUILD_TIME_UTIL "Build time_util library" OFF)
 option(BUILD_LOGGING_UTIL "Build logging_util library" OFF)
+option(BUILD_SQLITE_UTIL "Build sqlite_util library" OFF)
 
 if(BUILD_ALL_UTILS)
     set(BUILD_STRING_UTIL ON CACHE BOOL "Build string_util library" FORCE)
     set(BUILD_TIME_UTIL ON CACHE BOOL "Build time_util library" FORCE)
     set(BUILD_LOGGING_UTIL ON CACHE BOOL "Build logging_util library" FORCE)
+    set(BUILD_SQLITE_UTIL ON CACHE BOOL "Build sqlite_util library" FORCE)
 endif()
 
 # ---------------------------------------------
@@ -158,3 +160,8 @@ if(BUILD_LOGGING_UTIL)
     endif()
     add_subdirectory(logging_util)
 endif()
+
+if(BUILD_SQLITE_UTIL)
+    add_subdirectory(sqlite_util)
+endif()
+

@@ -180,6 +180,30 @@ void set_start_time(
 );
 
 
+/**
+ * Sets prepend_datetime_fmt
+ * - log: pointer to Log struct
+ * - new_prepend_datetime_fmt: new format
+ *   available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+ */
+void set_prepend_datetime_fmt(
+    Log *log,
+    char *new_prepend_datetime_fmt
+);
+
+
+/**
+ * Sets timezone
+ * - log: pointer to Log struct
+ * - timezone: new timezone, valid options: "UTC", "local"
+ */
+void set_timezone(
+    Log *log,
+    char *new_timezone
+);
+
+
+
 ////////////////////////////////////////////////
 
 #ifdef __cplusplus

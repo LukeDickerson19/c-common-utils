@@ -51,29 +51,71 @@
 /////////////////////// time functions /////////////////////
 
 
-static char* _fix_utc_format(
-    char* format,
-    const char* timezone
+static void set_prepend_datetime_fmt_and_timezone(
+    Log *log,
+    char *new_prepend_datetime_fmt,
+    char *new_timezone
 ) {
-    /* if "%Z" substring in prepend_datetime_fmt and timezone = "UTC", replace "%Z" with hardcoded "UTC" */
+    if (!log) return;
 
-    if (!format || !timezone) return format;
-    if (strcmp(timezone, "UTC") != 0) return format;
-    char* tz_fmt_ptr = strstr(format, "%Z");
-    if (!tz_fmt_ptr) return format;  // no "%Z" found
+    char *tz_copy  = new_timezone             ? strdup(new_timezone)             : NULL;
+    char *fmt_copy = new_prepend_datetime_fmt ? strdup(new_prepend_datetime_fmt) : NULL;
 
-    // Allocate new string: prefix + "UTC" + suffix + null terminator
-    size_t prefix_len = tz_fmt_ptr - format;
-    size_t suffix_len = strlen(tz_fmt_ptr + 2); // skip "%Z"
-    size_t new_size = prefix_len + 3 + suffix_len + 1;
-    char* fixed = malloc(new_size);
-    if (!fixed) return format;
-    memcpy(fixed, format, prefix_len); // Copy prefix
-    memcpy(fixed + prefix_len, "UTC", 3); // Insert "UTC"
-    memcpy(fixed + prefix_len + 3, tz_fmt_ptr + 2, suffix_len); // Copy suffix
-    fixed[new_size - 1] = '\0'; // Null-terminate
-    // free(format); // ownership transfer
-    return fixed; // swap pointer, pointer swap
+    // Set/update timezone
+    free(log->timezone);
+    log->timezone = tz_copy;
+
+    // Set/update prepend_datetime_fmt
+    free(log->prepend_datetime_fmt);
+    char* tz_fmt_ptr = (new_prepend_datetime_fmt) ? strstr(new_prepend_datetime_fmt, "%Z") : NULL;
+    if (tz_fmt_ptr && new_timezone && strcmp(new_timezone, "UTC") == 0) {
+        // fix weird timezone bug:
+        // if "%Z" substring in prepend_datetime_fmt and
+        // timezone = "UTC", replace "%Z" with hardcoded "UTC"
+        size_t prefix_len = tz_fmt_ptr - new_prepend_datetime_fmt;
+        size_t suffix_len = strlen(tz_fmt_ptr + 2); // skip "%Z"
+        size_t new_size = prefix_len + 3 + suffix_len + 1;
+        char* fixed_fmt = malloc(new_size);
+        if (fixed_fmt) {
+            memcpy(fixed_fmt, new_prepend_datetime_fmt, prefix_len); // copy prefix
+            memcpy(fixed_fmt + prefix_len, "UTC", 3); // copy "UTC"
+            memcpy(fixed_fmt + prefix_len + 3, tz_fmt_ptr + 2, suffix_len); // copy suffix
+            fixed_fmt[new_size - 1] = '\0'; // null-terminate
+        } else {
+            fprintf(stderr, "Failed to malloc prepend_datetime_fmt, setting to NULL");
+        }
+        free(fmt_copy);
+        log->prepend_datetime_fmt = fixed_fmt;
+    } else {
+        log->prepend_datetime_fmt = fmt_copy;
+    }
+
+    // TODO: assert valid prepend_datetime_fmt
+    // TODO: assert valid timezone
+}
+
+
+void set_prepend_datetime_fmt(
+    Log *log,
+    char *new_prepend_datetime_fmt
+) {
+    set_prepend_datetime_fmt_and_timezone(
+        log,
+        new_prepend_datetime_fmt,
+        log->timezone
+    );
+}
+
+
+void set_timezone(
+    Log *log,
+    char *new_timezone
+) {
+    set_prepend_datetime_fmt_and_timezone(
+        log,
+        log->prepend_datetime_fmt,
+        new_timezone
+    );
 }
 
 
@@ -126,8 +168,29 @@ Log *_log_init(
     if (!log) return NULL; // allocation failed
     if (!opts)
         opts = &(Log){ DEFAULT_LOG_OPTIONS }; // in case user calls _log_init without log_init macro
-    *log = *opts;
 
+    // deepcopy opts
+    log->enabled = opts->enabled;
+    log->output_to_logfile = opts->output_to_logfile;
+    log->clear_old_log = opts->clear_old_log;
+    log->filepath = (opts->filepath) ? strdup(opts->filepath) : NULL;
+    log->file_pointer = opts->file_pointer;
+    log->logfile_indent = (opts->logfile_indent) ? strdup(opts->logfile_indent) : NULL;
+    log->output_to_console = opts->output_to_console;
+    log->console_stream = opts->console_stream;
+    log->console_indent = (opts->console_indent) ? strdup(opts->console_indent) : NULL;
+    log->prepend_datetime_fmt = (opts->prepend_datetime_fmt) ? strdup(opts->prepend_datetime_fmt) : NULL;
+    log->timezone = (opts->timezone) ? strdup(opts->timezone) : NULL;
+    log->prepend_elapsed_time = opts->prepend_elapsed_time;
+    log->unix_start_time = opts->unix_start_time;
+    log->start_time_microseconds = opts->start_time_microseconds;
+    log->prepend_memory_usage = opts->prepend_memory_usage;
+    log->max_indents = opts->max_indents;
+    log->max_message_len = opts->max_message_len;
+    log->max_line_len = opts->max_line_len;
+    log->thread_safe = opts->thread_safe;
+    // *log = *opts; // shallow copy
+    
     // return early if logging is disabled
     if (!log->enabled) return log;
 
@@ -157,21 +220,10 @@ Log *_log_init(
     if (log->output_to_logfile && log->file_pointer != NULL)
         setvbuf(log->file_pointer, NULL, _IONBF, 0); // disable buffering for logfile
 
-    // fix weird timezone bug:
-    // if "%Z" substring in prepend_datetime_fmt and
-    // timezone = "UTC", replace "%Z" with hardcoded "UTC"
-    if (log->prepend_datetime_fmt && log->timezone) {
-        char* fixed_fmt = _fix_utc_format(log->prepend_datetime_fmt, log->timezone);
-        // only replace pointer if a new string was returned
-        if (fixed_fmt != log->prepend_datetime_fmt) {
-            // free old string if it was heap-allocated
-            // NOTE: be careful not to free literals
-            // optional: track if fmt was heap-allocated; otherwise just assign
-            log->prepend_datetime_fmt = fixed_fmt;
-        }
-    }
-    // TODO: assert valid prepend_datetime_fmt
-    // TODO: assert valid timezone
+    // set prepend_datetime_fmt and timezone
+    set_prepend_datetime_fmt_and_timezone(
+        log, log->prepend_datetime_fmt, log->timezone);
+
     // Init tmp buffer for fmt() used for prepend_info
     size_t p_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
     log->p_buf = malloc(sizeof(Buffer));
@@ -218,15 +270,26 @@ void log_close(
     Log *log = *log_ptr;
 
     // free log file pointer
-    if (log->file_pointer != NULL) fclose(log->file_pointer);
+    if (log->file_pointer) {
+        fclose(log->file_pointer);
+        log->file_pointer = NULL;
+    }
 
     // free max console and logfile indentation char arrays
     free(log->max_console_indentation);
     free(log->max_logfile_indentation);
 
     // free fmt() heap buffers
-    free(log->p_buf->text); free(log->p_buf);
-    free(log->i_buf->text); free(log->i_buf);
+    if (log->p_buf) {
+        free(log->p_buf->text);
+        free(log->p_buf);
+        log->p_buf = NULL;
+    }
+    if (log->i_buf) {
+        free(log->i_buf->text);
+        free(log->i_buf);
+        log->i_buf = NULL;
+    }
 
     // str_free skips over any NULL String pointers
     str_free(
@@ -240,6 +303,13 @@ void log_close(
     #else
         pthread_mutex_destroy(&log->mutex);
     #endif
+
+    // free other char * members
+    free(log->filepath);
+    free(log->console_indent);
+    free(log->logfile_indent);
+    free(log->prepend_datetime_fmt);
+    free(log->timezone);
 
     // free struct and NULL log_close() caller's log pointer
     free(log);
