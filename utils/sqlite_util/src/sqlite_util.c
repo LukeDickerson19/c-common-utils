@@ -5,6 +5,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <stdint.h> // SIZE_MAX
 
 // ======================== Arena (internal) ========================
 
@@ -56,19 +57,22 @@ static void appendf(
     va_end(ap);
 }
 
-static size_t display_len(
-    const char *s
-) {
+// Returns the display width of a UTF-8 string in characters.
+// Used only to decide whether truncation is needed — padding is
+// handled by sqlite3_mprintf's %! flag, so we no longer need this
+// for spacing math.
+static size_t utf8_char_count(const char *s) {
     if (!s) return 4; // "NULL"
-    size_t len = 0;
+    size_t count = 0;
     for (const unsigned char *p = (const unsigned char *)s; *p; ) {
-        if      (*p < 0x80)           { p += 1; len += 1; }
-        else if ((*p & 0xE0) == 0xC0) { p += 2; len += 1; }
-        else if ((*p & 0xF0) == 0xE0) { p += 3; len += 2; }
-        else if ((*p & 0xF8) == 0xF0) { p += 4; len += 2; }
-        else                          { p += 1; len += 1; }
+        if      (*p < 0x80)           { p += 1; }
+        else if ((*p & 0xE0) == 0xC0) { p += 2; }
+        else if ((*p & 0xF0) == 0xE0) { p += 3; }
+        else if ((*p & 0xF8) == 0xF0) { p += 4; }
+        else                          { p += 1; } // invalid byte, skip
+        count++;
     }
-    return len;
+    return count;
 }
 
 static size_t effective_width(
@@ -82,6 +86,14 @@ static size_t effective_width(
     return w;
 }
 
+// Writes a single table cell into `out`, left-justified and padded to
+// `width` *characters* (not bytes).  Truncates with "..." if the value
+// is wider than `width`.
+//
+// The heavy lifting is done by sqlite3_mprintf with the non-standard
+// "!" (alternate-form-2) flag, which makes width and precision operate
+// in UTF-8 characters rather than bytes.  This replaces the old manual
+// display_len() + space-padding loop entirely.
 static void write_cell_padded(
     char *out,
     size_t cap,
@@ -90,22 +102,32 @@ static void write_cell_padded(
     size_t width
 ) {
     if (!s) s = "NULL";
-    size_t len = display_len(s);
 
-    if (len > width) {
-        if (width <= 3) { appendf(out, cap, pos, "..."); return; }
-        size_t copy_len = width - 3;
-        char tmp[256];
-        if (copy_len > sizeof(tmp) - 1) copy_len = sizeof(tmp) - 1;
-        memcpy(tmp, s, copy_len);
-        tmp[copy_len] = '\0';
-        appendf(out, cap, pos, "%s...", tmp);
-        return;
+    size_t char_count = utf8_char_count(s);
+    char *cell;
+
+    if (char_count > width) {
+        // Truncate: show as many characters as fit, then "..."
+        if (width <= 3) {
+            // Not enough room for any content — just fill with dots
+            cell = sqlite3_mprintf("%-!*.*s", (int)width, (int)width, "...");
+        } else {
+            // "%!.*s" — precision in characters (via !) reads char count
+            // from the argument, truncating the string cleanly on a
+            // character boundary rather than a byte boundary.
+            cell = sqlite3_mprintf("%!.*s...", (int)(width - 3), s);
+        }
+    } else {
+        // "%-!*s" — left-justify (the '-' flag), pad to `width`
+        // characters (not bytes) using the '!' flag.
+        // Without '!', a 3-byte UTF-8 character would consume 3 units
+        // of the width field, producing misaligned columns.
+        cell = sqlite3_mprintf("%-!*s", (int)width, s);
     }
 
-    appendf(out, cap, pos, "%s", s);
-    for (size_t i = len; i < width; i++)
-        appendf(out, cap, pos, " ");
+    assert(cell && "sqlite3_mprintf OOM");
+    appendf(out, cap, pos, "%s", cell);
+    sqlite3_free(cell);
 }
 
 // ======================== Table ========================
@@ -163,7 +185,9 @@ int sqlite_execute(
     for (int i = 0; i < col_count; i++) {
         const char *name = sqlite3_column_name(stmt, i);
         t->col_names[i]  = arena_strdup(&a, name);
-        t->col_widths[i] = strlen(name);
+        // Track width in characters, not bytes, so column sizing is
+        // correct for headers and data containing multi-byte UTF-8.
+        t->col_widths[i] = utf8_char_count(name);
     }
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
@@ -173,8 +197,11 @@ int sqlite_execute(
             const unsigned char *txt = sqlite3_column_text(stmt, c);
             const char *val = txt ? (const char *)txt : "NULL";
             row[c] = arena_strdup(&a, val);
-            size_t len = strlen(val);
-            if (len > t->col_widths[c]) t->col_widths[c] = len;
+            // Use character count (not byte length) so that a column
+            // containing multi-byte values gets a width wide enough to
+            // display them, not artificially inflated by byte overhead.
+            size_t char_w = utf8_char_count(val);
+            if (char_w > t->col_widths[c]) t->col_widths[c] = char_w;
         }
 
         char ***new_rows = arena_alloc(&a, (t->row_count + 1) * sizeof(char **));
@@ -339,36 +366,101 @@ void sqlite_pretty_print(
         return;
     }
 
-    size_t col_limit = (opt->max_columns && opt->max_columns < t->col_count)
-        ? opt->max_columns : t->col_count;
-    size_t row_limit = (opt->max_rows && opt->max_rows < t->row_count)
-        ? opt->max_rows : t->row_count;
+    // Whether we're eliding columns / rows at all
+    int elide_cols = opt->max_columns && opt->max_columns < t->col_count;
+    int elide_rows = opt->max_rows    && opt->max_rows    < t->row_count;
 
-    // Header
-    for (size_t c = 0; c < col_limit; c++) {
-        write_cell_padded(out, out_cap, &pos, t->col_names[c], effective_width(c, t, opt));
+    // How many real columns/rows to show on each side of the "..."
+    // e.g. max_columns=4 → 2 left, 2 right; max_columns=3 → 2 left, 1 right
+    size_t col_limit  = elide_cols ? opt->max_columns : t->col_count;
+    size_t col_left   = elide_cols ? (col_limit + 1) / 2 : t->col_count;
+    size_t col_right  = elide_cols ? col_limit / 2        : 0;
+
+    size_t row_limit  = elide_rows ? opt->max_rows : t->row_count;
+    size_t row_top    = elide_rows ? (row_limit + 1) / 2 : t->row_count;
+    size_t row_bottom = elide_rows ? row_limit / 2        : 0;
+
+    // The "..." elision column is always 3 chars wide
+    #define ELISION_COL_WIDTH 3
+
+    // Iterates over visible column indices, calling `body` with each.
+    // Inserts the elision column in the middle when eliding.
+    // We use a macro here to avoid duplicating the col-iteration logic
+    // across header, separator, and every data row.
+    #define FOR_EACH_COL(body)                                              \
+        do {                                                                \
+            for (size_t c = 0; c < col_left; c++)  { body; }              \
+            if (elide_cols) {                                               \
+                size_t c = SIZE_MAX; (void)c; /* sentinel — not a real col */ \
+                body;                                                       \
+            }                                                               \
+            for (size_t c = t->col_count - col_right;                      \
+                 c < t->col_count; c++) { body; }                          \
+        } while (0)
+
+    // Helper: write one cell in the elision column
+    #define ELISION_CELL() \
+        write_cell_padded(out, out_cap, &pos, "...", ELISION_COL_WIDTH)
+
+    // --- Header ---
+    FOR_EACH_COL({
+        if (c == SIZE_MAX) {
+            ELISION_CELL();
+        } else {
+            write_cell_padded(out, out_cap, &pos,
+                t->col_names[c], effective_width(c, t, opt));
+        }
         appendf(out, out_cap, &pos, " ");
-    }
+    });
     appendf(out, out_cap, &pos, "\n");
 
-    // Separator
-    for (size_t c = 0; c < col_limit; c++) {
-        size_t w = effective_width(c, t, opt);
+    // --- Separator ---
+    FOR_EACH_COL({
+        size_t w = (c == SIZE_MAX) ? ELISION_COL_WIDTH : effective_width(c, t, opt);
         for (size_t i = 0; i < w; i++) appendf(out, out_cap, &pos, "-");
         appendf(out, out_cap, &pos, " ");
-    }
+    });
     appendf(out, out_cap, &pos, "\n");
 
-    // Rows
-    for (size_t r = 0; r < row_limit; r++) {
-        for (size_t c = 0; c < col_limit; c++) {
-            write_cell_padded(out, out_cap, &pos, t->rows[r][c], effective_width(c, t, opt));
+    // --- Rows (top half, elision row if needed, bottom half) ---
+    #define PRINT_ROW(r)                                                    \
+        do {                                                                \
+            FOR_EACH_COL({                                                  \
+                if (c == SIZE_MAX) {                                        \
+                    ELISION_CELL();                                         \
+                } else {                                                    \
+                    write_cell_padded(out, out_cap, &pos,                   \
+                        t->rows[r][c], effective_width(c, t, opt));        \
+                }                                                           \
+                appendf(out, out_cap, &pos, " ");                          \
+            });                                                             \
+            appendf(out, out_cap, &pos, "\n");                             \
+        } while (0)
+
+    for (size_t r = 0; r < row_top; r++)
+        PRINT_ROW(r);
+
+    if (elide_rows) {
+        // Elision row: "..." in the first cell, blank in the rest
+        FOR_EACH_COL({
+            size_t w = (c == SIZE_MAX) ? ELISION_COL_WIDTH : effective_width(c, t, opt);
+            write_cell_padded(out, out_cap, &pos,
+                (c == col_left - 1 || c == 0) ? "..." : "", w);
+            // ^^^ put "..." only in the first real column so it reads
+            // like a pandas elision row, not a wall of dots
             appendf(out, out_cap, &pos, " ");
-        }
+        });
         appendf(out, out_cap, &pos, "\n");
     }
-}
 
+    for (size_t r = t->row_count - row_bottom; r < t->row_count; r++)
+        PRINT_ROW(r);
+
+    #undef ELISION_COL_WIDTH
+    #undef FOR_EACH_COL
+    #undef ELISION_CELL
+    #undef PRINT_ROW
+}
 // ======================= Get Cell's Value =====================
 
 const char *sqlite_table_get(
