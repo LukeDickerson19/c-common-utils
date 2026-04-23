@@ -20,7 +20,7 @@ typedef struct {
 
 ##### Features:
 
-> - convenience functions that wrap the [sqlite3](https://sqlite.org/cintro.html) library
+> - convenience functions that wrap the [sqlite3](https://sqlite.org/cintro.html) library using [sqlite3.c](https://github.com/clibs/sqlite/blob/master/sqlite3.c) lib
 > - Functions:
 >   - **Connection**:
 >     - sqlite_init_connection()
@@ -44,11 +44,62 @@ typedef struct {
 >      - clang-cl (version 21.1.0)
 
 #### EXAMPLE USAGE
-Below is a copy of [tests/sqlite_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/sqlite_util/tests/sqlite_util_full_example.c). See [include/sqlite_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/sqlite_util/include/sqlite_util.h) for all function definitions and descriptions.
-```c
-```
+See [tests/sqlite_util_full_example.c](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/sqlite_util/tests/sqlite_util_full_example.c). See [include/sqlite_util.h](https://github.com/LukeDickerson19/c-common-utils/blob/master/utils/sqlite_util/include/sqlite_util.h) for all function definitions and descriptions.
 
 #### EXAMPLE OUTPUT
 ```
+[luke@luke utils]$ ./build/sqlite_util/sqlite_util_full_example 
+
+Using sqlite database:
+    sqlite_example.db
+
+Executing SQL:
+    DROP TABLE IF EXISTS users;
+
+Executing SQL:
+    CREATE TABLE users ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER, city TEXT);
+
+Executing SQL:
+    SELECT id, name, age, city FROM users;
+
+Full table (UTF-8 names and cities):
+id name  age city      
+-- ----- --- --------- 
+1  Ãlice 30  São Paulo 
+2  Björn 24  Zürich    
+3  Søren 42  Tōkyō     
+4  日本語   24  Réykjavík 
+5  Ünité 35  London    
+6  Dave  28  Mos̈cow   
+
+With max_column_width = 5 (truncation must not split UTF-8 sequences):
+id name  age city  
+-- ----- --- ----- 
+1  Ãlice 30  Sã... 
+2  Björn 24  Zü... 
+3  Søren 42  Tōkyō 
+4  日本語   24  Ré... 
+5  Ünité 35  Lo... 
+6  Dave  28  Mo... 
+
+Executing SQL:
+    DELETE FROM users WHERE age = 24;
+
+Executing SQL:
+    SELECT id, name, age, city FROM users;
+
+After DELETE WHERE age = 24:
+id name  age city      
+-- ----- --- --------- 
+1  Ãlice 30  São Paulo 
+3  Søren 42  Tōkyō     
+5  Ünité 35  London    
+6  Dave  28  Mos̈cow   
+
+Value at row 0, column 'name': Ãlice
+Value at row 1, column 'city': Tōkyō
+Value at row 1, column 'age': 42
+[luke@luke utils]$ 
+[luke@luke utils]$ 
 ```
 

@@ -832,4 +832,12 @@ LIBRARIES:
                     rd -Recurse -Force C:\Users\luciu\rooms\c-common-utils\utils\string_util\external\utf8proc\windows\lib\pkgconfig
                     # or delete these folders through VS Code, or the File Explorer
 
+    sqlite:
+        https://sqlite.org/cintro.html
+
+        used in c-common-utils/utils/sqlite_util
+
+        install:
+            copied the .c and .h file into external/sqlite3 folder
+            https://sqlite.org/download.html
 
