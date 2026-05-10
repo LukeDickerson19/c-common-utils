@@ -157,7 +157,9 @@ void set_max_indentation(
     (*max_indentation)[max_indents * indent_len] = '\0';
 }
 
-//////////////////////// logging functions /////////////////
+
+////////////////////// log struct functions ////////////////
+
 
 Log *_log_init(
     Log *opts
@@ -188,6 +190,7 @@ Log *_log_init(
     log->max_indents = opts->max_indents;
     log->max_message_len = opts->max_message_len;
     log->max_line_len = opts->max_line_len;
+    log->i2 = opts->i2;
     log->thread_safe = opts->thread_safe;
     // *log = *opts; // shallow copy
     
@@ -315,6 +318,9 @@ void log_close(
     free(log);
     *log_ptr = NULL;
 }
+
+
+///////////////////////// print functions //////////////////
 
 
 static size_t _count_lines(
@@ -472,7 +478,7 @@ static int _get_indented_message(
 
     // Create indent buffers
     size_t indent_len = strlen(indent);
-    size_t i = opts->i;
+    size_t i = (size_t)opts->i;
     const size_t total_indent1 = indent_len * i;
     const size_t total_indent2 = indent_len * (i + 1);
     const size_t total_indent3 = opts->d ? total_indent2 : total_indent1;
@@ -560,9 +566,11 @@ static int _get_formatted_messages(
 
     // validate input args
     if (!message || !opts || !log) return -1;
-    int i = opts->i;
-    if (i < 0 || i > log->max_indents) return -1;
 
+    // use i2 if i == -1
+    if (opts->i == -1) opts->i = (int)log->i2;
+    if (opts->i < 0 || opts->i > (int)log->max_indents) return -1;
+    log->i2 = (size_t)opts->i; // update i2 to most recent i
 
     // Prepend info if requested
     log->p_buf->text[0] = '\0'; log->p_buf->pos = 0; // reset p_buf incase user requested not to prepend anything
@@ -576,7 +584,7 @@ static int _get_formatted_messages(
         const char div_mark = '-';
         fmt_append(
             log->p_buf,
-            "%*s%c%*s", i, "", div_mark, log->max_indents - i, ""
+            "%*s%c%*s", opts->i, "", div_mark, log->max_indents - opts->i, ""
         );
 
         // get current time if needed
@@ -768,9 +776,9 @@ int _log_print_unlocked(
 
 
 int _log_print(
-    Log* log,       // pointer to log struct to use
-    const char *msg,   // message to print
-    PrintOptions *opts // optional print arguments
+    Log* log,
+    const char *msg,
+    PrintOptions *opts
 ) {
 
     if (!log || !msg) {

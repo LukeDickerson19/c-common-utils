@@ -225,6 +225,11 @@ TUTORIALS:
 
         debugging_tutorial_with_gdb_and_asan:
 
+            BACKLOG: continue learning asan and gdb
+                test with cmake and gcc
+                    https://chatgpt.com/c/69adb785-d060-8331-a452-9ff050126332
+                        ctrl f "can asan be used in tandem with gdb? can asan pause the program?"
+
             GDB: GNU Debugger:
 
                 Setting file:
@@ -746,15 +751,25 @@ UTILS:
 
             maybe make a MEM_CAPPED_TRAILING memory allocation procedure?
 
+            struct allocated strings would be really nice!!!
+
             str_repeat and str_slice currently have optional args to return the repeated string or string slice as a char array or to modify string s. make a 3rd option to return a new string with the repeats or slice as well. and also update other modifying functions with similar return options.
 
             maybe update c string util to use hybrid malloc/free and arena allocator?
 
-            maybe update str_starts_with() and str_ends_with() suffix and prefix args to be char * instead of String *. if you do this don't forget to normalize the text first for UTF-8 compatibility
+            maybe update str_starts_with() and str_ends_with() suffix and prefix args to be char * instead of String *
+                if you do this don't forget to normalize the text first for UTF-8 compatibility
 
             i think i might be adding +1 to memory capacity to make room for the null teminator multiple times throughout the code redundantly, and consuming more memory than neccessary.
 
+            string libs honorable mentions:
+
+                stb_ds (string = char array)
+                https://github.com/nothings/stb
+
         logging_util
+
+            update full example to test log->i2
 
             might want to update logging util print function to take an optional arbitrary prefix too
                 i could send [APP] in the sdl-common-utils
