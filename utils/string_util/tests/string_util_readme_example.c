@@ -14,11 +14,9 @@ int main(void) {
     // prepend char array to string
     str_prepend("... ", s1);
     // capture str_info() output instead of printing it by passing a non-NULL Buffer struct pointer
-    char buf_text[128]; // stack char array with length known at compile time doesnt need to be freed
-    Buffer buf_struct = { .text = buf_text, .cap=sizeof(buf_text), .pos = 0 }; // stack buffer doesn't need to be freed
-    Buffer *buf = &buf_struct;
-    str_info(s1, buf);
-    printf("%s\n", buf->text); // prints: text="... Hello, world", len=16, bytes=16, cap=18, String struct size=40, total size=58 bytes
+    char buffer[128]; // stack char array with length known at compile time doesnt need to be freed
+    str_info(s1, buffer);
+    printf("%s\n", buffer); // prints: text="... Hello, world", len=16, bytes=16, cap=18, String struct size=40, total size=58 bytes
 
     // free string struct and text
     str_free(&s1);
@@ -36,7 +34,7 @@ int main(void) {
     printf("%s\n", c->text); // prints: Hello東京¡café!naïve😀🍓🌍❌✅→↙●■▲∞∑√★♥🔒🔓
 
     // init formatted string
-    String *h = str(fmt(buf, "formatted😀🍓🌍%s", "string√★♥🔒🔓"));
+    String *h = str(fmt(buffer, sizeof(buffer), "formatted😀🍓🌍%s", "string√★♥🔒🔓"));
     printf("%s\n", h->text); // prints: formatted😀🍓🌍string√★♥🔒🔓
 
     // free multiple strings at once

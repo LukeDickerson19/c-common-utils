@@ -36,7 +36,7 @@ static char *normalize_utf8_str(
 
 
 static size_t count_utf8_runes(
-    const char *str
+    const char *s
 ) {
     /* UTF-8 Rune Byte Structure:
 
@@ -64,18 +64,18 @@ static size_t count_utf8_runes(
             * Only `0xF0 0x9F` -> invalid
             * Need to drop it or replace with `?`
         */
-    if (!str) return 0;
+    if (!s) return 0;
 
     size_t runes = 0;
     utf8proc_int32_t codepoint;
-    const utf8proc_uint8_t *s = (const utf8proc_uint8_t *)str;
-    ssize_t remaining = strlen(str);
+    const utf8proc_uint8_t *p = (const utf8proc_uint8_t *)s;
+    ssize_t remaining = (ssize_t)strlen(s);
 
     while (remaining > 0) {
-        ssize_t n = utf8proc_iterate(s, remaining, &codepoint);
+        ssize_t n = utf8proc_iterate(p, remaining, &codepoint);
         if (n <= 0) break;
         runes++;
-        s += n;
+        p += n;
         remaining -= n;
     }
 
@@ -387,16 +387,16 @@ String *str_clone(
 
 void str_info(
     const String *s,
-    Buffer *out
+    char *out
 ) {
     if (!s) return;
 
-    // copy to result to out->text if out != NULL,
+    // copy to result to out buffer if out != NULL,
     // else just print it to the console
     const char *text_repr = s->text ? s->text : "NULL";
     size_t total_size = sizeof(*s) + s->cap;
     if (out) {
-        fmt(out,
+        fmt(out, sizeof(out),
             "text=\"%s\", len=%zu, bytes=%zu, cap=%zu, String struct size=%zu, total size=%zu bytes",
             s->text ? s->text : "NULL",
             s->len,
@@ -1388,44 +1388,39 @@ int _str_slice(
 
 
 char *fmt(
-    Buffer *buf,
+    char *buf,
+    const size_t cap,
     const char *fmt_text,
     ...
 ) {
-    if (!buf ||
-        !buf->text ||
-        buf->cap == 0) return NULL;
-    if (!fmt_text) return NULL;
+    if (!buf || cap == 0 || !fmt_text) return NULL;
 
     va_list args;
     va_start(args, fmt_text);
-    int n = vsnprintf(buf->text, buf->cap, fmt_text, args);
+    int n = vsnprintf(buf, cap, fmt_text, args);
     va_end(args);
 
     if (n < 0) return NULL;  // encoding/formatting error
-    buf->pos = (size_t)n < buf->cap ? (size_t)n : buf->cap - 1; // update pos
-    return buf->text;
+    return buf;
 }
 
 
 size_t fmt_append(
-    Buffer *buf,
+    char *buf,
+    const size_t cap,
     const char *fmt_text,
     ...
 ) {
-    /// Append src string (plus formatting) to buf buffer with length tracking ///
+    /// Append fmt_text (plus formatting) to buffer ///
 
     // validate buffer and fmt_text args
-    if (!buf ||
-        !buf->text ||
-        buf->cap == (size_t)-1 ||
-        buf->pos == (size_t)-1 ||
-        buf->pos == buf->cap) return (size_t)-1;
-    if (!fmt_text) return (size_t)-1;
+    if (!buf || !fmt_text || cap == 0) return (size_t)-1;
+    size_t pos = 0; for (; pos < cap && buf[pos]; pos++) {} // strlen() but safe for invalid strings without '\0'
+    if (pos == cap) return (size_t)-1;
 
     va_list args;
     va_start(args, fmt_text);
-    int n = vsnprintf(buf->text + buf->pos, buf->cap - buf->pos, fmt_text, args);
+    int n = vsnprintf(buf + pos, cap - pos, fmt_text, args);
     // NOTE: vsnprintf() returns:
     // On success:
     // Returns the number of characters that would have been written (excluding the null terminator). If the output was truncated due to insufficient space, it still returns the number of characters that would have been written if there had been enough space. It tells you how much space you would have needed for the full formatted string.
@@ -1436,17 +1431,7 @@ size_t fmt_append(
     // snprintf error, leave pos unchanged
     if (n < 0) return (size_t)-1;
 
-    // Clamp written bytes to remaining space
-    size_t written = (size_t)n;
-    if (written >= buf->cap - buf->pos) {
-        written = buf->cap - buf->pos - 1; // leave room for null terminator
-    }
-    buf->pos += written;
-
-    // null-terminate updated string
-    buf->text[buf->pos] = '\0';
-
-    return (size_t)n; // return would-be length, caller can detect truncation
+    return (size_t)n; // return would-be length, so caller can detect truncation
 }
 
 ///////////////////////////////////////////////////////////////////////////

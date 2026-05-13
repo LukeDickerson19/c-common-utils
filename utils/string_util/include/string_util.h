@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 
-///////////////////////////// Structs and Enums //////////////////////////
+////////////////////////// String Struct and Enums ///////////////////////
 
 /** MemoryAllocationProcedure enum
  * 
@@ -67,23 +67,6 @@ typedef struct String {
     size_t  cap;
     MemoryAllocationProcedure allocation_procedure;
 } String;
-
-
-/** Buffer struct
- *
- * Represents a character buffer used for char array formatting functions.
- * Can wrap both stack-allocated and heap-allocated arrays. No UTF-8 normalization support
- *
- * Members:
- *   text - pointer to the underlying character array storing the string.
- *   cap  - total allocated capacity of the text array (in bytes).
- *   pos  - current write position within the buffer; new data is appended here.
- */
-typedef struct Buffer {
-    char *text; // text char array
-    size_t cap; // memory capacity allocated for text
-    size_t pos; // current position of buffer
-} Buffer;
 
 
 ////////////////////////////// Memory Functions ///////////////////////////
@@ -158,12 +141,12 @@ String *str_clone(
  *
  * @param label    A descriptive name prefix for identifying the string instance.
  * @param s        Pointer to the String structure to inspect.
- * @param out      The destination Buffer struct to receive the formatted text.
+ * @param out      The destination char array buffer to receive the formatted text. If NULL, str_info prints to the console
  * @return         The number of characters written (standard snprintf behavior).
  */
 void str_info(
     const String *s,
-    Buffer *out
+    char *out
 );
 
 ////////////////////////////// Mutation Functions /////////////////////////
@@ -610,7 +593,7 @@ int _str_slice(
 
 /** fmt()
  * 
- * fmt() is a convenience macro used to format char arrays. It requires passing a pre-created buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
+ * fmt() is a function used to format char arrays. It requires passing a pre-created char arrar buffer managed by the caller, so use multiple buffers if nesting fmt() calls, or calling fmt() multiple times on one line so they don't interfere with each other.
  * Example usage:
  *     char *buf1[128];
  *     char *buf2[buf_size]; // Example buffer sized at runtime. C99 allows pre-defined stack buffers to have runtime determined sizes because you can use Variable Length Arrays (VLAs). function's arg
@@ -622,7 +605,8 @@ int _str_slice(
  * @return         pointer to the formatted string, buf
  */
 char *fmt(
-    Buffer *buf,
+    char *buf,
+    const size_t cap,
     const char *fmt_text,
     ...
 );
@@ -636,10 +620,11 @@ char *fmt(
  * @param pos      position in dst to append to
  * @param fmt_text text to format and write into buf->text + buf->pos
  * @param ...      printf-style string formatting values to substitute into src
- * @return         number of bytes written, or (size_t)-1 on failure
+ * @return         number of chars that would have been written for this append only (so caller can detect truncation), or (size_t)-1 on failure
  */
 size_t fmt_append(
-    Buffer *buf,
+    char *buf,
+    const size_t cap,
     const char *fmt_text,
     ...
 );

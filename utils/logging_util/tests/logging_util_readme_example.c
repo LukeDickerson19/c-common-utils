@@ -17,9 +17,9 @@ int main(void) {
     print(logger, "漢字日", .i=1); // 1 indent
     print(logger, "áéöüñприв", .i=2); // 2 indents
 	print(logger, "indented\nmulti\n\nline\nstring\nет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞\n±≈√∑©®™", .i=3);
-	char fmt_buffer[128];
-    snprintf(fmt_buffer, sizeof(fmt_buffer), "formatted string: %d %c 🎉%s😄", 7, 'f', "🌟hello🚀");
-	print(logger, fmt_buffer, .i=1);
+	char buffer[128];
+    snprintf(buffer, sizeof(buffer), "formatted string: %d %c 🎉%s😄", 7, 'f', "🌟hello🚀");
+	print(logger, buffer, .i=1);
 
 	// prepend info to each line, such as datetime and memory usage
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z"); // other available formats: https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm

@@ -228,11 +228,9 @@ Log *_log_init(
         log, log->prepend_datetime_fmt, log->timezone);
 
     // Init tmp buffer for fmt() used for prepend_info
-    size_t p_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
-    log->p_buf = malloc(sizeof(Buffer));
-    log->p_buf->text = malloc(p_buf_cap);
-    log->p_buf->cap = p_buf_cap;
-    log->p_buf->pos = 0;
+    log->p_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
+    log->p_buf = malloc(log->p_buf_cap);
+    log->p_buf[0] = '\0';
 
     // Initialize log start time to the current time
     set_start_time(log, NULL, NULL);
@@ -241,11 +239,9 @@ Log *_log_init(
     set_max_indentation(log->max_indents, log->console_indent, &log->max_console_indentation);
     set_max_indentation(log->max_indents, log->logfile_indent, &log->max_logfile_indentation);
     // init tmp buffer for fmt() used for indents
-    size_t i_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
-    log->i_buf = malloc(sizeof(Buffer));
-    log->i_buf->text = malloc(i_buf_cap);
-    log->i_buf->cap = i_buf_cap;
-    log->i_buf->pos = 0;
+    log->i_buf_cap = 4 * log->max_line_len + 1; // *4 to cover worst case utf8 4 byte rune
+    log->i_buf = malloc(log->i_buf_cap);
+    log->i_buf[0] = '\0';
 
     // init overwrite_prev_msg variables
     // these variables are reused each log message to avoid frequent
@@ -284,12 +280,10 @@ void log_close(
 
     // free fmt() heap buffers
     if (log->p_buf) {
-        free(log->p_buf->text);
         free(log->p_buf);
         log->p_buf = NULL;
     }
     if (log->i_buf) {
-        free(log->i_buf->text);
         free(log->i_buf);
         log->i_buf = NULL;
     }
@@ -482,13 +476,15 @@ static int _get_indented_message(
     const size_t total_indent1 = indent_len * i;
     const size_t total_indent2 = indent_len * (i + 1);
     const size_t total_indent3 = opts->d ? total_indent2 : total_indent1;
-    log->i_buf->text[0] = '\0'; log->i_buf->pos = 0; // reset i_buf
+    log->i_buf[0] = '\0'; // reset i_buf
 
     // Add starting newline if requested
     if (opts->ns)
         str_append(
             formatted_message,
-            fmt(log->i_buf, "%s%.*s\n", log->p_buf->text, (int)total_indent3, max_indentation)
+            fmt(log->i_buf, log->i_buf_cap,
+                "%s%.*s\n", log->p_buf, (int)total_indent3, max_indentation
+            )
         );
 
     // Format each line in the log message
@@ -503,8 +499,9 @@ static int _get_indented_message(
         const size_t rune_len_before = formatted_message->len;
         str_append(
             formatted_message,
-            fmt(log->i_buf, "%s%.*s%.*s%s",
-                log->p_buf->text,
+            fmt(log->i_buf, log->i_buf_cap,
+                "%s%.*s%.*s%s",
+                log->p_buf,
                 (int)line_indent,
                 max_indentation,
                 (int)line_byte_len,
@@ -548,7 +545,9 @@ static int _get_indented_message(
     if (opts->ne && !message_truncated)
         str_append(
             formatted_message,
-            fmt(log->i_buf, "%s%.*s\n", log->p_buf->text, (int)total_indent3, max_indentation)
+            fmt(log->i_buf, log->i_buf_cap,
+                "%s%.*s\n", log->p_buf, (int)total_indent3, max_indentation
+            )
         );
 
     // Return success code
@@ -573,7 +572,7 @@ static int _get_formatted_messages(
     log->i2 = (size_t)opts->i; // update i2 to most recent i
 
     // Prepend info if requested
-    log->p_buf->text[0] = '\0'; log->p_buf->pos = 0; // reset p_buf incase user requested not to prepend anything
+    log->p_buf[0] = '\0'; // reset p_buf incase user requested not to prepend anything
     if (log->prepend_datetime_fmt || \
         log->prepend_elapsed_time || \
         log->prepend_memory_usage) {
@@ -583,7 +582,7 @@ static int _get_formatted_messages(
         // They exist so VS Code's code folding feature continues to work when there's prepended info, and the prepended info remains veritically alligned.
         const char div_mark = '-';
         fmt_append(
-            log->p_buf,
+            log->p_buf, log->p_buf_cap,
             "%*s%c%*s", opts->i, "", div_mark, log->max_indents - opts->i, ""
         );
 
@@ -612,7 +611,7 @@ static int _get_formatted_messages(
                 return -1;
             }
             fmt_append(
-                log->p_buf,
+                log->p_buf, log->p_buf_cap,
                 "%s  ", datetime_str
             );
         }
@@ -643,12 +642,12 @@ static int _get_formatted_messages(
             }
             if (log->prepend_datetime_fmt) {
                 fmt_append(
-                    log->p_buf,
+                    log->p_buf, log->p_buf_cap,
                     "%c  ", div_mark
                 );
             }
             fmt_append(
-                log->p_buf,
+                log->p_buf, log->p_buf_cap,
                 "%s  ", elapsed_time_str
             );
         }
@@ -659,19 +658,19 @@ static int _get_formatted_messages(
             _get_process_memory_usage(mem_usage_str, sizeof(mem_usage_str));
             if (log->prepend_datetime_fmt || log->prepend_elapsed_time) {
                 fmt_append(
-                    log->p_buf,
+                    log->p_buf, log->p_buf_cap,
                     "%c  ", div_mark
                 );
             }
             fmt_append(
-                log->p_buf,
+                log->p_buf, log->p_buf_cap,
                 "%17s", mem_usage_str
             );
         }
 
         // append a final div mark plus some spacing
         fmt_append(
-            log->p_buf,
+            log->p_buf, log->p_buf_cap,
             "%c  ", div_mark
         );
     }
@@ -811,6 +810,7 @@ int _log_print(
 
     return rc;
 }
+
 
 ////////////////////////////////////////////////////////////
 

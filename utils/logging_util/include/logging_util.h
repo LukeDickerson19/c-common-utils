@@ -56,11 +56,11 @@ typedef struct Log {
     int64_t unix_start_time; // unix start time used for prepending elapsed time, defaults to time when log_init() is called
     int32_t start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
-    Buffer *p_buf; // short char array thats passed to the string_util fmt_append() function to provide a temporary buffer for formatting prepend info. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() function's performance.
+    char *p_buf; size_t p_buf_cap;  // short char array thats passed to the string_util fmt_append() function to provide a temporary buffer for formatting prepend info. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() performance.
     size_t max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
     char *max_console_indentation; // max console indentation (heap allocated on log_init with console_indent and max_indents)
     char *max_logfile_indentation; // max logfile indentation (heap allocated on log_init with logfile_indent and max_indents)
-    Buffer *i_buf; // short char array buffer thats passed to the string_util fmt() function to provide a temporary buffer for formatting indentation. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() function's performance.
+    char *i_buf; size_t i_buf_cap; // short char array buffer thats passed to the string_util fmt() function to provide a temporary buffer for formatting indentation. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() performance.
     size_t max_message_len; // max number of runes (aka UTF-8 code points) per message
     size_t max_line_len; // max number of runes (aka UTF-8 code points) per line, NOTE: if max_line_len is too large it can cause a stack overflow error, recommend at max 4096.
     size_t i2; // indentation to use if .i=-1 is passed to print, defaults to most recent i

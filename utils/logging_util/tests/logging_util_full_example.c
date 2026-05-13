@@ -7,8 +7,10 @@
 ///////////////// global variables ///////////////////
 
 Log *logger; // global logging util Log struct
-Buffer *hbuf; // global heap Buffer struct for fmt*() functions
-#define HBUF_CAP 1024
+#define LOG(msg, ...) print(logger, (msg), ##__VA_ARGS__) // even more concise macro
+const char *hbuf; // global heap buffer for fmt*() functions
+#define HBUF_CAP 2048
+#define FMT(msg, ...) fmt(hbuf, HBUF_CAP, (msg), ##__VA_ARGS__) // even more concise macro
 #define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
 #define PATH_MAX_CHARS 1024
 char BASE_DIR[PATH_MAX_CHARS];
@@ -38,19 +40,10 @@ char BASE_DIR[PATH_MAX_CHARS];
     DWORD WINAPI thread_print_loop(LPVOID arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        char buffer[256];
-
-        // stack buffer (no need to free)
-        char stack_mem[256]; // raw char array on stack
-        Buffer buf_struct = { // Buffer struct on stack
-            .text = stack_mem,
-            .cap = sizeof(stack_mem),
-            .pos = 0
-        };
-        Buffer *buf = &buf_struct;
-
+        size_t cap = 256;
+        char buf[cap]; // raw char array on stack
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt(buf, "thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buf, cap, "thread %d iteration %d", thread_id, j), .i=1);
         }
         return 0;
     }
@@ -84,17 +77,10 @@ char BASE_DIR[PATH_MAX_CHARS];
         int thread_id = (int)(intptr_t)arg;
         char *msg;
 
-        // stack buffer (no need to free)
-        char stack_mem[256]; // raw char array on stack
-        Buffer buf_struct = { // Buffer struct on stack
-            .text = stack_mem,
-            .cap = sizeof(stack_mem),
-            .pos = 0
-        };
-        Buffer *buf = &buf_struct;
-
+        size_t cap = 256;
+        char buf[cap]; // raw char array on stack
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt(buf, "thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buf, cap, "thread %d iteration %d", thread_id, j), .i=1);
         }
         return NULL;
     }
@@ -179,33 +165,34 @@ void test_print() {
     // test num_indents and multi line indentation
     print(logger, "abc123", .i=1);
     print(logger, "漢字日", .i=2);
-    print(logger, "áéöüñприв", .i=3);
-    print(logger, "ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞", .i=4);
-    print(logger, "±≈√∑©®™🌟🚀😄🐍🏖️🎉", .i=5);
-    print(logger, "\nindented\nmulti\nline\nstring", .i=6);
+    LOG("áéöüñприв", .i=3);
+    LOG("ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞", .i=4);
+    LOG("±≈√∑©®™🌟🚀😄🐍🏖️🎉", .i=5);
+    LOG("\nindented\nmulti\nline\nstring", .i=6);
 
     // test formatted string
     char buf[256];
-    print(logger, fmt(hbuf, "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=1);
+    print(logger, fmt(buf, sizeof(buf), "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=1);
+    LOG(FMT("hello %s", "world"), .i=1);
 
     // test new line start
-    print(logger, "new line start = true, draw line = false", .i=1, .ns=true);
-    print(logger, "new line start = true, draw line = true", .i=1, .ns=true, .d=true);
-    print(logger, "new line start = false", .i=1, .ns=false);
+    LOG("new line start = true, draw line = false", .i=1, .ns=true);
+    LOG("new line start = true, draw line = true", .i=1, .ns=true, .d=true);
+    LOG("new line start = false", .i=1, .ns=false);
 
     // test new line end
-    print(logger, "new line end = true, draw line = false", .i=1, .ne=true);
-    print(logger, "new line end = True, draw line = True", .i=1, .ne=true, .d=true);
-    print(logger, "new line end = false", .i=1, .ne=false);
+    LOG("new line end = true, draw line = false", .i=1, .ne=true);
+    LOG("new line end = True, draw line = True", .i=1, .ne=true, .d=true);
+    LOG("new line end = false", .i=1, .ne=false);
 
     // test get latest msg
     char *console_msg, *logfile_msg;
-    print(logger, "latest log message", .i=2, .ns=true, .ne=true);
+    LOG("latest log message", .i=2, .ns=true, .ne=true);
     console_msg = get_latest_console_msg(logger);
     logfile_msg = get_latest_logfile_msg(logger);
     fwrite(console_msg, 1, strlen(console_msg), stdout); // if theres indents, it was preserved
     fwrite(logfile_msg, 1, strlen(logfile_msg), stdout);
-    print(logger, "latest\nmulti-line\n\nlog\nmessage", .i=3, .ns=true, .ne=true);
+    LOG("latest\nmulti-line\n\nlog\nmessage", .i=3, .ns=true, .ne=true);
     console_msg = get_latest_console_msg(logger);
     logfile_msg = get_latest_logfile_msg(logger);
     fwrite(console_msg, 1, strlen(console_msg), stdout); // if theres indents, it was preserved
@@ -216,91 +203,90 @@ void test_print() {
     set_timezone(logger, "local");
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
-    print(logger, "testing single line prepend_datetime_fmt w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend_datetime_fmt", .i=1);
-    print(logger, "testing single line indented prepend_datetime_fmt", .i=2);
+    LOG("testing single line prepend_datetime_fmt w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt", .i=1);
+    LOG("testing single line indented prepend_datetime_fmt", .i=2);
 
     // test prepend only elapsed time
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = false;
-    print(logger, "testing single line prepend_elapsed_time w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend_elapsed_time", .i=1);
-    print(logger, "testing single line indented prepend_elapsed_time", .i=2);
+    LOG("testing single line prepend_elapsed_time w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend_elapsed_time", .i=1);
+    LOG("testing single line indented prepend_elapsed_time", .i=2);
 
     // test prepend only memory usage
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
-    print(logger, "testing single line prepend_memory_usage w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend_memory_usage", .i=1);
-    print(logger, "testing single line indented prepend_memory_usage", .i=2);
+    LOG("testing single line prepend_memory_usage w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend_memory_usage", .i=1);
+    LOG("testing single line indented prepend_memory_usage", .i=2);
 
     // test both prepend datetime and prepend elapsed time
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = false;
-    print(logger, "testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_elapsed_time", .i=1);
-    print(logger, "testing single line indented prepend_datetime_fmt and prepend_elapsed_time", .i=2);
+    LOG("testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_elapsed_time", .i=1);
+    LOG("testing single line indented prepend_datetime_fmt and prepend_elapsed_time", .i=2);
 
     // test both prepend datetime and prepend memory usage
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
-    print(logger, "testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
-    print(logger, "testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
+    LOG("testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
+    LOG("testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
 
     // test both prepend elapsed time and prepend memory usage
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = true;
-    print(logger, "testing single line prepend_elapsed_time and prepend_memory_usage w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend_elapsed_time\nand\nprepend_memory_usage", .i=1);
-    print(logger, "testing single line indented prepend_elapsed_time and prepend_memory_usage", .i=2);
+    LOG("testing single line prepend_elapsed_time and prepend_memory_usage w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend_elapsed_time\nand\nprepend_memory_usage", .i=1);
+    LOG("testing single line indented prepend_elapsed_time and prepend_memory_usage", .i=2);
 
     // test all 3 prependable information
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = true;
-    print(logger, "testing single line prepend all 3 w/out indent", .ns=true);
-    print(logger, "testing\nmulti\nline\n\nprepend\nall\n3", .i=1);
-    print(logger, "testing single line indented prepend all 3", .i=2);
+    LOG("testing single line prepend all 3 w/out indent", .ns=true);
+    LOG("testing\nmulti\nline\n\nprepend\nall\n3", .i=1);
+    LOG("testing single line indented prepend all 3", .i=2);
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
 
     // test line and message truncation
-    print(logger, "truncation tests:", .i=1, .ns=true);
+    LOG("truncation tests:", .i=1, .ns=true);
     int default_max_message_len = logger->max_message_len;
     int default_max_line_len = logger->max_line_len;
     int test_max_message_len = 500;
     int test_max_line_len = 100;
     // char *long_line = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "; // ASCII characters
     char *long_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345!@#$%^&*()-+_=漢字日本水áéöüñпривет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞±≈√∑©®™🌟🚀😄🐍🏖️🎉"; // example UTF-8 characters
-    char buf2[100000];
 
     // test message truncation
     logger->max_message_len = test_max_message_len;
-    print(logger, fmt(hbuf, "Test message truncation: set logger->max_message_len to %zd", logger->max_message_len), .i=2, .ns=true);
-    print(logger, fmt(hbuf, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    LOG(FMT("Test message truncation: set logger->max_message_len to %zd", logger->max_message_len), .i=2, .ns=true);
+    LOG(FMT("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
 
     // test line truncation
     logger->max_line_len = test_max_line_len;
-    print(logger, fmt(hbuf, "Test line truncation: set logger->max_line_len to %zd", logger->max_line_len), .i=2, .ns=true);
-    print(logger, long_line, .i=3);
+    LOG(FMT("Test line truncation: set logger->max_line_len to %zd", logger->max_line_len), .i=2, .ns=true);
+    LOG(long_line, .i=3);
 
     // test both
-    print(logger, "Test both:", .i=2, .ns=true);
-    print(logger, fmt(hbuf, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    LOG("Test both:", .i=2, .ns=true);
+    LOG(FMT("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
 
     // test complete, restore default settings
     logger->max_message_len = default_max_message_len;
     logger->max_line_len    = default_max_line_len;
-    print(logger, "truncation tests complete.", .i=1, .ns=true, .d=true);
-    print(logger, fmt(hbuf, "restored logger->max_line_len    to default: %zd", logger->max_line_len),    .i=1);
-    print(logger, fmt(hbuf, "restored logger->max_message_len to default: %zd", logger->max_message_len), .i=1, .ne=true);
+    LOG("truncation tests complete.", .i=1, .ns=true, .d=true);
+    LOG(FMT("restored logger->max_line_len    to default: %zd", logger->max_line_len),    .i=1);
+    LOG(FMT("restored logger->max_message_len to default: %zd", logger->max_message_len), .i=1, .ne=true);
 
 }
 
@@ -448,7 +434,7 @@ int write_json_file(cJSON *json, const char *filepath) {
 }
 
 void test_print_json() {
-    print(logger, "\ntest_print_json():");
+    LOG("\ntest_print_json():");
 
     // json object struct members:
     // https://github.com/DaveGamble/cJSON/tree/v1.7.19?tab=readme-ov-file#data-structure
@@ -472,30 +458,26 @@ void test_print_json() {
 	
 	*/
 
-    print(logger, "\nExample 1:", .i=1);
+    LOG("\nExample 1:", .i=1);
     cJSON *example_json = create_example_json();
     // char *json_string = cJSON_print(example_json);
     char json_string[1024]; // 1 KB buffer
     if (cJSON_PrintPreallocated(example_json, json_string, sizeof(json_string), cJSON_False) != 1) {
     	fprintf(stderr, "Failed to print json_string.\n");
     } else {
-    	print(logger, json_string, .i=2);
+    	LOG(json_string, .i=2);
     }
     cJSON_Delete(example_json);
     // free(json_string);
 
     // json file read/write example
-    print(logger, "\nExample 2:", .i=1);
+    LOG("\nExample 2:", .i=1);
     char *filename = "json_example.json";
-    char filepath[HBUF_CAP];
+    char filepath[PATH_MAX_CHARS];
     #ifdef _WIN32
-        fmt(hbuf, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
-        memcpy(filepath, hbuf->text, hbuf->pos);
-        filepath[hbuf->pos] = '\0';
+        fmt(filepath, PATH_MAX_CHARS, "%s\\logging_util\\test_output\\%s", BASE_DIR, filename);
     #else
-        fmt(hbuf, "%s/logging_util/test_output/%s", BASE_DIR, filename);
-        memcpy(filepath, hbuf->text, hbuf->pos);
-        filepath[hbuf->pos] = '\0';
+        fmt(filepath, PATH_MAX_CHARS, "%s/logging_util/test_output/%s", BASE_DIR, filename);
     #endif
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "name", "Luke");
@@ -505,141 +487,134 @@ void test_print_json() {
     cJSON_AddItemToArray(langs, cJSON_CreateString("Python"));
     int rc = write_json_file(root, filepath);
     if (rc != 0) {
-        print(logger, fmt(hbuf, "Failed to write JSON, error code %d", rc), .i=2);
-        print(logger, fmt(hbuf, "json filepath: %s", filepath), .i=3);
+        LOG(FMT("Failed to write JSON, error code %d", rc), .i=2);
+        LOG(FMT("json filepath: %s", filepath), .i=3);
     }
     cJSON_Delete(root);
     cJSON *loaded = read_json_file(filepath);
     if (!loaded) {
-        print(logger, "Failed to read JSON", .i=2);
-        print(logger, fmt(hbuf, "json filepath: %s", filepath), .i=3);
+        LOG("Failed to read JSON", .i=2);
+        LOG(FMT("json filepath: %s", filepath), .i=3);
         return;
     }
     char *loaded_string = cJSON_Print(loaded);
     cJSON *name = cJSON_GetObjectItem(loaded, "name");
     cJSON *age  = cJSON_GetObjectItem(loaded, "age");
-    print(logger, loaded_string, .i=2);
+    LOG(loaded_string, .i=2);
     if (cJSON_IsString(name))
-        print(logger, fmt(hbuf, "name = %s", name->valuestring), .i=2);
+        LOG(FMT("name = %s", name->valuestring), .i=2);
     if (cJSON_IsNumber(age))
-        print(logger, fmt(hbuf, "age = %d", age->valueint), .i=2);
+        LOG(FMT("age = %d", age->valueint), .i=2);
         cJSON_Delete(loaded);
     free(loaded_string);
 
 }
 
 void test_overwrite_prev_msg() {
-	print(logger, "\ntest_overwrite_prev_msg():");
+	LOG("\ntest_overwrite_prev_msg():");
 
     int sleep_time = 500000; // in microseconds
     int i = 1;
 
     // new text has shorter lines
-	print(logger, "aaaa", .i=i, .overwrite_prev_msg=false);
+	LOG("aaaa", .i=i, .overwrite_prev_msg=false);
 	sleep_microseconds(sleep_time);
-	print(logger, "bbb", .i=i, .overwrite_prev_msg=true);
+	LOG("bbb", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "cc", .i=i, .overwrite_prev_msg=true);
+	LOG("cc", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "d", .i=i, .overwrite_prev_msg=true);
+	LOG("d", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "", .i=0, .overwrite_prev_msg=true);
+	LOG("", .i=0, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
 
     // new text has longer lines
-	print(logger, "a", .i=i, .overwrite_prev_msg=true);
+	LOG("a", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "bb", .i=i, .overwrite_prev_msg=true);
+	LOG("bb", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "ccc", .i=i, .overwrite_prev_msg=true);
+	LOG("ccc", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "dddd", .i=i, .overwrite_prev_msg=true);
+	LOG("dddd", .i=i, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
-	print(logger, "", .i=0, .overwrite_prev_msg=true);
+	LOG("", .i=0, .overwrite_prev_msg=true);
 	sleep_microseconds(sleep_time);
 
     // new text has more lines
-    print(logger, "a", .i=i, .overwrite_prev_msg=true);
+    LOG("a", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "b\nb", .i=i, .overwrite_prev_msg=true);
+    LOG("b\nb", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "c\nc\nc", .i=i, .overwrite_prev_msg=true);
+    LOG("c\nc\nc", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "d\nd\nd\nd", .i=i, .overwrite_prev_msg=true);
+    LOG("d\nd\nd\nd", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
+    LOG("", .i=0, .end="", .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
 
     // new text has less lines
-    print(logger, "a\na\na\na", .i=i, .overwrite_prev_msg=true);
+    LOG("a\na\na\na", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "b\nb\nb", .i=i, .overwrite_prev_msg=true);
+    LOG("b\nb\nb", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "c\nc", .i=i, .overwrite_prev_msg=true);
+    LOG("c\nc", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "d", .i=i, .overwrite_prev_msg=true);
+    LOG("d", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
+    LOG("", .i=0, .end="", .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
 
 	// verify regular log.print() works after overwrite_prev_msg
-    print(logger, "a", .i=0);
-    print(logger, "b", .i=1);
-    print(logger, "c", .i=2);
-    print(logger, "d", .i=3);
-    print(logger, "e", .i=4);
-    print(logger, "indented\nmulti\nline\nstring", .i=5);
+    LOG("a", .i=0);
+    LOG("b", .i=1);
+    LOG("c", .i=2);
+    LOG("d", .i=3);
+    LOG("e", .i=4);
+    LOG("indented\nmulti\nline\nstring", .i=5);
 
     // verify overwrite_prev_msg works after regular log.print()
-    print(logger, "test", .i=i, .overwrite_prev_msg=true);
+    LOG("test", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "overwrite_prev_msg", .i=i, .overwrite_prev_msg=true);
+    LOG("overwrite_prev_msg", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "after", .i=i, .overwrite_prev_msg=true);
+    LOG("after", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "regular print()", .i=i, .overwrite_prev_msg=true);
+    LOG("regular print()", .i=i, .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
-    print(logger, "", .i=0, .end="", .overwrite_prev_msg=true);
+    LOG("", .i=0, .end="", .overwrite_prev_msg=true);
     sleep_microseconds(sleep_time);
 
-    print(logger, "test regular print() after overwrite_prev_msg", .i=i, .ne=true);
+    LOG("test regular print() after overwrite_prev_msg", .i=i, .ne=true);
 
-	print(logger, fmt(hbuf, "log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
-	print(logger, fmt(hbuf, "console indent  = \"%s\"", logger->console_indent), .i=i+1);
-	print(logger, fmt(hbuf, "log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
+	LOG(FMT("log file with final test_overwrite_prev_msg output at:\n%s", logger->filepath), .i=i);
+	LOG(FMT("console indent  = \"%s\"", logger->console_indent), .i=i+1);
+	LOG(FMT("log file indent = \"%s\"", logger->logfile_indent), .i=i+1, .ne=true);
 
 }
 
 void test_thread_safety() {
-    print(logger, "\ntest_thread_safety():");
+    LOG("\ntest_thread_safety():");
     logger->thread_safe = true;
     if (thread_safety_test() != 0) {
         fprintf(stderr, "Thread safety test failed\n");
     } else {
-        print(logger, fmt(hbuf, "test passes if all %d x %d thread/iteration combinations were printed (order does\'t matter)", THREAD_COUNT, ITERATIONS), .ns=true);
-        print(logger, fmt(hbuf, "test complete, log file at:\n%s", logger->filepath), .ne=true);
+        LOG(FMT("test passes if all %d x %d thread/iteration combinations were printed (order does\'t matter)", THREAD_COUNT, ITERATIONS), .ns=true);
+        LOG(FMT("test complete, log file at:\n%s", logger->filepath), .ne=true);
     }
 }
 
 int main(void) {
 
     // init global heap buffer for string_util fmt*() functions
-    hbuf = malloc(sizeof(Buffer));
-    hbuf->text = malloc(HBUF_CAP);
-    hbuf->cap = HBUF_CAP;
-    hbuf->pos = 0;
+    hbuf = malloc(HBUF_CAP);
 
     // Set log file path
     get_full_base_dir();
-    char log_filepath[HBUF_CAP];
+    char log_filepath[256];
     #ifdef _WIN32
-        fmt(hbuf, "%s\\logging_util\\log\\log.txt", BASE_DIR);
-        memcpy(log_filepath, hbuf->text, hbuf->pos);
-        log_filepath[hbuf->pos] = '\0';
+        fmt(log_filepath, sizeof(log_filepath), "%s\\logging_util\\log\\log.txt", BASE_DIR);
     #else
-        fmt(hbuf, "%s/logging_util/log/log.txt", BASE_DIR);
-        memcpy(log_filepath, hbuf->text, hbuf->pos);
-        log_filepath[hbuf->pos] = '\0';
+        fmt(log_filepath, sizeof(log_filepath), "%s/logging_util/log/log.txt", BASE_DIR);
     #endif
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
@@ -664,7 +639,7 @@ int main(void) {
 
     // free logger and heap buffer
     log_close(&logger);
-    free(hbuf->text); free(hbuf);
+    free(hbuf);
 
     return 0;
 }
