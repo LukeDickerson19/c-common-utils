@@ -56,7 +56,7 @@ typedef struct Log {
     int64_t unix_start_time; // unix start time used for prepending elapsed time, defaults to time when log_init() is called
     int32_t start_time_microseconds; // microsecond component of unix start time
     bool prepend_memory_usage; // prepend the memory used and allocated to the program using the logging util
-    char *p_buf; size_t p_buf_cap;  // short char array thats passed to the string_util fmt_append() function to provide a temporary buffer for formatting prepend info. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() performance.
+    char *p_buf; size_t p_buf_cap; // short char array thats passed to the string_util fmt_append() function to provide a temporary buffer for formatting prepend info. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() performance.
     size_t max_indents; // max number of indents the user can indent a log message // NOTE: max_indents effects mini indents when prepending time or memory info, keep it as small as you estimate the max number of indents you'll use
     char *max_console_indentation; // max console indentation (heap allocated on log_init with console_indent and max_indents)
     char *max_logfile_indentation; // max logfile indentation (heap allocated on log_init with logfile_indent and max_indents)

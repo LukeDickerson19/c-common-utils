@@ -6,14 +6,32 @@
 
 ///////////////// global variables ///////////////////
 
-Log *logger; // global logging util Log struct
-#define LOG(msg, ...) print(logger, (msg), ##__VA_ARGS__) // even more concise macro
+// directories
+#ifdef _WIN32
+    const char sep = '\\';
+#else
+    const char sep = '/';
+#endif
+#define PATH_MAX_CHARS 1024
+char BASE_DIR[PATH_MAX_CHARS];
+
+// string util
 const char *hbuf; // global heap buffer for fmt*() functions
 #define HBUF_CAP 2048
 #define FMT(msg, ...) fmt(hbuf, HBUF_CAP, (msg), ##__VA_ARGS__) // even more concise macro
+
+// logging util
+Log *logger; // global logging util Log struct
+#define LOG(msg, ...) print(logger, (msg), ##__VA_ARGS__) // even more concise macro
 #define LOGGING_ENABLED true // toggle logging entirely for ALL log structs
-#define PATH_MAX_CHARS 1024
-char BASE_DIR[PATH_MAX_CHARS];
+const char *log_filename = "log.txt";
+#ifdef _WIN32
+    const char *log_dir = "logging_util\\logs";
+#else
+    const char *log_dir = "logging_util/logs";
+#endif
+
+// thread safety test
 #define THREAD_COUNT 4
 #define ITERATIONS 20
 
@@ -608,12 +626,8 @@ int main(void) {
 
     // Set log file path
     get_full_base_dir();
-    char log_filepath[256];
-    #ifdef _WIN32
-        fmt(log_filepath, sizeof(log_filepath), "%s\\logging_util\\log\\log.txt", BASE_DIR);
-    #else
-        fmt(log_filepath, sizeof(log_filepath), "%s/logging_util/log/log.txt", BASE_DIR);
-    #endif
+    char log_filepath[256]; fmt(log_filepath, sizeof(log_filepath),
+        "%s%c%s%c%s", BASE_DIR, sep, log_dir, sep, log_filename);
     printf("log filepath: %s\n", log_filepath); fflush(stdout); // print immediately (no buffer)
 
     // initialize log struct

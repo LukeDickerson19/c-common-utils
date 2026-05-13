@@ -762,10 +762,6 @@ UTILS:
 
             i think i might be adding +1 to memory capacity to make room for the null teminator multiple times throughout the code redundantly, and consuming more memory than neccessary.
 
-            string libs honorable mentions:
-
-                stb_ds (string = char array)
-                https://github.com/nothings/stb
 
         logging_util
 
@@ -859,13 +855,24 @@ LIBRARIES:
 
 OTHER NOTES:
 
-    On May 12 2026 I updated the string_util fmt() and fmt_append() functions to use a char* buffer instead of a buffer struct, along with the logging_util's usage of it. If you ever want that Buffer struct back, its on the commit right before then: 2240211.
-        https://github.com/LukeDickerson19/c-common-utils/commit/22402116452b7d8c0b95c0ada5c1b4d3e406d798
+    string_util
 
-        The previous implementation before this major refactor can be checked out with:
+        On May 12 2026 I updated the string_util fmt() and fmt_append() functions to use a char* buffer instead of a buffer struct, along with the logging_util's usage of it. If you ever want that Buffer struct back, its on the commit right before then: 2240211.
+            https://github.com/LukeDickerson19/c-common-utils/commit/22402116452b7d8c0b95c0ada5c1b4d3e406d798
 
-            git clone git@github.com:LukeDickerson19/c-common-utils.git
-            cd c-common-utils
-            git checkout 2240211
+            The previous implementation before this major refactor can be checked out with:
 
-        This places the repository into a detached HEAD state at the old version.
+                git clone git@github.com:LukeDickerson19/c-common-utils.git
+                cd c-common-utils
+                git checkout 2240211
+
+            This places the repository into a detached HEAD state at the old version.
+
+        string libs honorable mentions:
+
+            stb_ds (string = char array)
+            https://github.com/nothings/stb
+
+    logging_util
+
+        

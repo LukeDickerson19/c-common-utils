@@ -1960,25 +1960,32 @@ void test_fmt_append(bool verbose) {
     // Test NULL destination buffer
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test NULL destination buffer\n\n", test_details, sizeof(test_details));
-    size_t r4 = fmt_append(NULL, NULL, "test");
+    size_t r4 = fmt_append(NULL, 100, "test");
     ASSERT_BOOL_TRUE("Test 8: NULL buffer returns (size_t)-1",
                      r4 == (size_t)-1, test_details, verbose);
+
+    // Test 0 buffer size
+    test_details[0] = '\0'; buf[0] = '\0';
+    append_formatted_text("Test 0 buffer size\n\n", test_details, sizeof(test_details));
+    size_t r5 = fmt_append(buf, 0, "test");
+    ASSERT_BOOL_TRUE("Test 9: 0 buffer size returns (size_t)-1",
+                     r5 == (size_t)-1, test_details, verbose);
 
     // Test format string with %%
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test format string with %%\n\n", test_details, sizeof(test_details));
     fmt_append(buf, sizeof(buf), "50%% off");
-    ASSERT_TEXT_EQ("Test 9: percent sign handled correctly",
+    ASSERT_TEXT_EQ("Test 10: percent sign handled correctly",
                    buf, "50% off", test_details, verbose);
 
     // Test UTF-8 formatting
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test UTF-8 formatting\n\n", test_details, sizeof(test_details));
-    size_t r7 = fmt_append(buf, sizeof(buf), "東京: %d, 🌍: %s", 2020, "world");
-    ASSERT_TEXT_EQ("Test 10: UTF-8 formatting works",
+    size_t r6 = fmt_append(buf, sizeof(buf), "東京: %d, 🌍: %s", 2020, "world");
+    ASSERT_TEXT_EQ("Test 11: UTF-8 formatting works",
                    buf, "東京: 2020, 🌍: world", test_details, verbose);
-    ASSERT_BOOL_TRUE("Test 11: UTF-8 returns byte length not char count",
-                     r7 == strlen("東京: 2020, 🌍: world"), test_details, verbose);
+    ASSERT_BOOL_TRUE("Test 12: UTF-8 returns byte length not char count",
+                     r6 == strlen("東京: 2020, 🌍: world"), test_details, verbose);
 
     printf("\n    %s test: fmt_append() %d passed, %d failed\n",
         failed > 0 ? "❌ NOT ALL TESTS PASSED:" : "✅ ALL TESTS PASSED:", passed, failed);
