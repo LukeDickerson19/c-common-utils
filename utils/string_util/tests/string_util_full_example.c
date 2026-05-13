@@ -1925,11 +1925,10 @@ void test_fmt_append(bool verbose) {
     append_formatted_text("Test basic append\n\n", test_details, sizeof(test_details));
 
     // create example stack buffer (no need to free)
-    size_t cap = 128; // buffer capacity
-    char buf[cap]; buf[0] = '\0'; // raw char array on stack (must be initialized)
+    char buf[128]; buf[0] = '\0'; // raw char array on stack (must be initialized)
 
-    size_t r1 = fmt_append(buf, cap, "Hello, ");
-    size_t r2 = fmt_append(buf, cap, "%s!", "world");
+    size_t r1 = fmt_append(buf, sizeof(buf), "Hello, ");
+    size_t r2 = fmt_append(buf, sizeof(buf), "%s!", "world");
     ASSERT_BOOL_TRUE("Test 1: first append returns correct length",
                      r1 == 7, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 2: second append returns correct length",
@@ -1940,18 +1939,17 @@ void test_fmt_append(bool verbose) {
     // Test multiple format specifiers
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test multiple format specifiers\n\n", test_details, sizeof(test_details));
-    fmt_append(buf, cap, "Values: ");
-    fmt_append(buf, cap, "%d, %f, %c", 42, 3.14, 'x');
+    fmt_append(buf, sizeof(buf), "Values: ");
+    fmt_append(buf, sizeof(buf), "%d, %f, %c", 42, 3.14, 'x');
     ASSERT_TEXT_EQ("Test 4: multiple format specifiers",
                    buf, "Values: 42, 3.140000, x", test_details, verbose);
 
     // Test buffer overflow handling
     test_details[0] = '\0'; 
     append_formatted_text("Test buffer overflow handling\n\n", test_details, sizeof(test_details));
-    size_t small_cap = 8; // buffer capacity
-    char small_buf[small_cap]; small_buf[0] = '\0'; // raw char array on stack
-    size_t first_written  = fmt_append(small_buf, small_cap, "123");
-    size_t second_written = fmt_append(small_buf, small_cap, "456789");
+    char small_buf[8]; small_buf[0] = '\0'; // raw char array on stack
+    size_t first_written  = fmt_append(small_buf, sizeof(small_buf), "123");
+    size_t second_written = fmt_append(small_buf, sizeof(small_buf), "456789");
     ASSERT_BOOL_TRUE("Test 5: first append fits in small buffer",
                      first_written == 3, test_details, verbose);
     ASSERT_BOOL_TRUE("Test 6: second append returns would-be length on truncation",
@@ -1962,21 +1960,21 @@ void test_fmt_append(bool verbose) {
     // Test NULL destination buffer
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test NULL destination buffer\n\n", test_details, sizeof(test_details));
-    size_t r4 = fmt_append(NULL, cap, "test");
+    size_t r4 = fmt_append(NULL, NULL, "test");
     ASSERT_BOOL_TRUE("Test 8: NULL buffer returns (size_t)-1",
                      r4 == (size_t)-1, test_details, verbose);
 
     // Test format string with %%
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test format string with %%\n\n", test_details, sizeof(test_details));
-    fmt_append(buf, cap, "50%% off");
+    fmt_append(buf, sizeof(buf), "50%% off");
     ASSERT_TEXT_EQ("Test 9: percent sign handled correctly",
                    buf, "50% off", test_details, verbose);
 
     // Test UTF-8 formatting
     test_details[0] = '\0'; buf[0] = '\0';
     append_formatted_text("Test UTF-8 formatting\n\n", test_details, sizeof(test_details));
-    size_t r7 = fmt_append(buf, cap, "東京: %d, 🌍: %s", 2020, "world");
+    size_t r7 = fmt_append(buf, sizeof(buf), "東京: %d, 🌍: %s", 2020, "world");
     ASSERT_TEXT_EQ("Test 10: UTF-8 formatting works",
                    buf, "東京: 2020, 🌍: world", test_details, verbose);
     ASSERT_BOOL_TRUE("Test 11: UTF-8 returns byte length not char count",

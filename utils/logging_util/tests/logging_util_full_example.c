@@ -40,10 +40,9 @@ char BASE_DIR[PATH_MAX_CHARS];
     DWORD WINAPI thread_print_loop(LPVOID arg) {
         int thread_id = (int)(intptr_t)arg;
         char *msg;
-        size_t cap = 256;
-        char buf[cap]; // raw char array on stack
+        char buf[256]; // raw char array on stack
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt(buf, cap, "thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buf, sizeof(buf), "thread %d iteration %d", thread_id, j), .i=1);
         }
         return 0;
     }
@@ -77,10 +76,9 @@ char BASE_DIR[PATH_MAX_CHARS];
         int thread_id = (int)(intptr_t)arg;
         char *msg;
 
-        size_t cap = 256;
-        char buf[cap]; // raw char array on stack
+        char buf[256]; // raw char array on stack
         for (int j = 0; j < ITERATIONS; j++) {
-            print(logger, fmt(buf, cap, "thread %d iteration %d", thread_id, j), .i=1);
+            print(logger, fmt(buf, sizeof(buf), "thread %d iteration %d", thread_id, j), .i=1);
         }
         return NULL;
     }

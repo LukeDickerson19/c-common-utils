@@ -24,7 +24,15 @@ target_link_libraries(sqlite_util PRIVATE sqlite3)
 add_executable(sqlite_util_full_example
     tests/sqlite_util_full_example.c
 )
-target_link_libraries(sqlite_util_full_example PRIVATE
-    sqlite_util
-    m
-)
+if(WIN32)
+    # Windows
+    target_link_libraries(sqlite_util_full_example PRIVATE
+        sqlite_util
+    )
+else()
+    # Linux
+    target_link_libraries(sqlite_util_full_example PRIVATE
+        sqlite_util
+        m
+    )
+endif()

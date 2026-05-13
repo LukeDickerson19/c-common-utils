@@ -718,6 +718,8 @@ UTILS:
 
             Run:
 
+                # replace "Release" in below paths with "Debug" for debug builds
+
                 # MSVC
                     chcp 65001
                     .\build\string_util\Release\string_util_readme_example.exe
@@ -725,8 +727,6 @@ UTILS:
                     .\build\logging_util\Release\logging_util_readme_example.exe
                     .\build\logging_util\Release\logging_util_full_example.exe
                     .\build\time_util\Release\time_util_full_example.exe
-
-                    # or replace "Release" with "Debug"
 
                 # clang-cl
                     chcp 65001
