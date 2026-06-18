@@ -432,7 +432,7 @@ int str_append(
 
     // Normalize the prefix (NFC)
     // This ensures combining codepoints become canonical before insertion.
-    const char *normalized = normalize_utf8_str(suffix);
+    char *normalized = normalize_utf8_str(suffix);
     if (!normalized)
         return -1;
 
@@ -442,8 +442,10 @@ int str_append(
     size_t needed = s->bytes + suffix_bytes + 1;
     if (needed > s->cap) {
         int rc = grow_capacity(s, needed);
-        if (rc != 0)
+        if (rc != 0) {
+            free(normalized);
             return -1;
+        }
     }
 
     // Append suffix characters to s->text
@@ -454,6 +456,7 @@ int str_append(
     // Update rune count
     s->len += count_utf8_runes(normalized);
 
+    free(normalized);
     return 0;
 }
 
@@ -467,7 +470,7 @@ int str_prepend(
 
     // Normalize the prefix (NFC)
     // This ensures combining codepoints become canonical before insertion.
-    const char *normalized = normalize_utf8_str(prefix);
+    char *normalized = normalize_utf8_str(prefix);
     if (!normalized)
         return -1;
 
@@ -477,8 +480,10 @@ int str_prepend(
     size_t needed = s->bytes + prefix_bytes + 1;
     if (needed > s->cap) {
         int rc = grow_capacity(s, needed);
-        if (rc != 0)
+        if (rc != 0) {
+            free(normalized);
             return -1;
+        }
     }
 
     // Shift existing bytes to the right (including null terminator)
@@ -495,6 +500,7 @@ int str_prepend(
     s->bytes += prefix_bytes;
     s->len   += count_utf8_runes(normalized);
 
+    free(normalized);
     return 0;
 }
 
