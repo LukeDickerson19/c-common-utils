@@ -357,10 +357,11 @@ static void _clear_previous_console_message(
 
 
 static char* _get_memory_str(
-    size_t bytes
+    size_t bytes,
+    char *buffer,
+    size_t buffer_capacity
 ) {
     // converts the int number of bytes to a string with appropriate units
-    static char buffer[64];
     const char* units[] = {"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
     const int num_units = sizeof(units) / sizeof(units[0]);
     double b = (double)bytes;
@@ -371,14 +372,13 @@ static char* _get_memory_str(
     }
     if (index == 0) {
         if (bytes == 1) {
-            snprintf(buffer, sizeof(buffer), "1 byte");
+            snprintf(buffer, buffer_capacity, "1 byte");
         } else {
-            snprintf(buffer, sizeof(buffer), "%zu bytes", bytes);
+            snprintf(buffer, buffer_capacity, "%zu bytes", bytes);
         }
     } else {
-        snprintf(buffer, sizeof(buffer), "%.4f %s", b, units[index]);
+        snprintf(buffer, buffer_capacity, "%.4f %s", b, units[index]);
     }
-    return buffer;
 }
 
 
@@ -428,7 +428,9 @@ static int _get_process_memory_usage(
 
     #endif
 
-    snprintf(buf, buf_cap, "%14s used  ", _get_memory_str(bytes));
+    char mem_str[64];
+    _get_memory_str(bytes, mem_str, sizeof(mem_str));
+    snprintf(buf, buf_cap, "%14s used  ", mem_str);
     return 0;
 
     fail:
