@@ -63,7 +63,6 @@ typedef struct Log {
     char *i_buf; size_t i_buf_cap; // short char array buffer thats passed to the string_util fmt() function to provide a temporary buffer for formatting indentation. Its set to a size of 4 * log->max_line_len for worst case utf-8 4 byte characters. Its malloced and free'd with the log struct instead of print() to improve print() performance.
     size_t max_message_len; // max number of runes (aka UTF-8 code points) per message
     size_t max_line_len; // max number of runes (aka UTF-8 code points) per line, NOTE: if max_line_len is too large it can cause a stack overflow error, recommend at max 4096.
-    size_t i2; // indentation to use if .i=-1 is passed to print, defaults to most recent i
 
     // latest and 2nd latest console message printed
     String *console_msg;
@@ -101,7 +100,6 @@ typedef struct Log {
     .max_indents = 10, \
     .max_message_len = 8192, \
     .max_line_len = 1024, \
-    .i2 = 0, \
     .thread_safe = false
 Log *_log_init(Log *opts);
 #define log_init(...) _log_init(&(Log){ DEFAULT_LOG_OPTIONS, ##__VA_ARGS__ })

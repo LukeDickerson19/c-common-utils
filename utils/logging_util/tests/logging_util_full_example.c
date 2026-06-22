@@ -30,6 +30,8 @@ const char *log_filename = "log.txt";
 #else
     const char *log_dir = "logging_util/logs";
 #endif
+int ci = 0; // ci = current indentation
+
 
 // thread safety test
 #define THREAD_COUNT 4
@@ -176,39 +178,41 @@ void get_full_base_dir(void) {
 }
 
 void test_print() {
-    print(logger, "\ntest_print():");
+    ci = 0;
+    print(logger, "\ntest_print():", .i=ci);
+    ci += 1;
 
     // test num_indents and multi line indentation
-    print(logger, "abc123", .i=1);
-    print(logger, "漢字日", .i=2);
-    LOG("áéöüñприв", .i=3);
-    LOG("ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞", .i=4);
-    LOG("±≈√∑©®™🌟🚀😄🐍🏖️🎉", .i=5);
-    LOG("\nindented\nmulti\nline\nstring", .i=6);
+    print(logger, "abc123", .i=ci);
+    print(logger, "漢字日", .i=ci+1);
+    LOG("áéöüñприв", .i=ci+2);
+    LOG("ет你好مرحباनमस्ते←↑→↓↔↕↖↗↘↙∞", .i=ci+3);
+    LOG("±≈√∑©®™🌟🚀😄🐍🏖️🎉", .i=ci+4);
+    LOG("\nindented\nmulti\nline\nstring", .i=ci+5);
 
     // test formatted string
     char buf[256];
-    print(logger, fmt(buf, sizeof(buf), "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=1);
-    LOG(FMT("hello %s", "world"), .i=1);
+    print(logger, fmt(buf, sizeof(buf), "formatted string: %d %c %s 😄%s🐍", 7, 'f', "hellooo", "🏖️🎉"), .i=ci);
+    LOG(FMT("hello %s", "world"), .i=ci);
 
     // test new line start
-    LOG("new line start = true, draw line = false", .i=1, .ns=true);
-    LOG("new line start = true, draw line = true", .i=1, .ns=true, .d=true);
-    LOG("new line start = false", .i=1, .ns=false);
+    LOG("new line start = true, draw line = false", .i=ci, .ns=true);
+    LOG("new line start = true, draw line = true", .i=ci, .ns=true, .d=true);
+    LOG("new line start = false", .i=ci, .ns=false);
 
     // test new line end
-    LOG("new line end = true, draw line = false", .i=1, .ne=true);
-    LOG("new line end = True, draw line = True", .i=1, .ne=true, .d=true);
-    LOG("new line end = false", .i=1, .ne=false);
+    LOG("new line end = true, draw line = false", .i=ci, .ne=true);
+    LOG("new line end = True, draw line = True", .i=ci, .ne=true, .d=true);
+    LOG("new line end = false", .i=ci, .ne=false);
 
     // test get latest msg
     char *console_msg, *logfile_msg;
-    LOG("latest log message", .i=2, .ns=true, .ne=true);
+    LOG("latest log message", .i=ci+1, .ns=true, .ne=true);
     console_msg = get_latest_console_msg(logger);
     logfile_msg = get_latest_logfile_msg(logger);
     fwrite(console_msg, 1, strlen(console_msg), stdout); // if theres indents, it was preserved
     fwrite(logfile_msg, 1, strlen(logfile_msg), stdout);
-    LOG("latest\nmulti-line\n\nlog\nmessage", .i=3, .ns=true, .ne=true);
+    LOG("latest\nmulti-line\n\nlog\nmessage", .i=ci+2, .ns=true, .ne=true);
     console_msg = get_latest_console_msg(logger);
     logfile_msg = get_latest_logfile_msg(logger);
     fwrite(console_msg, 1, strlen(console_msg), stdout); // if theres indents, it was preserved
@@ -220,62 +224,62 @@ void test_print() {
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
     LOG("testing single line prepend_datetime_fmt w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt", .i=1);
-    LOG("testing single line indented prepend_datetime_fmt", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt", .i=ci);
+    LOG("testing single line indented prepend_datetime_fmt", .i=ci+1);
 
     // test prepend only elapsed time
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = false;
     LOG("testing single line prepend_elapsed_time w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend_elapsed_time", .i=1);
-    LOG("testing single line indented prepend_elapsed_time", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend_elapsed_time", .i=ci);
+    LOG("testing single line indented prepend_elapsed_time", .i=ci+1);
 
     // test prepend only memory usage
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
     LOG("testing single line prepend_memory_usage w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend_memory_usage", .i=1);
-    LOG("testing single line indented prepend_memory_usage", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend_memory_usage", .i=ci);
+    LOG("testing single line indented prepend_memory_usage", .i=ci+1);
 
     // test both prepend datetime and prepend elapsed time
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = false;
     LOG("testing single line prepend_datetime_fmt and prepend_elapsed_time w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_elapsed_time", .i=1);
-    LOG("testing single line indented prepend_datetime_fmt and prepend_elapsed_time", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_elapsed_time", .i=ci);
+    LOG("testing single line indented prepend_datetime_fmt and prepend_elapsed_time", .i=ci+1);
 
     // test both prepend datetime and prepend memory usage
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = true;
     LOG("testing single line prepend_datetime_fmt and prepend_memory_usage w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=1);
-    LOG("testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend_datetime_fmt\nand\nprepend_memory_usage", .i=ci);
+    LOG("testing single line indented prepend_datetime_fmt and prepend_memory_usage", .i=ci+1);
 
     // test both prepend elapsed time and prepend memory usage
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = true;
     LOG("testing single line prepend_elapsed_time and prepend_memory_usage w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend_elapsed_time\nand\nprepend_memory_usage", .i=1);
-    LOG("testing single line indented prepend_elapsed_time and prepend_memory_usage", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend_elapsed_time\nand\nprepend_memory_usage", .i=ci);
+    LOG("testing single line indented prepend_elapsed_time and prepend_memory_usage", .i=ci+1);
 
     // test all 3 prependable information
     set_prepend_datetime_fmt(logger, "%Y-%m-%d %H:%M:%S.%f %Z");
     logger->prepend_elapsed_time = true;
     logger->prepend_memory_usage = true;
     LOG("testing single line prepend all 3 w/out indent", .ns=true);
-    LOG("testing\nmulti\nline\n\nprepend\nall\n3", .i=1);
-    LOG("testing single line indented prepend all 3", .i=2);
+    LOG("testing\nmulti\nline\n\nprepend\nall\n3", .i=ci);
+    LOG("testing single line indented prepend all 3", .i=ci+1);
     set_prepend_datetime_fmt(logger, NULL);
     logger->prepend_elapsed_time = false;
     logger->prepend_memory_usage = false;
 
     // test line and message truncation
-    LOG("truncation tests:", .i=1, .ns=true);
+    LOG("truncation tests:", .i=ci, .ns=true);
     int default_max_message_len = logger->max_message_len;
     int default_max_line_len = logger->max_line_len;
     int test_max_message_len = 500;
@@ -285,24 +289,24 @@ void test_print() {
 
     // test message truncation
     logger->max_message_len = test_max_message_len;
-    LOG(FMT("Test message truncation: set logger->max_message_len to %zd", logger->max_message_len), .i=2, .ns=true);
-    LOG(FMT("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    LOG(FMT("Test message truncation: set logger->max_message_len to %zd", logger->max_message_len), .i=ci+1, .ns=true);
+    LOG(FMT("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=ci+2);
 
     // test line truncation
     logger->max_line_len = test_max_line_len;
-    LOG(FMT("Test line truncation: set logger->max_line_len to %zd", logger->max_line_len), .i=2, .ns=true);
-    LOG(long_line, .i=3);
+    LOG(FMT("Test line truncation: set logger->max_line_len to %zd", logger->max_line_len), .i=ci+1, .ns=true);
+    LOG(long_line, .i=ci+2);
 
     // test both
-    LOG("Test both:", .i=2, .ns=true);
-    LOG(FMT("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=3);
+    LOG("Test both:", .i=ci+1, .ns=true);
+    LOG(FMT("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s", long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line, long_line), .i=ci+2);
 
     // test complete, restore default settings
     logger->max_message_len = default_max_message_len;
     logger->max_line_len    = default_max_line_len;
-    LOG("truncation tests complete.", .i=1, .ns=true, .d=true);
-    LOG(FMT("restored logger->max_line_len    to default: %zd", logger->max_line_len),    .i=1);
-    LOG(FMT("restored logger->max_message_len to default: %zd", logger->max_message_len), .i=1, .ne=true);
+    LOG("truncation tests complete.", .i=ci, .ns=true, .d=true);
+    LOG(FMT("restored logger->max_line_len    to default: %zd", logger->max_line_len), .i=ci);
+    LOG(FMT("restored logger->max_message_len to default: %zd", logger->max_message_len), .i=ci, .ne=true);
 
 }
 

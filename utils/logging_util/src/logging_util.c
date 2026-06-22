@@ -190,7 +190,6 @@ Log *_log_init(
     log->max_indents = opts->max_indents;
     log->max_message_len = opts->max_message_len;
     log->max_line_len = opts->max_line_len;
-    log->i2 = opts->i2;
     log->thread_safe = opts->thread_safe;
     // *log = *opts; // shallow copy
     
@@ -567,11 +566,7 @@ static int _get_formatted_messages(
 
     // validate input args
     if (!message || !opts || !log) return -1;
-
-    // use i2 if i == -1
-    if (opts->i == -1) opts->i = (int)log->i2;
     if (opts->i < 0 || opts->i > (int)log->max_indents) return -1;
-    log->i2 = (size_t)opts->i; // update i2 to most recent i
 
     // Prepend info if requested
     log->p_buf[0] = '\0'; // reset p_buf incase user requested not to prepend anything
